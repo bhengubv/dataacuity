@@ -1,0 +1,79 @@
+{
+  "name": "DataAcuity Maps",
+  "short_name": "Maps",
+  "description": "Navigate Time & Space - Interactive historical mapping platform",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0ea5e9",
+  "orientation": "any",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/images/screenshot.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "DataAcuity Maps Desktop View"
+    },
+    {
+      "src": "/images/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "DataAcuity Maps Mobile View"
+    }
+  ],
+  "categories": ["navigation", "education", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Timeline Mode",
+      "short_name": "Timeline",
+      "description": "Explore places through history",
+      "url": "/?mode=timeline",
+      "icons": [{ "src": "/icons/timeline.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Get Directions",
+      "short_name": "Directions",
+      "description": "Plan a route",
+      "url": "/?mode=navigate",
+      "icons": [{ "src": "/icons/directions.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Transit",
+      "short_name": "Transit",
+      "description": "Public transport info",
+      "url": "/?mode=transit",
+      "icons": [{ "src": "/icons/transit.png", "sizes": "96x96" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "lang": "en",
+  "dir": "ltr"
+}

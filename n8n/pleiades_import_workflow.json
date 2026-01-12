@@ -1,0 +1,248 @@
+{
+  "name": "Pleiades Import - DataAcuity Maps",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 120
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Every 2 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "filePath": "/home/geektrading/maps/data/pleiades/import_progress.json",
+        "options": {}
+      },
+      "id": "read-progress",
+      "name": "Read Progress",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.completed }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "check-complete",
+      "name": "All Done?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "filePath": "={{ '/home/geektrading/maps/data/pleiades/batches/batch_' + String($json.next_batch).padStart(4, '0') + '.json' }}",
+        "options": {}
+      },
+      "id": "read-batch",
+      "name": "Read Batch File",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [880, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse batch data\nconst batchData = JSON.parse($input.first().json.data);\nconst places = batchData.places;\n\n// Return places as separate items\nreturn places.map(place => ({ json: place }));"
+      },
+      "id": "parse-batch",
+      "name": "Parse Places",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 400]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO places (current_name, geometry, place_type, country_code, created_at)\nVALUES (\n  '{{ $json.current_name.replace(/'/g, \"''\") }}',\n  ST_SetSRID(ST_MakePoint({{ $json.lng }}, {{ $json.lat }}), 4326),\n  '{{ $json.place_type }}',\n  NULL,\n  NOW()\n)\nON CONFLICT DO NOTHING\nRETURNING id;",
+        "options": {}
+      },
+      "id": "insert-place",
+      "name": "Insert Place",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [1320, 400],
+      "credentials": {
+        "postgres": {
+          "id": "maps-postgres",
+          "name": "Maps PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get place ID and historical names\nconst placeId = $input.first().json.id;\nconst place = $('Parse Places').item;\nconst names = place.json.historical_names || [];\n\nif (!placeId || names.length === 0) {\n  return [];\n}\n\n// Return names with place ID\nreturn names.map(name => ({\n  json: {\n    place_id: placeId,\n    name: name.name,\n    name_native: name.name_native,\n    language: name.language,\n    year_start: name.year_start,\n    year_end: name.year_end,\n    source_title: name.source_title,\n    source_url: name.source_url\n  }\n}));"
+      },
+      "id": "prepare-names",
+      "name": "Prepare Names",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 400]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO place_names (place_id, name, name_native, language, year_start, year_end, source_title, source_url, created_at)\nVALUES (\n  {{ $json.place_id }},\n  '{{ $json.name.replace(/'/g, \"''\") }}',\n  {{ $json.name_native ? \"'\" + $json.name_native.replace(/'/g, \"''\") + \"'\" : 'NULL' }},\n  '{{ $json.language || \"unknown\" }}',\n  {{ $json.year_start || 'NULL' }},\n  {{ $json.year_end || 'NULL' }},\n  '{{ $json.source_title || \"Pleiades\" }}',\n  '{{ $json.source_url || \"\" }}',\n  NOW()\n)\nON CONFLICT DO NOTHING;",
+        "options": {}
+      },
+      "id": "insert-names",
+      "name": "Insert Historical Names",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [1760, 400],
+      "credentials": {
+        "postgres": {
+          "id": "maps-postgres",
+          "name": "Maps PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Update progress file\nconst fs = require('fs');\nconst progressFile = '/home/geektrading/maps/data/pleiades/import_progress.json';\nconst summaryFile = '/home/geektrading/maps/data/pleiades/import_summary.json';\n\n// Read current progress\nlet progress = JSON.parse(fs.readFileSync(progressFile, 'utf8'));\nconst summary = JSON.parse(fs.readFileSync(summaryFile, 'utf8'));\n\n// Update progress\nprogress.next_batch += 1;\nprogress.imported_batches += 1;\nprogress.last_import_time = new Date().toISOString();\n\n// Check if complete\nif (progress.next_batch > summary.total_batches) {\n  progress.completed = true;\n  progress.completion_time = new Date().toISOString();\n}\n\n// Save progress\nfs.writeFileSync(progressFile, JSON.stringify(progress, null, 2));\n\nreturn [{ json: progress }];"
+      },
+      "id": "update-progress",
+      "name": "Update Progress",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1980, 400]
+    },
+    {
+      "parameters": {},
+      "id": "stop-workflow",
+      "name": "Import Complete",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [880, 200]
+    }
+  ],
+  "connections": {
+    "Every 2 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Read Progress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Progress": {
+      "main": [
+        [
+          {
+            "node": "All Done?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "All Done?": {
+      "main": [
+        [
+          {
+            "node": "Import Complete",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Read Batch File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Batch File": {
+      "main": [
+        [
+          {
+            "node": "Parse Places",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Places": {
+      "main": [
+        [
+          {
+            "node": "Insert Place",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Place": {
+      "main": [
+        [
+          {
+            "node": "Prepare Names",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Names": {
+      "main": [
+        [
+          {
+            "node": "Insert Historical Names",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Historical Names": {
+      "main": [
+        [
+          {
+            "node": "Update Progress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "maps",
+      "id": "maps-import"
+    }
+  ],
+  "triggerCount": 0,
+  "meta": {
+    "instanceId": "dataacuity-maps"
+  }
+}

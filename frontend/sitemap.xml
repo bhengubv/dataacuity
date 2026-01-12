@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+        http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+
+    <!-- Main Application -->
+    <url>
+        <loc>https://maps.dataacuity.co.za/</loc>
+        <lastmod>2024-12-07</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>1.0</priority>
+    </url>
+
+    <!-- Historical Time Periods -->
+    <url>
+        <loc>https://maps.dataacuity.co.za/#year=-3000</loc>
+        <lastmod>2024-12-07</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://maps.dataacuity.co.za/#year=-1000</loc>
+        <lastmod>2024-12-07</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://maps.dataacuity.co.za/#year=-586</loc>
+        <lastmod>2024-12-07</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://maps.dataacuity.co.za/#year=33</loc>
+        <lastmod>2024-12-07</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://maps.dataacuity.co.za/#year=135</loc>
+        <lastmod>2024-12-07</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://maps.dataacuity.co.za/#year=1652</loc>
+        <lastmod>2024-12-07</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://maps.dataacuity.co.za/#year=1886</loc>
+        <lastmod>2024-12-07</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://maps.dataacuity.co.za/#year=2024</loc>
+        <lastmod>2024-12-07</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+
+    <!-- Major Historical Locations -->
+    <url>
+        <loc>https://maps.dataacuity.co.za/#place=jerusalem</loc>
+        <lastmod>2024-12-07</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://maps.dataacuity.co.za/#place=rome</loc>
+        <lastmod>2024-12-07</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://maps.dataacuity.co.za/#place=athens</loc>
+        <lastmod>2024-12-07</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://maps.dataacuity.co.za/#place=cairo</loc>
+        <lastmod>2024-12-07</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://maps.dataacuity.co.za/#place=cape-town</loc>
+        <lastmod>2024-12-07</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+    <url>
+        <loc>https://maps.dataacuity.co.za/#place=johannesburg</loc>
+        <lastmod>2024-12-07</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.7</priority>
+    </url>
+
+</urlset>

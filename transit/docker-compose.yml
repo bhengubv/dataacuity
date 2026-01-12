@@ -1,0 +1,59 @@
+services:
+  # Transit API (Python FastAPI)
+  transit_api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: transit_api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://maps:${MAPS_DB_PASSWORD:-maps_secret_2024}@maps_db:5432/maps
+      TRANSIT_API_KEY: ${TRANSIT_API_KEY:-}
+      MAPS_API_URL: http://maps_api:8000
+    ports:
+      - "5030:8000"
+    depends_on:
+      - maps_db
+    networks:
+      - maps_network
+      - data-warehouse_data_stack
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Use existing maps database (defined in maps docker-compose)
+  maps_db:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: maps_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: maps
+      POSTGRES_USER: maps
+      POSTGRES_PASSWORD: ${MAPS_DB_PASSWORD:-maps_secret_2024}
+    volumes:
+      - maps_db_data:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/03-transit-schema.sql:ro
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U maps -d maps"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - maps_network
+      - data-warehouse_data_stack
+
+volumes:
+  maps_db_data:
+    external: true
+    name: maps_maps_db_data
+
+networks:
+  maps_network:
+    external: true
+    name: maps_maps_network
+  data-warehouse_data_stack:
+    external: true

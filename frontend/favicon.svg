@@ -1,0 +1,26 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0ea5e9"/>
+      <stop offset="100%" style="stop-color:#0056CC"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="32" height="32" rx="6" fill="url(#bg)"/>
+
+  <!-- Globe -->
+  <circle cx="16" cy="14" r="9" fill="none" stroke="white" stroke-width="1.5"/>
+  <ellipse cx="16" cy="14" rx="9" ry="3" fill="none" stroke="white" stroke-width="1"/>
+  <ellipse cx="16" cy="14" rx="3" ry="9" fill="none" stroke="white" stroke-width="1"/>
+
+  <!-- Location pin -->
+  <g transform="translate(12, 8) scale(0.5)">
+    <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20c0-6.6-5.4-12-12-12z" fill="#FF3B30"/>
+    <circle cx="12" cy="12" r="4" fill="white"/>
+  </g>
+
+  <!-- Timeline bar -->
+  <rect x="6" y="26" width="20" height="2" rx="1" fill="white" opacity="0.5"/>
+  <rect x="6" y="26" width="14" height="2" rx="1" fill="white"/>
+</svg>

@@ -1,0 +1,246 @@
+# =============================================================================
+# SECURITY NOTICE: Required Environment Variables
+# =============================================================================
+# Create a .env file with the following required variables before starting:
+#
+#   MAPS_DB_PASSWORD=<strong-password>       # Required - PostgreSQL password
+#   NOMINATIM_PASSWORD=<strong-password>     # Required if using geocoding profile
+#
+# Optional API keys:
+#   HERE_API_KEY=<your-key>                 # For premium traffic data
+#   TOMTOM_API_KEY=<your-key>               # For traffic data (alternative)
+#   MAPILLARY_ACCESS_TOKEN=<your-token>     # For street view
+#   ESKOMSEPUSH_TOKEN=<your-token>          # For load shedding (SA only)
+#   MAPS_API_KEY=<your-key>                 # For API authentication (optional)
+#   TRANSIT_API_KEY=<your-key>              # For transit API authentication
+#
+# Example .env file:
+#   MAPS_DB_PASSWORD=your_secure_password_here
+#   NOMINATIM_PASSWORD=another_secure_password
+# =============================================================================
+
+services:
+  # PostGIS Database for geospatial data
+  maps_db:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: maps_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: maps
+      POSTGRES_USER: maps
+      # SECURITY: Password must be set via environment variable - no default
+      POSTGRES_PASSWORD: ${MAPS_DB_PASSWORD:?MAPS_DB_PASSWORD environment variable is required}
+    volumes:
+      - maps_db_data:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      - ./transit/db/schema.sql:/docker-entrypoint-initdb.d/03-transit-schema.sql:ro
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U maps -d maps"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - maps_network
+      - data-warehouse_data_stack
+
+  # API Server (Python FastAPI for geospatial)
+  maps_api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: maps_api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      REDIS_URL: redis://maps_redis:6379
+      API_KEY: ${MAPS_API_KEY:-}
+      # Routing and Geocoding services
+      OSRM_URL: http://maps_osrm:5000
+      NOMINATIM_URL: http://maps_nominatim:8080
+      # Traffic APIs (optional - both have free tiers)
+      HERE_API_KEY: ${HERE_API_KEY:-}
+      TOMTOM_API_KEY: ${TOMTOM_API_KEY:-}
+      # Street view (optional)
+      MAPILLARY_ACCESS_TOKEN: ${MAPILLARY_ACCESS_TOKEN:-}
+      # Load shedding (SA-specific, 50 req/day free)
+      ESKOMSEPUSH_TOKEN: ${ESKOMSEPUSH_TOKEN:-}
+    ports:
+      - "5020:8000"
+    depends_on:
+      maps_db:
+        condition: service_healthy
+    networks:
+      - maps_network
+      - data-warehouse_data_stack
+
+  # Redis for caching tile data and API responses
+  maps_redis:
+    image: redis:alpine
+    container_name: maps_redis
+    restart: unless-stopped
+    volumes:
+      - maps_redis_data:/data
+    networks:
+      - maps_network
+
+  # Tile server for vector tiles (optional, can use external)
+  maps_tiles:
+    image: maptiler/tileserver-gl:latest
+    container_name: maps_tiles
+    restart: unless-stopped
+    volumes:
+      - ./tiles:/data
+    ports:
+      - "5021:8080"
+    networks:
+      - maps_network
+
+  # OSRM - Open Source Routing Machine for directions/navigation
+  # Provides: driving, walking, cycling directions with turn-by-turn
+  maps_osrm:
+    image: osrm/osrm-backend:latest
+    container_name: maps_osrm
+    restart: unless-stopped
+    volumes:
+      - ./osrm-data:/data
+    ports:
+      - "5024:5000"
+    command: osrm-routed --algorithm mld /data/south-africa.osrm
+    networks:
+      - maps_network
+    profiles:
+      - routing  # Enable with: docker compose --profile routing up
+
+  # Nominatim - Geocoding and reverse geocoding
+  # Provides: address search, coordinates to address
+  maps_nominatim:
+    image: mediagis/nominatim:4.4
+    container_name: maps_nominatim
+    restart: unless-stopped
+    environment:
+      PBF_URL: https://download.geofabrik.de/africa/south-africa-latest.osm.pbf
+      REPLICATION_URL: https://download.geofabrik.de/africa/south-africa-updates/
+      # SECURITY: Password must be set via environment variable when using geocoding profile
+      NOMINATIM_PASSWORD: ${NOMINATIM_PASSWORD:?NOMINATIM_PASSWORD is required for geocoding profile}
+      IMPORT_STYLE: full
+      THREADS: 4
+    volumes:
+      - nominatim_data:/var/lib/postgresql/14/main
+      - nominatim_flatnode:/nominatim/flatnode
+    ports:
+      - "5025:8080"
+    shm_size: 1g
+    networks:
+      - maps_network
+    profiles:
+      - geocoding  # Enable with: docker compose --profile geocoding up
+
+  # Prerender - Pre-renders pages for SEO bots (free, self-hosted)
+  maps_prerender:
+    image: tvanro/prerender-alpine:latest
+    container_name: maps_prerender
+    restart: unless-stopped
+    environment:
+      MEMORY_CACHE: 1
+      CACHE_MAXSIZE: 100
+      CACHE_TTL: 86400
+    networks:
+      - maps_network
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  # Frontend (static files served by nginx)
+  maps_frontend:
+    image: nginx:alpine
+    container_name: maps_frontend
+    restart: unless-stopped
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "5022:80"
+    depends_on:
+      - maps_api
+      - maps_prerender
+    networks:
+      - maps_network
+
+  # Transit Data Hub API (public transport data)
+  transit_api:
+    build:
+      context: /home/geektrading/transit/api
+      dockerfile: Dockerfile
+    container_name: transit_api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      TRANSIT_API_KEY: ${TRANSIT_API_KEY:-}
+      MAPS_API_URL: http://maps_api:8000
+      TAGME_API_URL: http://tagme_api:8000
+    ports:
+      - "5030:8000"
+    depends_on:
+      maps_db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - maps_network
+      - data-warehouse_data_stack
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+
+  # TagMe Ingestion API (high-throughput location data receiver)
+  tagme_api:
+    build:
+      context: /home/geektrading/tagme
+      dockerfile: Dockerfile
+    container_name: tagme_api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required}
+      RATE_LIMIT: "100/minute"
+      BURST_LIMIT: "1000/minute"
+    ports:
+      - "5023:8000"
+    depends_on:
+      maps_db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - maps_network
+      - data-warehouse_data_stack
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+
+volumes:
+  maps_db_data:
+  maps_redis_data:
+  nominatim_data:
+  nominatim_flatnode:
+
+networks:
+  maps_network:
+    driver: bridge
+  data-warehouse_data_stack:
+    external: true

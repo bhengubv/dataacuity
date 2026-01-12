@@ -1,0 +1,241 @@
+{
+  "version": "1.0",
+  "description": "Historical map collection for DataAcuity Maps - Public Domain",
+  "sources": [
+    "Internet Archive - Public Domain Maps Dealing with Ancient History",
+    "Library of Congress Geography and Map Division",
+    "Wikimedia Commons",
+    "Harvard Library Digital Collections"
+  ],
+  "license": "Public Domain",
+  "maps": [
+    {
+      "id": "ancient-world",
+      "file": "ancient-world.jpg",
+      "title": "Orbis Veteribus Notus - The World Known to the Ancients",
+      "period": { "start": -3000, "end": 500 },
+      "region": "world",
+      "cartographer": "Unknown (19th century reproduction)",
+      "originalDate": "Depicts ancient world knowledge",
+      "description": "Shows the world as known to ancient civilizations"
+    },
+    {
+      "id": "ancient-egypt",
+      "file": "ancient-egypt.jpg",
+      "title": "Aegyptus Antiqua - Ancient Egypt",
+      "period": { "start": -3000, "end": -30 },
+      "region": "egypt",
+      "bounds": [[22, 25], [32, 35]],
+      "cartographer": "Unknown (19th century)",
+      "description": "Detailed map of Ancient Egypt along the Nile"
+    },
+    {
+      "id": "egypt-ancient-modern",
+      "file": "egypt-ancient-modern.jpg",
+      "title": "Ancient and Modern Egypt Compared",
+      "period": { "start": -3000, "end": 1900 },
+      "region": "egypt",
+      "bounds": [[22, 25], [32, 35]],
+      "description": "Comparison of ancient and modern Egyptian geography"
+    },
+    {
+      "id": "ancient-greece",
+      "file": "ancient-greece.jpg",
+      "title": "Graecia Antiqua - Ancient Greece",
+      "period": { "start": -800, "end": -146 },
+      "region": "greece",
+      "bounds": [[34, 19], [42, 30]],
+      "cartographer": "Unknown (19th century)",
+      "description": "Classical Greece with city-states and regions"
+    },
+    {
+      "id": "persian-empire",
+      "file": "persian-empire.jpg",
+      "title": "Ancient Persian Empire",
+      "period": { "start": -550, "end": -330 },
+      "region": "persia",
+      "bounds": [[20, 25], [45, 75]],
+      "description": "The Achaemenid Persian Empire at its height"
+    },
+    {
+      "id": "alexander-empire",
+      "file": "alexander-empire.jpg",
+      "title": "Alexandri Magni Itinera - Alexander's Campaigns",
+      "period": { "start": -336, "end": -323 },
+      "region": "mediterranean",
+      "bounds": [[20, -10], [45, 75]],
+      "cartographer": "Unknown (19th century)",
+      "description": "Routes of Alexander the Great's conquests"
+    },
+    {
+      "id": "roman-empire",
+      "file": "roman-empire.jpg",
+      "title": "Ancient Roman Empire",
+      "period": { "start": -27, "end": 476 },
+      "region": "mediterranean",
+      "bounds": [[25, -10], [55, 45]],
+      "description": "The Roman Empire at its greatest extent"
+    },
+    {
+      "id": "roman-west",
+      "file": "roman-west.jpg",
+      "title": "Orbis Romani Pars Occidentalis - Western Roman Empire",
+      "period": { "start": -27, "end": 476 },
+      "region": "western-mediterranean",
+      "bounds": [[30, -10], [55, 20]],
+      "description": "Western portion of the Roman Empire"
+    },
+    {
+      "id": "roman-east",
+      "file": "roman-east.jpg",
+      "title": "Orbis Romani Pars Orientalis - Eastern Roman Empire",
+      "period": { "start": -27, "end": 1453 },
+      "region": "eastern-mediterranean",
+      "bounds": [[25, 15], [50, 45]],
+      "description": "Eastern Roman/Byzantine Empire"
+    },
+    {
+      "id": "ancient-palestine",
+      "file": "ancient-palestine.jpg",
+      "title": "Palestine in Ancient Times",
+      "period": { "start": -1500, "end": 135 },
+      "region": "levant",
+      "bounds": [[29, 34], [34, 36]],
+      "description": "The Holy Land in biblical times"
+    },
+    {
+      "id": "syria-ancient-modern",
+      "file": "syria-ancient-modern.jpg",
+      "title": "Ancient and Modern Syria",
+      "period": { "start": -2000, "end": 1900 },
+      "region": "levant",
+      "bounds": [[32, 35], [38, 42]],
+      "description": "Syria through the ages"
+    },
+    {
+      "id": "asia-minor",
+      "file": "asia-minor.jpg",
+      "title": "Asia Minor - Ancient Anatolia",
+      "period": { "start": -2000, "end": 500 },
+      "region": "anatolia",
+      "bounds": [[36, 26], [42, 44]],
+      "description": "Ancient Turkey/Anatolia with Greek and Roman names"
+    },
+    {
+      "id": "ancient-germania",
+      "file": "ancient-germania.jpg",
+      "title": "Germania Antiqua - Ancient Germany",
+      "period": { "start": -100, "end": 500 },
+      "region": "germania",
+      "bounds": [[47, 5], [56, 20]],
+      "description": "Germanic tribes and Roman frontier"
+    },
+    {
+      "id": "ancient-italy",
+      "file": "ancient-italy.jpg",
+      "title": "Italia Antiquae - Ancient Italy",
+      "period": { "start": -800, "end": 500 },
+      "region": "italy",
+      "bounds": [[36, 6], [47, 19]],
+      "description": "Italian peninsula with Latin and Etruscan names"
+    },
+    {
+      "id": "ancient-africa",
+      "file": "ancient-africa.jpg",
+      "title": "Africae Tabula Geographica - Africa",
+      "period": { "start": -500, "end": 500 },
+      "region": "africa",
+      "bounds": [[-35, -20], [37, 55]],
+      "description": "Africa as known to ancient cartographers"
+    },
+    {
+      "id": "medieval-mappa-mundi",
+      "file": "medieval-mappa-mundi.jpg",
+      "title": "Hereford Mappa Mundi",
+      "period": { "start": 500, "end": 1400 },
+      "region": "world",
+      "cartographer": "Richard of Haldingham",
+      "originalDate": "c. 1300",
+      "description": "Medieval worldview with Jerusalem at center - the largest surviving medieval map"
+    },
+    {
+      "id": "ptolemy-world-150ce",
+      "file": "ptolemy-world-150ce.jpg",
+      "title": "Ptolemy's World Map (Ulm Edition)",
+      "period": { "start": 100, "end": 200 },
+      "region": "world",
+      "cartographer": "Claudius Ptolemy",
+      "originalDate": "c. 150 CE",
+      "description": "The world as described by Ptolemy in his Geographia - 15th century reconstruction"
+    },
+    {
+      "id": "waldseemuller-1507",
+      "file": "waldseemuller-1507.jpg",
+      "title": "Waldseemüller World Map",
+      "period": { "start": 1500, "end": 1520 },
+      "region": "world",
+      "cartographer": "Martin Waldseemüller",
+      "originalDate": "1507",
+      "description": "First map to use the name 'America' for the New World"
+    },
+    {
+      "id": "ortelius-1570",
+      "file": "ortelius-1570.jpg",
+      "title": "Theatrum Orbis Terrarum",
+      "period": { "start": 1560, "end": 1600 },
+      "region": "world",
+      "cartographer": "Abraham Ortelius",
+      "originalDate": "1570",
+      "description": "First modern atlas - revolutionary in cartographic history"
+    },
+    {
+      "id": "world-1606-mercator",
+      "file": "world-1606-mercator.jpg",
+      "title": "Mercator World Map",
+      "period": { "start": 1600, "end": 1650 },
+      "region": "world",
+      "cartographer": "Gerardus Mercator (or successor)",
+      "originalDate": "c. 1606",
+      "description": "World map using Mercator projection"
+    },
+    {
+      "id": "blaeu-1635",
+      "file": "blaeu-1635.jpg",
+      "title": "Nova Totius Terrarum Orbis",
+      "period": { "start": 1630, "end": 1670 },
+      "region": "world",
+      "cartographer": "Willem Blaeu / Joan Blaeu",
+      "originalDate": "c. 1635",
+      "description": "Beautifully decorated world map from the Dutch Golden Age of cartography"
+    },
+    {
+      "id": "world-1700-homann",
+      "file": "world-1700-homann.jpg",
+      "title": "Planiglobii Terrestris",
+      "period": { "start": 1700, "end": 1750 },
+      "region": "world",
+      "cartographer": "Johann Baptist Homann",
+      "originalDate": "c. 1700",
+      "description": "18th century world map showing increased geographic knowledge"
+    },
+    {
+      "id": "world-1800-arrowsmith",
+      "file": "world-1800-arrowsmith.jpg",
+      "title": "Map of the World",
+      "period": { "start": 1800, "end": 1850 },
+      "region": "world",
+      "cartographer": "Aaron Arrowsmith (or contemporary)",
+      "originalDate": "c. 1800",
+      "description": "Early 19th century world map showing colonial era geography"
+    }
+  ],
+  "periods": [
+    { "id": "bronze-age", "name": "Bronze Age", "start": -3000, "end": -1200 },
+    { "id": "iron-age", "name": "Iron Age", "start": -1200, "end": -500 },
+    { "id": "classical", "name": "Classical Antiquity", "start": -500, "end": 500 },
+    { "id": "medieval", "name": "Medieval Period", "start": 500, "end": 1400 },
+    { "id": "renaissance", "name": "Age of Exploration", "start": 1400, "end": 1600 },
+    { "id": "early-modern", "name": "Early Modern", "start": 1600, "end": 1800 },
+    { "id": "modern", "name": "Modern Era", "start": 1800, "end": 2025 }
+  ]
+}

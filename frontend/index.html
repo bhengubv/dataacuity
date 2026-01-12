@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataAcuity Maps - Navigate Time & Space | Historical Mapping Platform</title>
+
+    <!-- Preconnect to third-party origins for faster resource loading -->
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
+    <link rel="preconnect" href="https://api.maptiler.com" crossorigin>
+    <link rel="dns-prefetch" href="https://unpkg.com">
+
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Explore the world through time with DataAcuity Maps. An interactive historical mapping platform that lets you travel from 3000 BCE to today, discover how place names changed, and explore events across history.">
+    <meta name="keywords" content="historical maps, interactive maps, timeline maps, ancient places, historical geography, place names history, world history maps, GeoNames, Pleiades, historical events">
+    <meta name="author" content="DataAcuity">
+    <meta name="robots" content="index, follow">
+    <meta name="googlebot" content="index, follow">
+    <link rel="canonical" href="https://maps.dataacuity.co.za/">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://maps.dataacuity.co.za/">
+    <meta property="og:title" content="DataAcuity Maps - Navigate Time & Space">
+    <meta property="og:description" content="Explore the world through time. Travel from 3000 BCE to today, discover historical place names, and explore events across history with our interactive mapping platform.">
+    <meta property="og:image" content="https://maps.dataacuity.co.za/images/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:site_name" content="DataAcuity Maps">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://maps.dataacuity.co.za/">
+    <meta name="twitter:title" content="DataAcuity Maps - Navigate Time & Space">
+    <meta name="twitter:description" content="Explore the world through time. Travel from 3000 BCE to today with our interactive historical mapping platform.">
+    <meta name="twitter:image" content="https://maps.dataacuity.co.za/images/twitter-card.png">
+
+    <!-- Additional SEO -->
+    <meta name="theme-color" content="#0ea5e9">
+    <meta name="msapplication-TileColor" content="#0ea5e9">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.json">
+
+    <!-- Structured Data - JSON-LD -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "DataAcuity Maps",
+        "alternateName": "Historical Maps Platform",
+        "description": "An interactive historical mapping platform that lets you explore the world through time, from 3000 BCE to today.",
+        "url": "https://maps.dataacuity.co.za/",
+        "applicationCategory": "EducationalApplication",
+        "operatingSystem": "Web Browser",
+        "browserRequirements": "Requires JavaScript. Requires HTML5.",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "creator": {
+            "@type": "Organization",
+            "name": "DataAcuity",
+            "url": "https://dataacuity.co.za"
+        },
+        "featureList": [
+            "Interactive timeline from 3000 BCE to present",
+            "Historical place name search",
+            "Multi-language support",
+            "Cited historical sources",
+            "Route planning",
+            "Nearby places search"
+        ],
+        "screenshot": "https://maps.dataacuity.co.za/images/screenshot.png",
+        "softwareVersion": "1.0"
+    }
+    </script>
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "DataAcuity",
+        "url": "https://dataacuity.co.za",
+        "logo": "https://dataacuity.co.za/images/logo.png",
+        "sameAs": [
+            "https://twitter.com/dataacuity",
+            "https://linkedin.com/company/dataacuity"
+        ]
+    }
+    </script>
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [{
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": "https://dataacuity.co.za/"
+        }, {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Maps",
+            "item": "https://maps.dataacuity.co.za/"
+        }]
+    }
+    </script>
+
+    <!-- MapLibre GL CSS - Load sync to prevent CLS -->
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css">
+    <!-- Preload MapLibre JS for faster load -->
+    <link rel="preload" href="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js" as="script">
+
+    <!-- Custom styles - Critical CSS inlined, rest deferred -->
+    <style>
+        /* Critical CSS for above-the-fold content */
+        *{box-sizing:border-box;margin:0;padding:0}
+        html,body{height:100%;font-family:system-ui,-apple-system,sans-serif;background:#0f172a}
+        .maps-header{position:fixed;top:0;left:0;right:0;height:56px;background:linear-gradient(135deg,#0f172a,#1e293b);display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:1000;border-bottom:1px solid #334155}
+        .header-left{display:flex;align-items:center;gap:12px}
+        .logo{display:flex;align-items:center;gap:8px;color:#fff;text-decoration:none;font-weight:600;font-size:18px}
+        .logo-icon{font-size:24px}
+        .tagline{color:#94a3b8;font-size:12px;display:none}
+        @media(min-width:768px){.tagline{display:inline}}
+        .header-center{flex:1;max-width:600px;margin:0 16px}
+        .search-container{position:relative}
+        #search-input{width:100%;padding:8px 16px;border-radius:20px;border:1px solid #334155;background:#1e293b;color:#fff;font-size:14px}
+        #search-input::placeholder{color:#64748b}
+        .header-right{display:flex;gap:8px}
+        .btn-icon{width:40px;height:40px;border-radius:8px;border:none;background:#1e293b;color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+        .btn-icon:hover{background:#334155}
+        #map-container{position:fixed;top:56px;left:0;right:0;bottom:0}
+        #map{width:100%;height:100%;background:#1a1a2e}
+        .mode-switcher{position:fixed;top:64px;left:50%;transform:translateX(-50%);display:flex;gap:4px;background:rgba(15,23,42,0.9);padding:4px;border-radius:12px;z-index:100}
+        .mode-tab{padding:8px 16px;border:none;background:transparent;color:#94a3b8;border-radius:8px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px}
+        .mode-tab.active{background:#0ea5e9;color:#fff}
+        .mode-icon{font-size:14px}
+        @media(max-width:480px){.mode-label{display:none}.mode-tab{padding:10px 12px}}
+        .hidden{display:none!important}
+        .skip-link{position:absolute;top:-40px;left:0;background:#0ea5e9;color:#fff;padding:8px;z-index:9999}
+        .skip-link:focus{top:0}
+        /* Loading state */
+        .map-loading{display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:16px}
+    </style>
+    <link rel="preload" href="css/maps.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="css/maps.css"></noscript>
+</head>
+<body>
+    <!-- Skip to main content for accessibility -->
+    <a href="#map" class="skip-link">Skip to map</a>
+
+    <!-- Header -->
+    <header class="maps-header" role="banner">
+        <div class="header-left">
+            <a href="/" class="logo" aria-label="DataAcuity Maps Home">
+                <span class="logo-icon" aria-hidden="true">🗺️</span>
+                <span class="logo-text">DataAcuity Maps</span>
+            </a>
+            <span class="tagline" aria-label="Tagline">Navigate Time & Space</span>
+        </div>
+
+        <div class="header-center">
+            <div class="search-container" role="search">
+                <label for="search-input" class="visually-hidden">Search places</label>
+                <input type="search" id="search-input" placeholder="Search places across all time periods..." aria-label="Search places across all time periods" autocomplete="off" />
+                <div id="search-results" class="search-results hidden" role="listbox" aria-label="Search results"></div>
+            </div>
+        </div>
+
+        <nav class="header-right" role="navigation" aria-label="Map controls">
+            <button id="btn-refresh" class="btn btn-icon" title="Reset Map" onclick="hardRefresh()" aria-label="Reset map view">
+                <span aria-hidden="true">🔄</span>
+            </button>
+            <button id="btn-clear-cache" class="btn btn-icon" title="Clear Cache (Ctrl+Shift+R)" onclick="clearMapCache()" aria-label="Clear cached map data">
+                <span aria-hidden="true">🗑️</span>
+            </button>
+            <button id="btn-layers" class="btn btn-icon" title="Map Layers" aria-label="Toggle map layers panel" aria-expanded="false" aria-controls="layers-panel">
+                <span aria-hidden="true">📑</span>
+            </button>
+            <button id="btn-info" class="btn btn-icon" title="About" aria-label="About DataAcuity Maps" aria-expanded="false" aria-controls="info-modal">
+                <span aria-hidden="true">ℹ️</span>
+            </button>
+        </nav>
+    </header>
+
+    <!-- Mode Switcher Tab Bar -->
+    <nav id="mode-switcher" class="mode-switcher" role="tablist" aria-label="Map modes">
+        <button class="mode-tab active" data-mode="explore" role="tab" aria-selected="true" onclick="switchMode('explore')">
+            <span class="mode-icon">🔍</span>
+            <span class="mode-label">Explore</span>
+        </button>
+        <button class="mode-tab" data-mode="timeline" role="tab" aria-selected="false" onclick="switchMode('timeline')">
+            <span class="mode-icon">⏳</span>
+            <span class="mode-label">Timeline</span>
+        </button>
+        <button class="mode-tab" data-mode="navigate" role="tab" aria-selected="false" onclick="switchMode('navigate')">
+            <span class="mode-icon">🚗</span>
+            <span class="mode-label">Navigate</span>
+        </button>
+        <button class="mode-tab" data-mode="transit" role="tab" aria-selected="false" onclick="switchMode('transit')">
+            <span class="mode-icon">🚌</span>
+            <span class="mode-label">Transit</span>
+        </button>
+    </nav>
+
+    <!-- Main Map Container -->
+    <main id="map-container" role="main">
+        <div id="map" role="application" aria-label="Interactive historical map" tabindex="0"></div>
+
+        <!-- Timeline Slider (hidden by default, shown in Timeline mode) -->
+        <section id="timeline-panel" class="timeline-container draggable hidden" role="region" aria-label="Timeline navigation">
+            <div id="timeline-drag-handle" class="timeline-drag-handle panel-drag-handle">
+                <h2><span class="drag-icon" aria-hidden="true">⋮⋮</span> Timeline</h2>
+                <div class="year-input-container">
+                    <input type="number" id="year-input" class="year-input" value="2024" min="-3000" max="2024" aria-label="Enter year" />
+                    <div class="year-era-toggle">
+                        <button class="era-btn" data-era="bce" onclick="toggleEra('bce')">BCE</button>
+                        <button class="era-btn active" data-era="ce" onclick="toggleEra('ce')">CE</button>
+                    </div>
+                </div>
+                <button id="btn-play" class="btn btn-icon" title="Animate through time" aria-label="Play timeline animation">
+                    <span aria-hidden="true">▶️</span>
+                </button>
+                <button id="timeline-toggle" class="timeline-toggle" onclick="toggleTimeline()" title="Collapse/Expand" aria-label="Collapse timeline panel" aria-expanded="true">−</button>
+            </div>
+            <div class="timeline-slider-container">
+                <span class="timeline-label" id="timeline-min-label">3000 BCE</span>
+                <input type="range" id="timeline-slider" min="-3000" max="2024" value="2024" step="1" aria-label="Select year" aria-valuemin="-3000" aria-valuemax="2024" aria-valuenow="2024" aria-describedby="timeline-min-label timeline-max-label" />
+                <span class="timeline-label" id="timeline-max-label">2024 CE</span>
+            </div>
+            <div class="timeline-presets" role="group" aria-label="Quick jump to historical periods">
+                <button class="preset-btn" data-year="-1000" title="Kingdom of Israel under King David and Solomon">1000 BCE</button>
+                <button class="preset-btn" data-year="-586" title="Destruction of First Temple, Babylonian Exile begins">586 BCE</button>
+                <button class="preset-btn" data-year="33" title="Crucifixion of Jesus, birth of Christianity">33 CE</button>
+                <button class="preset-btn" data-year="135" title="Bar Kokhba revolt, Jews expelled from Jerusalem">135 CE</button>
+                <button class="preset-btn" data-year="1652" title="Dutch East India Company establishes Cape Colony">1652 CE</button>
+                <button class="preset-btn" data-year="1886" title="Discovery of gold on Witwatersrand, Johannesburg founded">1886 CE</button>
+                <button class="preset-btn active" data-year="2024" title="Present day" aria-current="true">Today</button>
+            </div>
+        </section>
+
+        <!-- Place Info Panel -->
+        <aside id="place-panel" class="place-panel hidden draggable" role="complementary" aria-label="Place details">
+            <div id="place-panel-header" class="panel-drag-handle">
+                <h2><span class="drag-icon" aria-hidden="true">⋮⋮</span> Place Details</h2>
+                <button id="close-panel" class="panel-close-btn" aria-label="Close place details">&times;</button>
+            </div>
+            <div id="panel-content" aria-live="polite">
+                <!-- Populated by JavaScript -->
+            </div>
+        </aside>
+
+        <!-- Layers Panel -->
+        <aside id="layers-panel" class="layers-panel hidden" role="complementary" aria-label="Map layers settings">
+            <h2>Map Layers</h2>
+            <div id="layers-list" role="group" aria-label="Available map layers">
+                <!-- Populated by JavaScript -->
+            </div>
+        </aside>
+
+        <!-- Stats Badge -->
+        <div class="stats-badge" role="status" aria-live="polite" aria-label="Map statistics">
+            <div class="stats-numbers">
+                <span><span id="stats-places">0</span> places</span> |
+                <span><span id="stats-names">0</span> names</span> |
+                <span><span id="stats-events">0</span> events</span>
+            </div>
+            <div id="stats-hint" class="stats-hint">Slide timeline or search to explore</div>
+        </div>
+    </main>
+
+    <!-- Info Modal -->
+    <div id="info-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-description">
+        <div class="modal-overlay" aria-hidden="true"></div>
+        <div class="modal-content">
+            <button class="close-btn" aria-label="Close dialog">&times;</button>
+            <h2 id="modal-title">About DataAcuity Maps</h2>
+            <p><strong>"Navigate Time & Space"</strong></p>
+            <p id="modal-description">
+                DataAcuity Maps is a historical mapping platform that lets you explore
+                the world as it was known throughout history. Slide through time to see how place
+                names changed, empires rose and fell, and events unfolded.
+            </p>
+            <h3>Features</h3>
+            <ul>
+                <li><strong>Timeline Slider:</strong> Travel from 3000 BCE to today</li>
+                <li><strong>Historical Names:</strong> See what places were called in different eras</li>
+                <li><strong>Cited Sources:</strong> Every historical fact has a source</li>
+                <li><strong>Multi-language:</strong> Names in original scripts when available</li>
+            </ul>
+            <h3>How to Use</h3>
+            <ol>
+                <li>Use the <strong>timeline slider</strong> to travel through time</li>
+                <li>Click on any <strong>place marker</strong> to see its history</li>
+                <li><strong>Search</strong> for places by any name they've ever had</li>
+            </ol>
+            <h3>Want to Contribute?</h3>
+            <p>
+                Location data is collected through the <strong>TagMe</strong> app.
+                Download TagMe to share anonymized location data and help improve our maps.
+                Your privacy is protected - only aggregated, anonymized data is used.
+            </p>
+            <h3>API Features</h3>
+            <ul>
+                <li><strong>Routing:</strong> Turn-by-turn directions (OSRM)</li>
+                <li><strong>Geocoding:</strong> Address search (Nominatim)</li>
+                <li><strong>34,000+ POIs:</strong> From OpenStreetMap</li>
+                <li><strong>Weather:</strong> Current + 7-day forecast (Open-Meteo)</li>
+                <li><strong>Elevation:</strong> SRTM 30m resolution profiles</li>
+                <li><strong>Traffic:</strong> Crowdsourced + HERE API</li>
+            </ul>
+            <p style="margin-top: 10px;">
+                <a href="/demo.html" style="color: #0ea5e9;">Try the API Demo &rarr;</a>
+            </p>
+            <h3>Data Sources</h3>
+            <ul>
+                <li><strong>GeoNames:</strong> Global geographic database</li>
+                <li><strong>Pleiades:</strong> Ancient world gazetteer</li>
+                <li><strong>OpenStreetMap:</strong> POIs, transit, indoor maps</li>
+                <li><strong>TagMe:</strong> Community location contributions</li>
+            </ul>
+            <p class="credits">
+                Built with MapLibre GL JS | Data from GeoNames, Pleiades, OSM & TagMe contributors
+            </p>
+        </div>
+    </div>
+
+    <!-- Onboarding Overlay -->
+    <div id="onboarding-overlay" class="onboarding-overlay hidden">
+        <div class="onboarding-card">
+            <div class="onboarding-header">
+                <h2>Welcome to DataAcuity Maps</h2>
+                <p>Navigate Time & Space</p>
+            </div>
+            <div class="onboarding-content">
+                <div class="onboarding-step">
+                    <div class="onboarding-step-icon">🕰️</div>
+                    <div class="onboarding-step-content">
+                        <h4>Travel Through Time</h4>
+                        <p>Use the timeline slider at the bottom to explore how places changed from 3000 BCE to today.</p>
+                    </div>
+                </div>
+                <div class="onboarding-step">
+                    <div class="onboarding-step-icon">🔍</div>
+                    <div class="onboarding-step-content">
+                        <h4>Search Any Place</h4>
+                        <p>Search by modern or ancient names. Try "Jerusalem", "Constantinople", or "Babylon".</p>
+                    </div>
+                </div>
+                <div class="onboarding-step">
+                    <div class="onboarding-step-icon">📍</div>
+                    <div class="onboarding-step-content">
+                        <h4>Click to Explore</h4>
+                        <p>Click any marker to see its full history, past names, and historical sources.</p>
+                    </div>
+                </div>
+                <div class="onboarding-step">
+                    <div class="onboarding-step-icon">🧭</div>
+                    <div class="onboarding-step-content">
+                        <h4>Get Directions & Discover Nearby</h4>
+                        <p>Use the floating buttons on the right for routing and finding nearby places.</p>
+                    </div>
+                </div>
+                <div class="onboarding-shortcuts">
+                    <h4>Keyboard Shortcuts</h4>
+                    <div class="shortcut-list">
+                        <div class="shortcut-item">
+                            <span class="shortcut-key">←</span>
+                            <span>Back in time</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="shortcut-key">→</span>
+                            <span>Forward in time</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="shortcut-key">/</span>
+                            <span>Focus search</span>
+                        </div>
+                        <div class="shortcut-item">
+                            <span class="shortcut-key">?</span>
+                            <span>Show shortcuts</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="onboarding-footer">
+                <button class="btn btn-primary" onclick="closeOnboarding()">Start Exploring</button>
+                <label class="onboarding-checkbox">
+                    <input type="checkbox" id="dont-show-again" />
+                    <span>Don't show this again</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Panel -->
+    <div id="shortcuts-panel" class="shortcuts-panel hidden">
+        <button class="shortcuts-panel-close" onclick="toggleShortcutsPanel()">&times;</button>
+        <h3>⌨️ Keyboard Shortcuts</h3>
+        <div class="shortcuts-grid">
+            <div class="shortcut-item">
+                <span class="shortcut-key">←</span>
+                <span class="shortcut-action">Back 10 years</span>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-key">→</span>
+                <span class="shortcut-action">Forward 10 years</span>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-key">Shift + ←</span>
+                <span class="shortcut-action">Back 100 years</span>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-key">Shift + →</span>
+                <span class="shortcut-action">Forward 100 years</span>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-key">/</span>
+                <span class="shortcut-action">Focus search</span>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-key">Esc</span>
+                <span class="shortcut-action">Close panels</span>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-key">D</span>
+                <span class="shortcut-action">Open directions</span>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-key">N</span>
+                <span class="shortcut-action">What's nearby</span>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-key">M</span>
+                <span class="shortcut-action">My memories</span>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-key">L</span>
+                <span class="shortcut-action">Toggle layers</span>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-key">Space</span>
+                <span class="shortcut-action">Play/pause timeline</span>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-key">?</span>
+                <span class="shortcut-action">Show this help</span>
+            </div>
+            <div class="shortcut-item">
+                <span class="shortcut-key">Ctrl+Shift+R</span>
+                <span class="shortcut-action">Clear cache</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Action Buttons -->
+    <div class="fab-container">
+        <button class="fab fab-directions" onclick="openRoutingPanel()" title="Get Directions">
+            🧭
+            <span class="fab-tooltip">Get Directions (D)</span>
+        </button>
+        <button class="fab fab-nearby" onclick="openNearbyPanel()" title="What's Nearby">
+            📍
+            <span class="fab-tooltip">What's Nearby (N)</span>
+        </button>
+        <button class="fab fab-memories" onclick="openMemoriesPanel()" title="My Memories">
+            💾
+            <span class="fab-tooltip">My Memories (M)</span>
+        </button>
+        <button class="fab fab-help" onclick="toggleShortcutsPanel()" title="Keyboard Shortcuts">
+            ?
+            <span class="fab-tooltip">Shortcuts (?)</span>
+        </button>
+    </div>
+
+    <!-- Async Script Loading for Performance -->
+    <script>
+        // Load MapLibre GL JS (preloaded in head)
+        (function() {
+            var maplibreScript = document.createElement('script');
+            maplibreScript.src = 'https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js';
+            maplibreScript.async = true;
+            maplibreScript.onload = function() {
+                // MapLibre loaded, now load main app (minified)
+                var appScript = document.createElement('script');
+                appScript.src = 'js/maps.min.js';
+                appScript.async = true;
+                document.body.appendChild(appScript);
+            };
+            document.body.appendChild(maplibreScript);
+        })();
+    </script>
+
+    <!-- PWA Service Worker Registration (deferred) -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                // Delay SW registration to not block initial render
+                setTimeout(() => {
+                    navigator.serviceWorker.register('/sw.js')
+                        .then((registration) => {
+                            console.log('[PWA] Service Worker registered:', registration.scope);
+
+                            // Check for updates periodically
+                            setInterval(() => {
+                                registration.update();
+                            }, 60 * 60 * 1000); // Every hour
+
+                            // Cleanup caches periodically
+                            setInterval(() => {
+                                if (registration.active) {
+                                    registration.active.postMessage('cleanup-caches');
+                                }
+                            }, 24 * 60 * 60 * 1000); // Every 24 hours
+                        })
+                        .catch((error) => {
+                            console.log('[PWA] Service Worker registration failed:', error);
+                        });
+                }, 3000); // Delay 3s after load
+            });
+        }
+    </script>
+</body>
+</html>

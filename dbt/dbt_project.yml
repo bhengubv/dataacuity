@@ -1,0 +1,29 @@
+name: 'maps_warehouse'
+version: '1.0.0'
+config-version: 2
+
+profile: 'datawarehouse'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  maps_warehouse:
+    staging:
+      +schema: staging
+      +materialized: view
+    silver:
+      +schema: silver
+      +materialized: table
+    gold:
+      +schema: gold
+      +materialized: table

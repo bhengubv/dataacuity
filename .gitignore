@@ -1,0 +1,55 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+logs/
+
+# Database dumps
+*.sql.gz
+*.dump
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Docker volumes (data directories)
+data/
+pgdata/
+nominatim-data/
+osrm-data/
+
+# Large tile files (download separately)
+tiles/*.pmtiles
+tiles/*.mbtiles
+
+# Large original historical maps (keep optimized versions only)
+frontend/historical-maps/*.jpg
+!frontend/historical-maps/optimized/
+!frontend/historical-maps/thumbs/
+
+# Session/temp files
+.loki/
+SESSION-PROGRESS.md
+tmp/
+*.tmp
+*.backup

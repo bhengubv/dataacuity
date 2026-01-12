@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- DYNAMIC_TITLE -->
+    <!-- DYNAMIC_DESCRIPTION -->
+    <!-- DYNAMIC_OG -->
+    <link rel="canonical" href="<!-- DYNAMIC_URL -->">
+
+    <!-- Redirect to SPA after meta tags are read -->
+    <script>
+        // This page is for crawlers - real users get redirected to SPA
+        if (!/bot|crawl|spider|slurp|facebook|twitter|linkedin|whatsapp/i.test(navigator.userAgent)) {
+            window.location.href = '/' + window.location.search;
+        }
+    </script>
+</head>
+<body>
+    <h1><!-- DYNAMIC_H1 --></h1>
+    <p><!-- DYNAMIC_CONTENT --></p>
+    <p>Explore this location on <a href="https://maps.dataacuity.co.za/">DataAcuity Maps</a></p>
+</body>
+</html>

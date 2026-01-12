@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataAcuity Maps API Demo</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e0e0e0;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        header {
+            text-align: center;
+            padding: 40px 0;
+            border-bottom: 1px solid #333;
+            margin-bottom: 40px;
+        }
+        h1 { font-size: 2.5rem; color: #00d4ff; margin-bottom: 10px; }
+        .tagline { color: #888; font-size: 1.2rem; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 24px;
+        }
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .card h2 {
+            color: #00d4ff;
+            font-size: 1.3rem;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card .icon { font-size: 1.5rem; }
+        .card p { color: #aaa; margin-bottom: 16px; font-size: 0.9rem; }
+        .endpoint {
+            background: #0d1117;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            margin-bottom: 12px;
+            overflow-x: auto;
+        }
+        .method { color: #58a6ff; font-weight: bold; }
+        .path { color: #7ee787; }
+        .btn {
+            background: #00d4ff;
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+        .btn:hover { background: #00a8cc; }
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid #00d4ff;
+            color: #00d4ff;
+        }
+        .result {
+            background: #0d1117;
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+            max-height: 300px;
+            overflow: auto;
+            font-family: monospace;
+            font-size: 0.8rem;
+            white-space: pre-wrap;
+            display: none;
+        }
+        .result.show { display: block; }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .badge-free { background: #238636; color: white; }
+        .badge-cached { background: #1f6feb; color: white; }
+        .input-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        .input-group input {
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #333;
+            background: #0d1117;
+            color: #e0e0e0;
+            font-size: 0.9rem;
+        }
+        .input-group input::placeholder { color: #666; }
+        .stats {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        .stat {
+            text-align: center;
+            padding: 20px;
+            background: rgba(0,212,255,0.1);
+            border-radius: 12px;
+            min-width: 150px;
+        }
+        .stat-value { font-size: 2rem; color: #00d4ff; font-weight: bold; }
+        .stat-label { color: #888; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>DataAcuity Maps API</h1>
+            <p class="tagline">Free, Open-Source Mapping Platform for South Africa</p>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-value" id="poi-count">34,000+</div>
+                    <div class="stat-label">POIs</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">35</div>
+                    <div class="stat-label">Categories</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">100%</div>
+                    <div class="stat-label">Free</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-value">No Key</div>
+                    <div class="stat-label">Required</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="grid">
+            <!-- Geocoding -->
+            <div class="card">
+                <h2><span class="icon">🔍</span> Geocoding</h2>
+                <p>Convert addresses to coordinates and vice versa. Global coverage with SA focus.</p>
+                <div class="endpoint">
+                    <span class="method">GET</span> <span class="path">/api/geocode?q={query}</span>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="geocode-input" placeholder="Try: Sandton, Cape Town..." value="Sandton">
+                </div>
+                <button class="btn" onclick="testGeocode()">Test Geocode</button>
+                <button class="btn btn-secondary" onclick="testReverseGeocode()">Reverse Geocode</button>
+                <div class="result" id="geocode-result"></div>
+            </div>
+
+            <!-- Routing -->
+            <div class="card">
+                <h2><span class="icon">🧭</span> Routing</h2>
+                <p>Turn-by-turn directions for driving, walking, and cycling. Powered by OSRM.</p>
+                <div class="endpoint">
+                    <span class="method">POST</span> <span class="path">/api/route</span>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="route-origin" placeholder="Origin: lng,lat" value="28.0473,-26.2041">
+                    <input type="text" id="route-dest" placeholder="Destination: lng,lat" value="28.0567,-26.1076">
+                </div>
+                <button class="btn" onclick="testRoute()">Get Route</button>
+                <div class="result" id="route-result"></div>
+            </div>
+
+            <!-- Isochrone -->
+            <div class="card">
+                <h2><span class="icon">🎯</span> Isochrone (Reachability) <span class="badge badge-cached">CACHED 1h</span></h2>
+                <p>Find areas reachable within X minutes. Perfect for "what's nearby?" queries.</p>
+                <div class="endpoint">
+                    <span class="method">GET</span> <span class="path">/api/isochrone?lat={lat}&lng={lng}&minutes={min}</span>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="iso-lat" placeholder="Latitude" value="-26.2041">
+                    <input type="text" id="iso-lng" placeholder="Longitude" value="28.0473">
+                    <input type="number" id="iso-minutes" placeholder="Minutes" value="15" min="5" max="60">
+                </div>
+                <button class="btn" onclick="testIsochrone()">Get Reachable Area</button>
+                <div class="result" id="iso-result"></div>
+            </div>
+
+            <!-- Multi-stop Routing -->
+            <div class="card">
+                <h2><span class="icon">📍</span> Multi-Stop Routing</h2>
+                <p>Route through multiple stops with optional optimization (Traveling Salesman).</p>
+                <div class="endpoint">
+                    <span class="method">GET</span> <span class="path">/api/route/multi?stops={stops}&optimize={bool}</span>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="multi-stops" placeholder="lng,lat|lng,lat|..." value="28.0,-26.2|28.1,-26.1|28.05,-26.15|28.08,-26.18" style="min-width: 300px;">
+                </div>
+                <button class="btn" onclick="testMultiRoute(false)">Route In Order</button>
+                <button class="btn btn-secondary" onclick="testMultiRoute(true)">Optimize Order</button>
+                <div class="result" id="multi-result"></div>
+            </div>
+
+            <!-- Load Shedding -->
+            <div class="card">
+                <h2><span class="icon">⚡</span> Load Shedding <span class="badge" style="background:#ff5722;color:white;">SA ONLY</span></h2>
+                <p>Current Eskom load shedding status and area-specific schedules.</p>
+                <div class="endpoint">
+                    <span class="method">GET</span> <span class="path">/api/loadshedding</span>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="ls-search" placeholder="Area name (e.g., Sandton)" value="Sandton">
+                </div>
+                <button class="btn" onclick="testLoadShedding()">Current Status</button>
+                <button class="btn btn-secondary" onclick="testLoadSheddingSearch()">Search Area</button>
+                <div class="result" id="ls-result"></div>
+            </div>
+
+            <!-- POIs -->
+            <div class="card">
+                <h2><span class="icon">📍</span> Points of Interest</h2>
+                <p>34,000+ POIs from OpenStreetMap across 35 categories. Weekly updates.</p>
+                <div class="endpoint">
+                    <span class="method">GET</span> <span class="path">/api/pois?bbox={bbox}&category={cat}</span>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="poi-bbox" placeholder="bbox" value="28.0,-26.3,28.1,-26.2">
+                    <input type="text" id="poi-category" placeholder="category (optional)" value="">
+                </div>
+                <button class="btn" onclick="testPOIs()">Search POIs</button>
+                <div class="result" id="poi-result"></div>
+            </div>
+
+            <!-- Weather -->
+            <div class="card">
+                <h2><span class="icon">🌤️</span> Weather <span class="badge badge-free">FREE</span><span class="badge badge-cached">CACHED 30min</span></h2>
+                <p>Current conditions and 7-day forecast. Powered by Open-Meteo (unlimited).</p>
+                <div class="endpoint">
+                    <span class="method">GET</span> <span class="path">/api/weather?lat={lat}&lng={lng}</span>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="weather-lat" placeholder="Latitude" value="-26.2041">
+                    <input type="text" id="weather-lng" placeholder="Longitude" value="28.0473">
+                </div>
+                <button class="btn" onclick="testWeather()">Get Weather</button>
+                <button class="btn btn-secondary" onclick="testWeatherAlerts()">Check Alerts</button>
+                <div class="result" id="weather-result"></div>
+            </div>
+
+            <!-- Elevation -->
+            <div class="card">
+                <h2><span class="icon">⛰️</span> Elevation <span class="badge badge-free">FREE</span><span class="badge badge-cached">CACHED 24h</span></h2>
+                <p>SRTM elevation data at 30m resolution. Great for hiking/cycling profiles.</p>
+                <div class="endpoint">
+                    <span class="method">GET</span> <span class="path">/api/elevation?lat={lat}&lng={lng}</span>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="elev-lat" placeholder="Latitude" value="-26.2041">
+                    <input type="text" id="elev-lng" placeholder="Longitude" value="28.0473">
+                </div>
+                <button class="btn" onclick="testElevation()">Get Elevation</button>
+                <button class="btn btn-secondary" onclick="testElevationProfile()">Route Profile</button>
+                <div class="result" id="elev-result"></div>
+            </div>
+
+            <!-- Traffic -->
+            <div class="card">
+                <h2><span class="icon">🚗</span> Traffic <span class="badge badge-cached">CACHED 3min</span></h2>
+                <p>Real-time traffic from TagMe crowdsourced data + HERE API (250k/month free).</p>
+                <div class="endpoint">
+                    <span class="method">GET</span> <span class="path">/api/traffic?bbox={bbox}</span>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="traffic-bbox" placeholder="bbox" value="28.0,-26.3,28.1,-26.2">
+                </div>
+                <button class="btn" onclick="testTraffic()">Crowdsourced Traffic</button>
+                <button class="btn btn-secondary" onclick="testTrafficIncidents()">Incidents</button>
+                <div class="result" id="traffic-result"></div>
+            </div>
+
+            <!-- Transit -->
+            <div class="card">
+                <h2><span class="icon">🚌</span> Transit</h2>
+                <p>Bus and train stops from OpenStreetMap. Schedules coming soon.</p>
+                <div class="endpoint">
+                    <span class="method">GET</span> <span class="path">/api/transit/stops?bbox={bbox}</span>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="transit-bbox" placeholder="bbox" value="28.0,-26.3,28.1,-26.2">
+                </div>
+                <button class="btn" onclick="testTransit()">Find Stops</button>
+                <div class="result" id="transit-result"></div>
+            </div>
+
+            <!-- Capabilities -->
+            <div class="card">
+                <h2><span class="icon">📊</span> API Capabilities</h2>
+                <p>Check current feature status and available endpoints.</p>
+                <div class="endpoint">
+                    <span class="method">GET</span> <span class="path">/api/capabilities</span>
+                </div>
+                <button class="btn" onclick="testCapabilities()">View Capabilities</button>
+                <div class="result" id="capabilities-result"></div>
+            </div>
+        </div>
+
+        <footer style="text-align: center; padding: 40px; color: #666; margin-top: 40px;">
+            <p>Base URL: <code style="color: #00d4ff;">https://maps.dataacuity.co.za/api/</code></p>
+            <p style="margin-top: 10px;">
+                <a href="/api/docs" style="color: #00d4ff;">OpenAPI Docs</a> |
+                <a href="/" style="color: #00d4ff;">Interactive Map</a> |
+                <a href="https://github.com/dataacuity/maps" style="color: #00d4ff;">GitHub</a>
+            </p>
+        </footer>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        async function fetchAPI(endpoint) {
+            try {
+                const resp = await fetch(API_BASE + endpoint);
+                return await resp.json();
+            } catch (e) {
+                return { error: e.message };
+            }
+        }
+
+        function showResult(id, data) {
+            const el = document.getElementById(id);
+            el.textContent = JSON.stringify(data, null, 2);
+            el.classList.add('show');
+        }
+
+        async function testGeocode() {
+            const q = document.getElementById('geocode-input').value;
+            const data = await fetchAPI(`/geocode?q=${encodeURIComponent(q)}`);
+            showResult('geocode-result', data);
+        }
+
+        async function testReverseGeocode() {
+            const data = await fetchAPI('/reverse?lat=-26.2041&lng=28.0473');
+            showResult('geocode-result', data);
+        }
+
+        async function testRoute() {
+            const origin = document.getElementById('route-origin').value;
+            const dest = document.getElementById('route-dest').value;
+            const resp = await fetch(API_BASE + '/route', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    origin: origin,
+                    destination: dest,
+                    mode: 'driving'
+                })
+            });
+            const data = await resp.json();
+            showResult('route-result', data);
+        }
+
+        async function testIsochrone() {
+            const lat = document.getElementById('iso-lat').value;
+            const lng = document.getElementById('iso-lng').value;
+            const minutes = document.getElementById('iso-minutes').value;
+            const data = await fetchAPI(`/isochrone?lat=${lat}&lng=${lng}&minutes=${minutes}&mode=driving`);
+            showResult('iso-result', data);
+        }
+
+        async function testMultiRoute(optimize) {
+            const stops = document.getElementById('multi-stops').value;
+            const data = await fetchAPI(`/route/multi?stops=${stops}&mode=driving&optimize=${optimize}`);
+            showResult('multi-result', data);
+        }
+
+        async function testLoadShedding() {
+            const data = await fetchAPI('/loadshedding');
+            showResult('ls-result', data);
+        }
+
+        async function testLoadSheddingSearch() {
+            const q = document.getElementById('ls-search').value;
+            const data = await fetchAPI(`/loadshedding/search?q=${encodeURIComponent(q)}`);
+            showResult('ls-result', data);
+        }
+
+        async function testPOIs() {
+            const bbox = document.getElementById('poi-bbox').value;
+            const category = document.getElementById('poi-category').value;
+            let url = `/pois?bbox=${bbox}&limit=10`;
+            if (category) url += `&category=${category}`;
+            const data = await fetchAPI(url);
+            showResult('poi-result', data);
+        }
+
+        async function testWeather() {
+            const lat = document.getElementById('weather-lat').value;
+            const lng = document.getElementById('weather-lng').value;
+            const data = await fetchAPI(`/weather?lat=${lat}&lng=${lng}`);
+            showResult('weather-result', data);
+        }
+
+        async function testWeatherAlerts() {
+            const lat = document.getElementById('weather-lat').value;
+            const lng = document.getElementById('weather-lng').value;
+            const data = await fetchAPI(`/weather/alerts?lat=${lat}&lng=${lng}`);
+            showResult('weather-result', data);
+        }
+
+        async function testElevation() {
+            const lat = document.getElementById('elev-lat').value;
+            const lng = document.getElementById('elev-lng').value;
+            const data = await fetchAPI(`/elevation?lat=${lat}&lng=${lng}`);
+            showResult('elev-result', data);
+        }
+
+        async function testElevationProfile() {
+            const data = await fetchAPI('/elevation/profile?path=-26.2,28.0|-26.1,28.1|-26.0,28.2&samples=20');
+            showResult('elev-result', data);
+        }
+
+        async function testTraffic() {
+            const bbox = document.getElementById('traffic-bbox').value;
+            const data = await fetchAPI(`/traffic?bbox=${bbox}`);
+            showResult('traffic-result', data);
+        }
+
+        async function testTrafficIncidents() {
+            const bbox = document.getElementById('traffic-bbox').value;
+            const data = await fetchAPI(`/traffic/incidents?bbox=${bbox}`);
+            showResult('traffic-result', data);
+        }
+
+        async function testTransit() {
+            const bbox = document.getElementById('transit-bbox').value;
+            const data = await fetchAPI(`/transit/stops?bbox=${bbox}`);
+            showResult('transit-result', data);
+        }
+
+        async function testCapabilities() {
+            const data = await fetchAPI('/capabilities');
+            showResult('capabilities-result', data);
+        }
+
+        // Auto-load capabilities on page load
+        testCapabilities();
+    </script>
+</body>
+</html>

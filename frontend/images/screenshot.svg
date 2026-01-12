@@ -1,0 +1,164 @@
+<svg width="1280" height="720" viewBox="0 0 1280 720" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mapGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e8f4f8"/>
+      <stop offset="100%" style="stop-color:#d4e8ed"/>
+    </linearGradient>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="panelGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff"/>
+      <stop offset="100%" style="stop-color:#f8fafc"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1280" height="720" fill="url(#mapGrad)"/>
+
+  <!-- Header -->
+  <rect width="1280" height="56" fill="url(#headerGrad)"/>
+  <text x="20" y="36" fill="white" font-family="system-ui" font-size="20" font-weight="600">🗺️ DataAcuity Maps</text>
+  <text x="200" y="36" fill="#94a3b8" font-family="system-ui" font-size="14">Navigate Time &amp; Space</text>
+
+  <!-- Search bar -->
+  <rect x="400" y="12" width="480" height="32" rx="16" fill="rgba(255,255,255,0.1)"/>
+  <text x="420" y="34" fill="#94a3b8" font-family="system-ui" font-size="13">Search places across all time periods...</text>
+
+  <!-- Mode tabs -->
+  <g transform="translate(20, 70)">
+    <rect width="100" height="36" rx="8" fill="#0ea5e9"/>
+    <text x="50" y="24" text-anchor="middle" fill="white" font-family="system-ui" font-size="13" font-weight="500">🔍 Explore</text>
+    <g transform="translate(110, 0)">
+      <rect width="100" height="36" rx="8" fill="rgba(255,255,255,0.8)"/>
+      <text x="50" y="24" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="13">⏳ Timeline</text>
+    </g>
+    <g transform="translate(220, 0)">
+      <rect width="100" height="36" rx="8" fill="rgba(255,255,255,0.8)"/>
+      <text x="50" y="24" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="13">🚗 Navigate</text>
+    </g>
+    <g transform="translate(330, 0)">
+      <rect width="100" height="36" rx="8" fill="rgba(255,255,255,0.8)"/>
+      <text x="50" y="24" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="13">🚌 Transit</text>
+    </g>
+  </g>
+
+  <!-- Map area -->
+  <g transform="translate(0, 115)">
+    <!-- Roads -->
+    <line x1="0" y1="300" x2="1280" y2="280" stroke="#cbd5e1" stroke-width="12"/>
+    <line x1="400" y1="0" x2="500" y2="605" stroke="#cbd5e1" stroke-width="10"/>
+    <line x1="800" y1="100" x2="750" y2="605" stroke="#cbd5e1" stroke-width="8"/>
+    <line x1="100" y1="400" x2="1100" y2="450" stroke="#cbd5e1" stroke-width="6"/>
+
+    <!-- Location markers -->
+    <g transform="translate(640, 280)">
+      <circle r="30" fill="#ef4444" opacity="0.2"/>
+      <circle r="18" fill="#ef4444"/>
+      <circle r="6" fill="white"/>
+    </g>
+    <g transform="translate(300, 380)">
+      <circle r="12" fill="#0ea5e9"/>
+      <circle r="4" fill="white"/>
+    </g>
+    <g transform="translate(900, 200)">
+      <circle r="12" fill="#22c55e"/>
+      <circle r="4" fill="white"/>
+    </g>
+    <g transform="translate(550, 450)">
+      <circle r="12" fill="#f59e0b"/>
+      <circle r="4" fill="white"/>
+    </g>
+    <g transform="translate(1050, 350)">
+      <circle r="12" fill="#8b5cf6"/>
+      <circle r="4" fill="white"/>
+    </g>
+  </g>
+
+  <!-- Place panel (right side) -->
+  <g transform="translate(960, 115)">
+    <rect width="300" height="400" rx="12" fill="url(#panelGrad)" stroke="#e2e8f0"/>
+    <rect width="300" height="44" rx="12" ry="0" fill="#0f172a"/>
+    <text x="20" y="28" fill="white" font-family="system-ui" font-size="14" font-weight="500">⋮⋮ Place Details</text>
+    <text x="260" y="28" fill="#94a3b8" font-family="system-ui" font-size="18">×</text>
+
+    <text x="20" y="75" fill="#0f172a" font-family="system-ui" font-size="16" font-weight="600">Johannesburg</text>
+    <text x="20" y="95" fill="#64748b" font-family="system-ui" font-size="12">City · Gauteng, South Africa</text>
+
+    <line x1="20" y1="115" x2="280" y2="115" stroke="#e2e8f0"/>
+
+    <text x="20" y="140" fill="#64748b" font-family="system-ui" font-size="11" font-weight="500">HISTORICAL NAMES</text>
+    <text x="20" y="165" fill="#0f172a" font-family="system-ui" font-size="13">Egoli (Zulu) "Place of Gold"</text>
+    <text x="20" y="185" fill="#0f172a" font-family="system-ui" font-size="13">Gauteng (Sotho) "Place of Gold"</text>
+
+    <line x1="20" y1="205" x2="280" y2="205" stroke="#e2e8f0"/>
+
+    <text x="20" y="230" fill="#64748b" font-family="system-ui" font-size="11" font-weight="500">FOUNDED</text>
+    <text x="20" y="255" fill="#0f172a" font-family="system-ui" font-size="13">1886 CE - Gold discovered on Witwatersrand</text>
+
+    <rect x="20" y="290" width="120" height="36" rx="8" fill="#0ea5e9"/>
+    <text x="80" y="314" text-anchor="middle" fill="white" font-family="system-ui" font-size="13">🧭 Directions</text>
+
+    <rect x="150" y="290" width="120" height="36" rx="8" fill="white" stroke="#e2e8f0"/>
+    <text x="210" y="314" text-anchor="middle" fill="#0f172a" font-family="system-ui" font-size="13">📍 Nearby</text>
+  </g>
+
+  <!-- Timeline panel (bottom) -->
+  <g transform="translate(20, 550)">
+    <rect width="920" height="150" rx="12" fill="url(#panelGrad)" stroke="#e2e8f0"/>
+    <rect width="920" height="40" rx="12" ry="0" fill="#0f172a"/>
+    <text x="20" y="26" fill="white" font-family="system-ui" font-size="14" font-weight="500">⋮⋮ Timeline</text>
+    <text x="200" y="26" fill="white" font-family="system-ui" font-size="14" font-weight="600">1886 CE</text>
+    <text x="260" y="26" fill="#94a3b8" font-family="system-ui" font-size="14">▶️</text>
+
+    <!-- Timeline slider -->
+    <rect x="20" y="60" width="880" height="8" rx="4" fill="#e2e8f0"/>
+    <rect x="20" y="60" width="720" height="8" rx="4" fill="#0ea5e9"/>
+    <circle cx="740" cy="64" r="12" fill="#0ea5e9" stroke="white" stroke-width="3"/>
+
+    <!-- Preset buttons -->
+    <g transform="translate(20, 90)">
+      <rect width="80" height="28" rx="6" fill="white" stroke="#e2e8f0"/>
+      <text x="40" y="19" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="11">1000 BCE</text>
+    </g>
+    <g transform="translate(110, 90)">
+      <rect width="70" height="28" rx="6" fill="white" stroke="#e2e8f0"/>
+      <text x="35" y="19" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="11">586 BCE</text>
+    </g>
+    <g transform="translate(190, 90)">
+      <rect width="60" height="28" rx="6" fill="white" stroke="#e2e8f0"/>
+      <text x="30" y="19" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="11">33 CE</text>
+    </g>
+    <g transform="translate(260, 90)">
+      <rect width="70" height="28" rx="6" fill="white" stroke="#e2e8f0"/>
+      <text x="35" y="19" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="11">135 CE</text>
+    </g>
+    <g transform="translate(340, 90)">
+      <rect width="80" height="28" rx="6" fill="white" stroke="#e2e8f0"/>
+      <text x="40" y="19" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="11">1652 CE</text>
+    </g>
+    <g transform="translate(430, 90)">
+      <rect width="80" height="28" rx="6" fill="#0ea5e9"/>
+      <text x="40" y="19" text-anchor="middle" fill="white" font-family="system-ui" font-size="11" font-weight="500">1886 CE</text>
+    </g>
+    <g transform="translate(520, 90)">
+      <rect width="60" height="28" rx="6" fill="white" stroke="#e2e8f0"/>
+      <text x="30" y="19" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="11">Today</text>
+    </g>
+  </g>
+
+  <!-- FAB buttons -->
+  <g transform="translate(1220, 400)">
+    <circle r="28" fill="#0ea5e9"/>
+    <text y="8" text-anchor="middle" fill="white" font-size="24">🧭</text>
+  </g>
+  <g transform="translate(1220, 470)">
+    <circle r="28" fill="#0ea5e9"/>
+    <text y="8" text-anchor="middle" fill="white" font-size="24">📍</text>
+  </g>
+
+  <!-- Stats badge -->
+  <rect x="960" y="525" width="300" height="36" rx="8" fill="rgba(15,23,42,0.9)"/>
+  <text x="980" y="548" fill="white" font-family="system-ui" font-size="12">12,450 places | 34,567 names | 8,923 events</text>
+</svg>

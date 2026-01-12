@@ -1,0 +1,85 @@
+<svg width="390" height="844" viewBox="0 0 390 844" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mapGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e8f4f8"/>
+      <stop offset="100%" style="stop-color:#d4e8ed"/>
+    </linearGradient>
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Phone frame -->
+  <rect width="390" height="844" rx="40" fill="#0f172a"/>
+  <rect x="10" y="10" width="370" height="824" rx="30" fill="url(#mapGrad)"/>
+
+  <!-- Status bar -->
+  <rect x="10" y="10" width="370" height="44" rx="30" ry="0" fill="url(#headerGrad)"/>
+  <text x="195" y="32" text-anchor="middle" fill="white" font-family="system-ui" font-size="14" font-weight="500">9:41</text>
+
+  <!-- Header -->
+  <rect x="10" y="54" width="370" height="56" fill="url(#headerGrad)"/>
+  <text x="30" y="88" fill="white" font-family="system-ui" font-size="18" font-weight="600">DataAcuity Maps</text>
+  <text x="170" y="88" fill="#94a3b8" font-family="system-ui" font-size="12">Navigate Time &amp; Space</text>
+
+  <!-- Search bar -->
+  <rect x="25" y="120" width="340" height="44" rx="22" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+  <text x="50" y="148" fill="#94a3b8" font-family="system-ui" font-size="14">Search places across all time...</text>
+
+  <!-- Mode tabs -->
+  <g transform="translate(25, 175)">
+    <rect width="80" height="36" rx="18" fill="#0ea5e9"/>
+    <text x="40" y="24" text-anchor="middle" fill="white" font-family="system-ui" font-size="12" font-weight="500">Explore</text>
+    <text x="120" y="24" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="12">Timeline</text>
+    <text x="200" y="24" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="12">Navigate</text>
+    <text x="280" y="24" text-anchor="middle" fill="#64748b" font-family="system-ui" font-size="12">Transit</text>
+  </g>
+
+  <!-- Map area with markers -->
+  <g transform="translate(10, 220)">
+    <!-- Map background -->
+    <rect width="370" height="500" fill="url(#mapGrad)"/>
+
+    <!-- Roads -->
+    <line x1="0" y1="200" x2="370" y2="180" stroke="#cbd5e1" stroke-width="8"/>
+    <line x1="150" y1="0" x2="200" y2="500" stroke="#cbd5e1" stroke-width="6"/>
+    <line x1="50" y1="300" x2="350" y2="350" stroke="#cbd5e1" stroke-width="4"/>
+
+    <!-- Location markers -->
+    <g transform="translate(180, 200)">
+      <circle r="20" fill="#ef4444" opacity="0.2"/>
+      <circle r="12" fill="#ef4444"/>
+      <circle r="4" fill="white"/>
+    </g>
+    <g transform="translate(100, 320)">
+      <circle r="8" fill="#0ea5e9"/>
+      <circle r="3" fill="white"/>
+    </g>
+    <g transform="translate(280, 150)">
+      <circle r="8" fill="#22c55e"/>
+      <circle r="3" fill="white"/>
+    </g>
+    <g transform="translate(250, 380)">
+      <circle r="8" fill="#f59e0b"/>
+      <circle r="3" fill="white"/>
+    </g>
+  </g>
+
+  <!-- FAB buttons -->
+  <g transform="translate(320, 640)">
+    <circle r="24" fill="#0ea5e9" filter="url(#shadow)"/>
+    <text y="6" text-anchor="middle" fill="white" font-size="20">🧭</text>
+  </g>
+  <g transform="translate(320, 700)">
+    <circle r="24" fill="#0ea5e9"/>
+    <text y="6" text-anchor="middle" fill="white" font-size="20">📍</text>
+  </g>
+
+  <!-- Stats badge -->
+  <rect x="25" y="730" width="200" height="40" rx="8" fill="rgba(15,23,42,0.9)"/>
+  <text x="40" y="755" fill="white" font-family="system-ui" font-size="11">12,450 places | 34,000 POIs</text>
+
+  <!-- Home indicator -->
+  <rect x="145" y="810" width="100" height="5" rx="2.5" fill="#64748b"/>
+</svg>

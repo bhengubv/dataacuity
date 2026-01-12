@@ -1,0 +1,56 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: "Raw data from Maps database via foreign data wrapper"
+    database: datawarehouse
+    schema: bronze
+
+    tables:
+      - name: places
+        description: "GeoNames places - 13.4M geographic locations worldwide"
+        columns:
+          - name: id
+            description: "Primary key"
+          - name: source_id
+            description: "GeoNames ID"
+          - name: current_name
+            description: "Primary place name"
+          - name: place_type
+            description: "Place category (settlement, terrain, hydrographic, etc.)"
+          - name: country_code
+            description: "ISO 2-letter country code"
+          - name: population
+            description: "Population count"
+          - name: feature_class
+            description: "GeoNames feature class"
+          - name: feature_code
+            description: "GeoNames feature code"
+
+      - name: place_names
+        description: "Historical and alternate names for places"
+        columns:
+          - name: id
+            description: "Primary key"
+          - name: place_id
+            description: "Foreign key to places"
+          - name: name
+            description: "Place name"
+          - name: language
+            description: "Language code"
+          - name: year_start
+            description: "When this name started being used"
+          - name: year_end
+            description: "When this name stopped being used"
+
+      - name: countries
+        description: "Country reference data from GeoNames"
+        columns:
+          - name: iso_code
+            description: "ISO 2-letter country code"
+          - name: name
+            description: "Country name"
+          - name: continent
+            description: "Continent code"
+          - name: population
+            description: "Country population"

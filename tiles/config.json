@@ -1,0 +1,27 @@
+{
+  "options": {
+    "paths": {
+      "root": "/data",
+      "fonts": "/data/fonts",
+      "sprites": "/data/sprites",
+      "styles": "/data/styles",
+      "pmtiles": "/data"
+    }
+  },
+  "data": {
+    "south-africa": {
+      "pmtiles": "south-africa.pmtiles"
+    }
+  },
+  "styles": {
+    "south-africa": {
+      "style": "/data/styles/south-africa.json"
+    },
+    "positron": {
+      "style": "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+      "tilejson": {
+        "type": "overlay"
+      }
+    }
+  }
+}

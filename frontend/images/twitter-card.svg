@@ -1,0 +1,61 @@
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0ea5e9"/>
+      <stop offset="100%" style="stop-color:#0056CC"/>
+    </linearGradient>
+    <linearGradient id="globe" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#34C759"/>
+      <stop offset="100%" style="stop-color:#10b981"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Grid pattern for map feel -->
+  <g opacity="0.1" stroke="white" stroke-width="1">
+    <line x1="0" y1="105" x2="1200" y2="105"/>
+    <line x1="0" y1="210" x2="1200" y2="210"/>
+    <line x1="0" y1="315" x2="1200" y2="315"/>
+    <line x1="0" y1="420" x2="1200" y2="420"/>
+    <line x1="0" y1="525" x2="1200" y2="525"/>
+    <line x1="200" y1="0" x2="200" y2="630"/>
+    <line x1="400" y1="0" x2="400" y2="630"/>
+    <line x1="600" y1="0" x2="600" y2="630"/>
+    <line x1="800" y1="0" x2="800" y2="630"/>
+    <line x1="1000" y1="0" x2="1000" y2="630"/>
+  </g>
+
+  <!-- Globe icon -->
+  <circle cx="600" cy="250" r="120" fill="none" stroke="white" stroke-width="4" opacity="0.9"/>
+  <ellipse cx="600" cy="250" rx="120" ry="40" fill="none" stroke="white" stroke-width="2" opacity="0.7"/>
+  <ellipse cx="600" cy="250" rx="40" ry="120" fill="none" stroke="white" stroke-width="2" opacity="0.7"/>
+  <line x1="480" y1="250" x2="720" y2="250" stroke="white" stroke-width="2" opacity="0.5"/>
+
+  <!-- Location pins -->
+  <g transform="translate(520, 200)">
+    <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20c0-6.6-5.4-12-12-12zm0 16c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4z" fill="#FF3B30"/>
+  </g>
+  <g transform="translate(650, 180)">
+    <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20c0-6.6-5.4-12-12-12zm0 16c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4z" fill="#FF9500"/>
+  </g>
+  <g transform="translate(580, 280)">
+    <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20c0-6.6-5.4-12-12-12zm0 16c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4z" fill="#34C759"/>
+  </g>
+
+  <!-- Title -->
+  <text x="600" y="450" font-family="system-ui, -apple-system, sans-serif" font-size="64" font-weight="700" fill="white" text-anchor="middle">DataAcuity Maps</text>
+
+  <!-- Tagline -->
+  <text x="600" y="510" font-family="system-ui, -apple-system, sans-serif" font-size="32" fill="white" text-anchor="middle" opacity="0.9">Navigate Time &amp; Space</text>
+
+  <!-- Timeline hint -->
+  <rect x="300" y="560" width="600" height="8" rx="4" fill="white" opacity="0.3"/>
+  <rect x="300" y="560" width="450" height="8" rx="4" fill="white" opacity="0.8"/>
+  <circle cx="750" cy="564" r="10" fill="white"/>
+
+  <!-- Year labels -->
+  <text x="300" y="595" font-family="system-ui, sans-serif" font-size="18" fill="white" opacity="0.7">3000 BCE</text>
+  <text x="870" y="595" font-family="system-ui, sans-serif" font-size="18" fill="white" opacity="0.7">2024 CE</text>
+</svg>
