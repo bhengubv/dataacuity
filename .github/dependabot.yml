@@ -1,0 +1,72 @@
+version: 2
+updates:
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "ci"
+
+  # Python - Maps API
+  - package-ecosystem: "pip"
+    directory: "/maps/api"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "deps(maps)"
+    groups:
+      python-minor:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Python - API Gateway
+  - package-ecosystem: "pip"
+    directory: "/api-gateway"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "deps(gateway)"
+    groups:
+      python-minor:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Python - Transit API
+  - package-ecosystem: "pip"
+    directory: "/maps/transit/api"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "deps(transit)"
+
+  # Node.js - Bio
+  - package-ecosystem: "npm"
+    directory: "/bio"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "deps(bio)"
+    groups:
+      npm-minor:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Docker - Maps
+  - package-ecosystem: "docker"
+    directory: "/maps/api"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "deps(docker)"
+
+  # Docker - API Gateway
+  - package-ecosystem: "docker"
+    directory: "/api-gateway"
+    schedule:
+      interval: "monthly"
+    commit-message:
+      prefix: "deps(docker)"
