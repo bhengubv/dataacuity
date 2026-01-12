@@ -234,7 +234,7 @@ jobs:
       matrix:
         include:
           - service: maps
-            context: maps
+            context: maps/api
             dockerfile: maps/api/Dockerfile
           - service: api-gateway
             context: api-gateway

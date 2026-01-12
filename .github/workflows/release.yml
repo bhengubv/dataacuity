@@ -38,7 +38,7 @@ jobs:
       - name: Build and push Maps API
         uses: docker/build-push-action@v6
         with:
-          context: maps
+          context: maps/api
           file: maps/api/Dockerfile
           push: true
           tags: |
