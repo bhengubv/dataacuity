@@ -1,7 +1,7 @@
 # Data Acuity External API Gateway
 # Handles client integrations with OAuth2, API keys, rate limiting
 
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 WORKDIR /app
 
