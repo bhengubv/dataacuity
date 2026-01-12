@@ -1,0 +1,18 @@
+model_list:
+  - model_name: qwen
+    litellm_params:
+      model: ollama/qwen2.5:latest
+      api_base: http://ollama:11434
+  
+  - model_name: qwen-coder
+    litellm_params:
+      model: ollama/qwen2.5-coder:latest
+      api_base: http://ollama:11434
+  
+  - model_name: llama3
+    litellm_params:
+      model: ollama/llama3.1:latest
+      api_base: http://ollama:11434
+
+general_settings:
+  master_key: e38ae36672d54682ab84ec9cf9af2120.1tt74V9UKL8mrlaSiHigRYyh

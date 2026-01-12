@@ -1,0 +1,107 @@
+{
+  "name": "AutoBiz - Response Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autobiz/chat-message",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "chat-webhook",
+      "name": "Chat Message",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Simple rule-based response bot\nconst msg = $input.first().json;\nconst text = (msg.message || '').toLowerCase();\nconst sessionId = msg.sessionId || `session-${Date.now()}`;\n\n// FAQ database\nconst faqs = [\n  {\n    keywords: ['hours', 'open', 'close', 'when', 'time'],\n    response: 'Our business hours are Monday to Friday, 8:00 AM to 5:00 PM (SAST). We\\'re closed on weekends and public holidays.',\n    category: 'hours'\n  },\n  {\n    keywords: ['price', 'cost', 'how much', 'pricing', 'rate'],\n    response: 'For pricing information, please visit our pricing page or contact our sales team. Would you like me to connect you with a sales representative?',\n    category: 'pricing',\n    suggestHuman: true\n  },\n  {\n    keywords: ['refund', 'money back', 'return'],\n    response: 'Our refund policy allows returns within 14 days of purchase. For refund requests, please provide your order number and I\\'ll connect you with our support team.',\n    category: 'refund',\n    suggestHuman: true\n  },\n  {\n    keywords: ['contact', 'phone', 'email', 'reach'],\n    response: 'You can reach us via:\\n• Email: hello@dataacuity.co.za\\n• Phone: +27 XX XXX XXXX\\n• Or continue chatting here!',\n    category: 'contact'\n  },\n  {\n    keywords: ['order', 'track', 'shipping', 'delivery', 'where is'],\n    response: 'To track your order, please provide your order number. I\\'ll look it up for you right away!',\n    category: 'order',\n    needsInfo: 'orderNumber'\n  },\n  {\n    keywords: ['cancel', 'unsubscribe', 'stop'],\n    response: 'I\\'m sorry to hear you want to cancel. Let me connect you with a team member who can help. Is there anything specific that\\'s not working for you?',\n    category: 'cancellation',\n    suggestHuman: true\n  },\n  {\n    keywords: ['hello', 'hi', 'hey', 'good morning', 'good afternoon'],\n    response: 'Hello! 👋 Welcome to our support. How can I help you today?',\n    category: 'greeting'\n  },\n  {\n    keywords: ['thank', 'thanks', 'appreciate'],\n    response: 'You\\'re welcome! Is there anything else I can help you with?',\n    category: 'thanks'\n  },\n  {\n    keywords: ['bye', 'goodbye', 'later'],\n    response: 'Goodbye! Have a great day. Feel free to chat anytime you need help.',\n    category: 'farewell'\n  }\n];\n\n// Find matching FAQ\nlet matchedFaq = null;\nlet matchScore = 0;\n\nfor (const faq of faqs) {\n  const matches = faq.keywords.filter(kw => text.includes(kw)).length;\n  if (matches > matchScore) {\n    matchScore = matches;\n    matchedFaq = faq;\n  }\n}\n\nlet response = '';\nlet suggestHuman = false;\nlet needsInfo = null;\nlet category = 'unknown';\n\nif (matchedFaq && matchScore > 0) {\n  response = matchedFaq.response;\n  suggestHuman = matchedFaq.suggestHuman || false;\n  needsInfo = matchedFaq.needsInfo || null;\n  category = matchedFaq.category;\n} else {\n  // Fallback response\n  response = 'I\\'m not sure I understand. Could you please rephrase that? Or if you\\'d prefer, I can connect you with a human agent.';\n  suggestHuman = true;\n  category = 'unknown';\n}\n\nreturn {\n  sessionId: sessionId,\n  userMessage: msg.message,\n  botResponse: response,\n  category: category,\n  suggestHuman: suggestHuman,\n  needsInfo: needsInfo,\n  confidence: matchScore > 0 ? Math.min(matchScore / 2, 1) : 0,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "process-message",
+      "name": "Process Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/chat/logs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"sessionId\": \"{{ $json.sessionId }}\",\n  \"userMessage\": \"{{ $json.userMessage }}\",\n  \"botResponse\": \"{{ $json.botResponse }}\",\n  \"category\": \"{{ $json.category }}\",\n  \"confidence\": {{ $json.confidence }},\n  \"suggestedHuman\": {{ $json.suggestHuman }},\n  \"timestamp\": \"{{ $json.timestamp }}\"\n}",
+        "options": {}
+      },
+      "id": "log-chat",
+      "name": "Log Chat",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"response\": \"{{ $json.botResponse }}\",\n  \"sessionId\": \"{{ $json.sessionId }}\",\n  \"suggestHuman\": {{ $json.suggestHuman }},\n  \"needsInfo\": {{ $json.needsInfo ? '\"' + $json.needsInfo + '\"' : 'null' }}\n}",
+        "options": {}
+      },
+      "id": "chat-response",
+      "name": "Chat Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        910,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Chat Message": {
+      "main": [
+        [
+          {
+            "node": "Process Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Message": {
+      "main": [
+        [
+          {
+            "node": "Log Chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Chat": {
+      "main": [
+        [
+          {
+            "node": "Chat Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

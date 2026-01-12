@@ -1,0 +1,8 @@
+version: '3.8'
+services:
+  backend:
+    build: ./backend
+    container_name: dashboard-backend
+    restart: unless-stopped
+    ports: ["5007:5000"]
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock:ro"]

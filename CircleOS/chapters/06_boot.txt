@@ -1,0 +1,445 @@
+================================================================================
+CIRCLE OS SPECIFICATION
+Chapter 06: Boot Architecture
+================================================================================
+
+Document: 06_boot.txt
+Version: 1.0
+Date: December 2025
+Status: Foundation
+
+================================================================================
+1. BOOT PHILOSOPHY
+================================================================================
+
+COEXIST, DON'T CONQUER
+
+Circle OS boots alongside Android:
+- Android remains intact
+- User can switch at any time
+- No commitment required to try Circle
+- Existing data accessible from both
+
+================================================================================
+2. BOOT MODES
+================================================================================
+
+2.1 DUAL BOOT (DEFAULT)
+-----------------------
+Both OSes installed, user chooses at boot.
+
+USER EXPERIENCE:
+1. Power on device
+2. Boot menu appears (3 second timeout)
+3. User selects Circle OS or Android
+4. Selected OS boots
+
+DEFAULT: Last used OS boots if no selection
+
+2.2 CIRCLE ONLY
+---------------
+Full installation, Android removed.
+
+USER EXPERIENCE:
+- Device boots directly to Circle OS
+- More storage available
+- Full partition optimization
+- Still dual-boot capable if Android reinstalled later
+
+2.3 ANDROID ONLY (RECOVERY)
+---------------------------
+Return to stock Android.
+
+METHODS:
+- Flash stock ROM from recovery
+- Use manufacturer restore tool
+- Wipe and restore from backup
+
+================================================================================
+3. PARTITION SCHEME
+================================================================================
+
+3.1 A/B PARTITION LAYOUT
+------------------------
+Modern devices with A/B updates:
+
+| Partition   | Slot A (Circle)  | Slot B (Android)  |
+|-------------|------------------|-------------------|
+| boot        | circle_boot      | android_boot      |
+| system      | circle_system    | android_system    |
+| vendor      | circle_vendor    | android_vendor    |
+| dtbo        | circle_dtbo      | android_dtbo      |
+
+SHARED PARTITIONS:
+| Partition   | Usage                              |
+|-------------|-------------------------------------|
+| userdata    | Shared with separation (see Ch.05) |
+| persist     | Calibration data (read-only)       |
+| modem       | Modem firmware (shared)            |
+
+3.2 A-ONLY PARTITION LAYOUT
+---------------------------
+Older devices without A/B:
+
+| Partition   | Size   | Usage                    |
+|-------------|--------|--------------------------|
+| boot        | 64MB   | Active kernel            |
+| recovery    | 64MB   | Circle recovery          |
+| system      | Split  | Circle and Android       |
+| cache       | Varies | Unused (can reclaim)     |
+| userdata    | Rest   | Shared user data         |
+
+SYSTEM SPLIT:
+- Resize original system partition
+- Create circle_system partition
+- Requires careful partition table edit
+
+3.3 SUPER PARTITION (DYNAMIC)
+-----------------------------
+Devices with dynamic partitions:
+
+SUPER PARTITION CONTAINS:
+- system_a / system_b
+- vendor_a / vendor_b  
+- product_a / product_b
+- odm_a / odm_b
+
+CIRCLE APPROACH:
+- Create circle_system within super
+- Resize existing partitions as needed
+- Use lptools for manipulation
+
+================================================================================
+4. BOOTLOADER
+================================================================================
+
+4.1 BOOTLOADER STATES
+---------------------
+LOCKED (Stock):
+- Only signed images boot
+- Cannot flash custom images
+- Full security
+
+UNLOCKED:
+- Custom images can boot
+- May show warning at boot
+- Required for Circle OS on most devices
+
+RELOCKED (Tier 1 only):
+- Custom keys installed
+- Circle images signed with our key
+- Full verified boot restored
+- Best security posture
+
+4.2 UNLOCK PROCESS
+------------------
+STANDARD ANDROID:
+1. Enable OEM unlocking in Developer Options
+2. Reboot to bootloader
+3. Run: fastboot oem unlock
+4. Confirm on device
+5. Device wipes and unlocks
+
+HUAWEI (P30 Lite):
+1. Obtain unlock code (DC-Unlocker or testpoint)
+2. Reboot to bootloader
+3. Run: fastboot oem unlock [code]
+4. Device unlocks
+
+SAMSUNG:
+1. Enable OEM unlock
+2. Reboot to Download mode
+3. Long press Volume Up to unlock
+4. Device wipes and unlocks
+
+4.3 BOOT MENU IMPLEMENTATION
+----------------------------
+OPTIONS:
+
+OPTION A: BOOTLOADER MENU (fastboot)
+- Modify bootloader to show menu
+- Requires device-specific work
+- Best user experience
+- Not possible on all devices
+
+OPTION B: EARLY INIT MENU
+- Linux boots minimal environment
+- Shows selection menu
+- Kexec to chosen kernel
+- Works on any device
+- Slight boot time penalty
+
+OPTION C: RECOVERY-BASED MENU
+- Boot to recovery
+- Selection screen
+- Boot chosen OS
+- Works universally
+- Requires extra step
+
+CIRCLE IMPLEMENTATION:
+- OPTION B as default (universal)
+- OPTION A where device supports
+
+4.4 BOOT SELECTION UI
+---------------------
+APPEARANCE:
+┌─────────────────────────────────┐
+│         SELECT SYSTEM           │
+│                                 │
+│   ┌─────────────────────────┐   │
+│   │      ○ Circle OS        │   │
+│   └─────────────────────────┘   │
+│                                 │
+│   ┌─────────────────────────┐   │
+│   │      ○ Android          │   │
+│   └─────────────────────────┘   │
+│                                 │
+│   Auto-boot Circle in 3...      │
+│                                 │
+└─────────────────────────────────┘
+
+CONTROLS:
+- Volume keys: Navigate
+- Power: Select
+- Timeout: 3 seconds to default
+
+================================================================================
+5. BOOT FLOW
+================================================================================
+
+5.1 POWER ON TO KERNEL
+----------------------
+1. POWER ON
+   - Hardware initialization
+   - Load bootloader from flash
+
+2. BOOTLOADER
+   - Initialize display (for menu)
+   - Check boot mode (normal/recovery/fastboot)
+   - If normal: show boot selection (or timeout)
+
+3. KERNEL LOAD
+   - Load selected kernel to RAM
+   - Load DTB (device tree)
+   - Load ramdisk
+   - Jump to kernel entry point
+
+5.2 KERNEL TO INIT
+------------------
+4. KERNEL INIT
+   - Architecture setup
+   - Memory initialization
+   - Driver initialization
+   - Mount root filesystem
+
+5. RAMDISK
+   - Early init execution
+   - Property loading
+   - SELinux initialization
+
+6. SWITCH TO SYSTEM
+   - Mount system partition (dm-verity if supported)
+   - Switch root to system
+
+5.3 INIT TO LAUNCHER
+--------------------
+7. INIT STAGES
+   - early-init: Pre-hardware
+   - init: Core services
+   - late-init: User-facing services
+
+8. ZYGOTE
+   - Start Android runtime
+   - Preload classes
+   - Fork app processes
+
+9. SYSTEM SERVER
+   - Start system services
+   - PackageManager
+   - ActivityManager
+   - CirclePrivacyManager
+   - WindowManager
+
+10. LAUNCHER
+    - System UI starts
+    - Lock screen displayed
+    - User authentication
+    - Home screen ready
+
+================================================================================
+6. VERIFIED BOOT
+================================================================================
+
+6.1 TIER 1 DEVICES
+------------------
+Full verified boot chain:
+
+1. ROM → Bootloader (hardware verified)
+2. Bootloader → boot.img (signature check)
+3. Kernel → system (dm-verity)
+4. Kernel → vendor (dm-verity)
+
+KEYS:
+- Circle Foundation signs releases
+- Key enrolled in bootloader
+- Rollback protection enabled
+
+6.2 TIER 2/3 DEVICES
+--------------------
+Partial verification:
+
+1. ROM → Bootloader (hardware, stock)
+2. Bootloader → boot.img (NOT verified - unlocked)
+3. Kernel → system (dm-verity YES)
+4. Kernel → vendor (dm-verity where possible)
+
+LIMITATION:
+- Boot image could be tampered
+- Document this limitation to users
+- System still protected at runtime
+
+================================================================================
+7. RECOVERY ENVIRONMENT
+================================================================================
+
+7.1 CIRCLE RECOVERY
+-------------------
+Custom recovery environment for Circle OS.
+
+FEATURES:
+- Flash Circle updates
+- Backup/restore Circle installation
+- Switch boot slot
+- Wipe Circle data
+- ADB sideload
+- Boot to Android
+
+NOT A FULL TWRP:
+- Simpler UI
+- Focused on Circle operations
+- Security hardened
+
+7.2 ACCESSING RECOVERY
+----------------------
+FROM CIRCLE OS:
+- Settings > System > Recovery mode
+- Reboot with confirmation
+
+FROM POWERED OFF:
+- Device-specific key combo (Volume Up + Power typical)
+
+FROM ADB:
+- adb reboot recovery
+
+7.3 RECOVERY UI
+---------------
+┌─────────────────────────────────┐
+│       CIRCLE OS RECOVERY        │
+│                                 │
+│   > Apply update                │
+│     Backup Circle               │
+│     Restore Circle              │
+│     Wipe Circle data            │
+│     Boot to Android             │
+│     Reboot system               │
+│     Power off                   │
+│                                 │
+│   Vol: Navigate  Power: Select  │
+└─────────────────────────────────┘
+
+================================================================================
+8. UPDATE MECHANISM
+================================================================================
+
+8.1 A/B UPDATE FLOW
+-------------------
+1. Download update (background)
+2. Verify signature
+3. Install to inactive slot
+4. Verify installation
+5. Mark slot as bootable
+6. Prompt user to reboot
+7. Boot to updated slot
+8. Verify successful boot
+9. Mark update complete
+
+ROLLBACK:
+- If new slot fails to boot 3 times
+- Automatically revert to previous slot
+- User notified of rollback
+
+8.2 NON-A/B UPDATE FLOW
+-----------------------
+1. Download update
+2. Verify signature
+3. Cache update package
+4. Reboot to recovery
+5. Apply update in recovery
+6. Reboot to system
+
+ROLLBACK:
+- Keep previous system image as backup
+- Manual restoration from recovery
+
+================================================================================
+9. FIRST BOOT
+================================================================================
+
+9.1 INSTALLATION COMPLETE
+-------------------------
+After flashing Circle OS:
+
+1. First boot detected (flag in /data)
+2. Extended initialization
+3. Encryption setup (if not already encrypted)
+4. Launch setup wizard
+
+9.2 SETUP WIZARD
+----------------
+See Chapter 11: Onboarding
+
+================================================================================
+10. TROUBLESHOOTING
+================================================================================
+
+10.1 BOOT LOOP
+--------------
+If Circle OS fails to boot:
+
+OPTION A: Boot to recovery
+- Select "Boot to Android"
+- File bug report
+
+OPTION B: Fastboot
+- Reboot to fastboot mode
+- Flash known-good boot image
+
+OPTION C: Factory reset
+- Recovery > Wipe Circle data
+- Preserves Android installation
+
+10.2 CORRUPTED SYSTEM
+---------------------
+dm-verity failure:
+
+SYMPTOMS:
+- Boot failure with verity error
+- System detected as tampered
+
+RESOLUTION:
+- Reflash system image via fastboot
+- Or restore from recovery backup
+
+10.3 RETURN TO ANDROID
+----------------------
+If user wants to fully remove Circle:
+
+1. Boot to Android (from boot menu)
+2. Or: Reflash stock ROM via fastboot
+3. Or: Use manufacturer recovery tool
+
+Circle OS never prevents return to Android.
+
+================================================================================
+END OF CHAPTER 06
+================================================================================

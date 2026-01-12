@@ -1,0 +1,9 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":disableDependencyDashboard"],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "automerge": true
+  },
+  "ignoreDeps": ["bun-types", "@types/bun", "bun", "Bun"]
+}

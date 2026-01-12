@@ -1,0 +1,35 @@
+services:
+  onelink:
+    build: .
+    container_name: bio_onelink
+    restart: unless-stopped
+    ports:
+      - "5009:3000"
+    environment:
+      - DATABASE_URL=postgresql://onelink:${BIO_DB_PASSWORD}@bio_db:5432/onelink
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-https://bio.dataacuity.co.za}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+    depends_on:
+      - bio_db
+    networks:
+      - data-warehouse_data_stack
+
+  bio_db:
+    image: postgres:15
+    container_name: bio_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=onelink
+      - POSTGRES_USER=onelink
+      - POSTGRES_PASSWORD=${BIO_DB_PASSWORD}
+    volumes:
+      - bio_data:/var/lib/postgresql/data
+    networks:
+      - data-warehouse_data_stack
+
+volumes:
+  bio_data:
+
+networks:
+  data-warehouse_data_stack:
+    external: true

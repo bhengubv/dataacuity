@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  automatisch-db:
+    image: postgres:14
+    container_name: automatisch_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: automatisch
+      POSTGRES_USER: automatisch
+      POSTGRES_PASSWORD: ${AUTOMATISCH_DB_PASSWORD}
+    volumes:
+      - automatisch_db:/var/lib/postgresql/data
+    networks:
+      - data-warehouse_data_stack
+
+  automatisch-redis:
+    image: redis:7-alpine
+    container_name: automatisch_redis
+    restart: unless-stopped
+    networks:
+      - data-warehouse_data_stack
+
+  automatisch:
+    image: automatischio/automatisch:latest
+    container_name: automatisch
+    restart: unless-stopped
+    ports:
+      - "5004:3000"
+    environment:
+      POSTGRES_HOST: automatisch-db
+      POSTGRES_PORT: 5432
+      POSTGRES_DATABASE: automatisch
+      POSTGRES_USERNAME: automatisch
+      POSTGRES_PASSWORD: ${AUTOMATISCH_DB_PASSWORD}
+      REDIS_HOST: automatisch-redis
+      APP_ENV: production
+      ENCRYPTION_KEY: ${AUTOMATISCH_ENCRYPTION_KEY}
+      WEBHOOK_URL: https://auto.dataacuity.co.za
+      WEBHOOK_SECRET_KEY: ${AUTOMATISCH_WEBHOOK_SECRET}
+    depends_on:
+      - automatisch-db
+      - automatisch-redis
+    networks:
+      - data-warehouse_data_stack
+
+volumes:
+  automatisch_db:
+
+networks:
+  data-warehouse_data_stack:
+    external: true

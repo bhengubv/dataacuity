@@ -1,18 +1,40 @@
-# Environment
+# ===== DataAcuity Monorepo .gitignore =====
+
+# User dotfiles
+.ICEauthority
+.Xauthority
+.bash_history
+.bash_logout
+.bashrc
+.profile
+.lesshst
+.sudo_as_admin_successful
+.wsl-config
+.xorgxrdp*
+.xsession
+.gitconfig
+.claude/
+
+# Environment files
 .env
 .env.local
 .env.*.local
+*.env
 
 # Dependencies
 node_modules/
+vendor/
+.pnpm-store/
 
 # Logs
 *.log
 logs/
 
-# Database dumps
+# Database dumps and data
 *.sql.gz
 *.dump
+pgdata/
+data/
 
 # OS files
 .DS_Store
@@ -31,21 +53,9 @@ __pycache__/
 .pytest_cache/
 .coverage
 htmlcov/
-
-# Docker volumes (data directories)
-data/
-pgdata/
-nominatim-data/
-osrm-data/
-
-# Large tile files (download separately)
-tiles/*.pmtiles
-tiles/*.mbtiles
-
-# Large original historical maps (keep optimized versions only)
-frontend/historical-maps/*.jpg
-!frontend/historical-maps/optimized/
-!frontend/historical-maps/thumbs/
+.venv/
+venv/
+*.egg-info/
 
 # Session/temp files
 .loki/
@@ -53,3 +63,131 @@ SESSION-PROGRESS.md
 tmp/
 *.tmp
 *.backup
+
+# ===== User directories (not code) =====
+Desktop/
+Documents/
+Downloads/
+Music/
+Pictures/
+Public/
+Templates/
+Videos/
+.cache/
+.config/
+.local/
+.gnupg/
+.ssh/
+.pki/
+.dbus/
+.fontconfig/
+.docker/
+.gvfs/
+.pcsc*/
+snap/
+thinclient_drives/
+claude_tools/
+
+# ===== Backup directories =====
+*_backup_*/
+backups/
+
+# ===== Maps-specific =====
+maps/nominatim-data/
+maps/osrm-data/
+maps/data/
+maps/tiles/*.pmtiles
+maps/tiles/*.mbtiles
+maps/frontend/historical-maps/*.jpg
+!maps/frontend/historical-maps/optimized/
+!maps/frontend/historical-maps/thumbs/
+
+# ===== Markets-specific =====
+markets/data/
+markets/pgdata/
+markets/images/
+markets/openbb_platform/providers/*/tests/record/
+markets/openbb_platform/obbject_extensions/charting/openbb_charting/core/assets/
+markets/desktop/src-tauri/*-SBOM*.xml
+markets/openbb_platform/obbject_extensions/charting/openbb_charting/core/plotly.html
+markets/openbb_platform/providers/*/openbb_*/assets/*.xz
+markets/*/poetry.lock
+
+# ===== Data Warehouse =====
+data-warehouse/pgdata/
+data-warehouse/data/
+
+# ===== Superset =====
+superset/data/
+superset/pgdata/
+
+# ===== Airbyte =====
+airbyte/data/
+airbyte/pgdata/
+
+# ===== N8N =====
+n8n/data/
+
+# ===== Twenty CRM =====
+twenty/data/
+twenty/pgdata/
+
+# ===== Suite =====
+suite/acme/
+suite/traefik-data/
+suite/keycloak-data/
+
+# ===== Monitoring =====
+monitoring/prometheus-data/
+monitoring/grafana-data/
+monitoring/loki-data/
+
+# ===== AI Brain =====
+ai-brain/ollama-data/
+ai-brain/open-webui-data/
+
+# ===== Learn =====
+learn/data/
+learn/code/build/
+learn/code/output/
+learn/code/extensions/
+
+# ===== Sandbox =====
+sandbox/data/
+sandbox/pgdata/
+sandbox/pnpm-lock.yaml
+sandbox/packages/*/documentation/assets/
+
+# ===== Morph =====
+morph/uploads/
+morph/converted/
+
+# ===== Developer Studio =====
+developer-studio/data/
+
+# ===== TagMe =====
+tagme/data/
+
+# ===== Bio =====
+bio/.nuxt/
+bio/.output/
+bio/dist/
+
+# ===== CircleOS =====
+CircleOS/build/
+CircleOS/out/
+
+# ===== Private scripts =====
+scripts/
+
+# ===== Docs (platform-level) =====
+docs/
+
+# ===== Archives =====
+*.zip
+*.tar.gz
+*.tgz
+
+# ===== Platform roadmap docs (keep in separate location) =====
+*_ROADMAP.md
+REBOOT_STATUS.md

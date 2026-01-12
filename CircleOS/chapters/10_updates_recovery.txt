@@ -1,0 +1,345 @@
+================================================================================
+CIRCLE OS SPECIFICATION
+Chapter 10: Update & Recovery System
+================================================================================
+
+Document: 10_updates_recovery.txt
+Version: 1.0
+Date: December 2025
+Status: Foundation
+
+================================================================================
+1. UPDATE PHILOSOPHY
+================================================================================
+
+Security updates are non-negotiable.
+
+- Monthly security patches
+- Critical fixes within 72 hours
+- Updates should not require user expertise
+- Updates should not break existing functionality
+- Rollback must always be possible
+
+================================================================================
+2. UPDATE TYPES
+================================================================================
+
+2.1 SECURITY PATCHES
+--------------------
+FREQUENCY: Monthly (minimum)
+CONTENT: Security fixes only
+SIZE: Small (~50-100MB)
+REBOOT: Required
+
+2.2 SYSTEM UPDATES
+------------------
+FREQUENCY: Quarterly
+CONTENT: Features, fixes, improvements
+SIZE: Medium (~200-500MB)
+REBOOT: Required
+
+2.3 MAJOR RELEASES
+------------------
+FREQUENCY: Annual
+CONTENT: Major features, API changes
+SIZE: Large (full system, ~2GB)
+REBOOT: Required
+
+2.4 CRITICAL PATCHES
+--------------------
+FREQUENCY: As needed
+CONTENT: Emergency security fixes
+SIZE: Minimal
+REBOOT: Required
+SLA: Within 72 hours of disclosure
+
+================================================================================
+3. UPDATE DELIVERY
+================================================================================
+
+3.1 OTA SERVER
+--------------
+INFRASTRUCTURE:
+- CDN-backed distribution
+- Geographic distribution
+- Signed metadata
+- Delta updates
+
+ENDPOINTS:
+- updates.circlefoundation.org
+- Fallback mirrors
+
+3.2 UPDATE CHECK
+----------------
+AUTOMATIC:
+- Check daily (default)
+- WiFi preferred
+- Configurable schedule
+
+MANUAL:
+- Settings > System > Updates > Check now
+
+3.3 NOTIFICATION
+----------------
+When update available:
+- Persistent notification
+- Shows update type (security/system)
+- Shows size
+- "Update Now" or "Later"
+
+================================================================================
+4. A/B UPDATE SYSTEM
+================================================================================
+
+4.1 PARTITION LAYOUT
+--------------------
+SLOT A: Active system
+SLOT B: Inactive (for update)
+
+4.2 UPDATE FLOW
+---------------
+1. Download update in background
+2. Verify signature (Circle Foundation key)
+3. Stream to inactive slot
+4. Verify written data
+5. Mark slot as bootable
+6. Prompt user for reboot
+7. Boot to updated slot
+8. Verify successful boot
+9. Mark update complete
+
+4.3 ROLLBACK
+------------
+AUTOMATIC:
+- If new slot fails to boot 3 times
+- System reverts to previous slot
+- User notified
+
+MANUAL:
+- Recovery > Rollback to previous version
+- Previous version must be intact
+
+4.4 STORAGE REQUIREMENT
+-----------------------
+A/B requires:
+- Duplicate system partition space
+- ~4-5GB for Circle system
+- Worth it for reliability
+
+================================================================================
+5. NON-A/B UPDATE SYSTEM
+================================================================================
+
+For devices without A/B partitions:
+
+5.1 UPDATE FLOW
+---------------
+1. Download update package
+2. Verify signature
+3. Reboot to recovery
+4. Apply update from recovery
+5. Verify installation
+6. Reboot to system
+
+5.2 ROLLBACK
+------------
+- Backup previous system before update
+- Recovery can restore backup
+- Less seamless than A/B
+
+================================================================================
+6. DELTA UPDATES
+================================================================================
+
+6.1 IMPLEMENTATION
+------------------
+Instead of full image, send only differences:
+
+PROCESS:
+- Server compares old/new images
+- Generates binary diff
+- Client applies diff locally
+- Verifies result
+
+SAVINGS:
+- Full update: ~2GB
+- Delta update: ~200-400MB
+
+6.2 REQUIREMENTS
+----------------
+- Client must have exact base version
+- Fallback to full update if delta fails
+- Multiple delta paths for common versions
+
+================================================================================
+7. RECOVERY ENVIRONMENT
+================================================================================
+
+7.1 CIRCLE RECOVERY
+-------------------
+Custom recovery for Circle OS:
+
+FEATURES:
+- Apply OTA updates
+- Rollback to previous version
+- Factory reset (Circle only)
+- Factory reset (full device)
+- Sideload via ADB
+- Boot to Android (dual boot)
+- View logs
+
+NOT INCLUDED:
+- Root shell (security)
+- Arbitrary image flashing
+
+7.2 ACCESSING RECOVERY
+----------------------
+FROM CIRCLE:
+- Settings > System > Recovery mode
+
+FROM OFF:
+- Power + Volume Up (device specific)
+
+FROM ADB:
+- adb reboot recovery
+
+7.3 RECOVERY SECURITY
+---------------------
+- Signed recovery image
+- No arbitrary code execution
+- Locked functionality
+- ADB sideload requires confirmation on screen
+
+================================================================================
+8. SECURITY VERIFICATION
+================================================================================
+
+8.1 SIGNATURE VERIFICATION
+--------------------------
+All updates signed with Circle Foundation key:
+
+KEYS:
+- Release key (production updates)
+- Test key (development only)
+- Keys embedded in recovery
+
+PROCESS:
+- Download includes signature
+- Recovery verifies before applying
+- Reject if signature invalid
+
+8.2 ROLLBACK PROTECTION
+-----------------------
+Prevent downgrade attacks:
+
+IMPLEMENTATION:
+- Version counter in secure storage (Tier 1)
+- Version check before boot
+- Cannot boot older than current counter
+
+TIER 2/3:
+- Software version check
+- Warning but not blocked
+
+================================================================================
+9. UPDATE SETTINGS
+================================================================================
+
+9.1 USER OPTIONS
+----------------
+Settings > System > Updates:
+
+AUTO-DOWNLOAD:
+- WiFi only (default)
+- WiFi or cellular
+- Manual only
+
+AUTO-INSTALL:
+- When idle and charging (default)
+- Manual only
+- Schedule (overnight)
+
+NOTIFICATIONS:
+- All updates
+- Security only
+- None (not recommended)
+
+CHANNEL:
+- Stable (default)
+- Beta (opt-in, requires acknowledgment)
+
+================================================================================
+10. ENTERPRISE CONSIDERATIONS
+================================================================================
+
+10.1 MANAGED UPDATES
+--------------------
+For enterprise deployments:
+
+OPTIONS:
+- Delay updates by N days
+- Require WiFi
+- Require charging
+- Blackout periods
+- Staged rollout
+
+10.2 MDM INTEGRATION
+--------------------
+Mobile Device Management support:
+
+CAPABILITIES:
+- Force update installation
+- Block specific versions
+- Report update status
+- Schedule maintenance windows
+
+================================================================================
+11. OFFLINE UPDATES
+================================================================================
+
+11.1 SIDELOAD
+-------------
+For users without internet:
+
+PROCESS:
+1. Download OTA zip on computer
+2. Transfer to device storage
+3. Recovery > Apply update from storage
+4. Select file
+5. Verify and install
+
+11.2 USB UPDATE
+---------------
+PROCESS:
+1. Download OTA zip
+2. Boot device to recovery
+3. Connect USB to computer
+4. adb sideload update.zip
+5. Recovery applies update
+
+================================================================================
+12. SUMMARY
+================================================================================
+
+UPDATE COMMITMENTS:
+- Monthly security patches
+- Critical fixes within 72 hours
+- Seamless A/B updates where supported
+- Always possible to rollback
+- No forced updates (user controls timing)
+
+RECOVERY CAPABILITIES:
+- Apply updates
+- Rollback versions
+- Factory reset
+- ADB sideload
+- Boot to Android
+
+SECURITY:
+- All updates cryptographically signed
+- Rollback protection where hardware supports
+- Recovery locked down
+
+================================================================================
+END OF CHAPTER 10
+================================================================================

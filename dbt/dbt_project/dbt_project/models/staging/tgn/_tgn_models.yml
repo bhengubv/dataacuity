@@ -1,0 +1,57 @@
+version: 2
+
+models:
+  - name: stg_tgn__events
+    description: "Staged TGN events with flattened common metrics"
+    columns:
+      - name: event_id
+        description: "Unique event identifier"
+        tests:
+          - unique
+          - not_null
+
+      - name: source_name
+        description: "Source API name"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['bruh', 'auth', 'ledger', 'payfast', 'media', 'messaging',
+                       'glocell', 'sdpkt', 'slepton', 'tagme', 'jobcenter',
+                       'bidbaas', 'kiffstore', 'trustseal', 'opsupport']
+
+      - name: period_type
+        description: "Aggregation period type"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['15min', 'hourly', 'daily', 'weekly', 'monthly', 'quarterly', 'yearly']
+
+      - name: period_start
+        description: "Period start timestamp"
+        tests:
+          - not_null
+
+      - name: period_end
+        description: "Period end timestamp"
+        tests:
+          - not_null
+
+      - name: received_at
+        description: "When data was ingested"
+        tests:
+          - not_null
+
+  - name: stg_tgn__ingest_log
+    description: "Staged ingest audit log"
+    columns:
+      - name: log_id
+        description: "Log entry identifier"
+        tests:
+          - unique
+          - not_null
+
+      - name: status
+        description: "Ingest operation status"
+        tests:
+          - accepted_values:
+              values: ['success', 'partial', 'failed']

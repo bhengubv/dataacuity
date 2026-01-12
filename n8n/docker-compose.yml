@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5008:5678"
+    environment:
+      - N8N_HOST=n8n.dataacuity.co.za
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - NODE_ENV=production
+      - WEBHOOK_URL=https://n8n.dataacuity.co.za
+      - GENERIC_TIMEZONE=Africa/Johannesburg
+      - N8N_SECURE_COOKIE=false
+      - N8N_METRICS=true
+      - N8N_PUBLIC_API_DISABLED=false
+      # Subpath support - allows access via dataacuity.co.za/n8n
+      - N8N_EDITOR_BASE_URL=https://dataacuity.co.za/n8n
+      - N8N_PATH=/n8n
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - data-warehouse_data_stack
+
+volumes:
+  n8n_data:
+
+networks:
+  data-warehouse_data_stack:
+    external: true

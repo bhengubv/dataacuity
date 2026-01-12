@@ -1,0 +1,227 @@
+{
+  "name": "AutoBiz - Financial Report Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 1 * *"
+            }
+          ]
+        }
+      },
+      "id": "monthly-schedule",
+      "name": "Monthly Report (1st of Month)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate date range for previous month\nconst now = new Date();\nconst lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);\nconst endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);\n\nreturn {\n  reportType: 'monthly',\n  periodStart: lastMonth.toISOString(),\n  periodEnd: endOfLastMonth.toISOString(),\n  periodName: lastMonth.toLocaleString('default', { month: 'long', year: 'numeric' }),\n  generatedAt: now.toISOString()\n};"
+      },
+      "id": "set-period",
+      "name": "Set Report Period",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CRM_API_URL }}/invoices?from={{ $json.periodStart }}&to={{ $json.periodEnd }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-invoices",
+      "name": "Fetch Invoices",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        690,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CRM_API_URL }}/expenses?from={{ $json.periodStart }}&to={{ $json.periodEnd }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-expenses",
+      "name": "Fetch Expenses",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        690,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "merge-data",
+      "name": "Merge Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        910,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate comprehensive financial report\nconst items = $input.all();\nconst invoiceData = items.find(i => i.json.invoices)?.json || { invoices: [] };\nconst expenseData = items.find(i => i.json.expenses)?.json || { expenses: [] };\nconst period = $('Set Report Period').first().json;\n\nconst invoices = invoiceData.invoices || [];\nconst expenses = expenseData.expenses || [];\n\n// Revenue calculations\nlet totalRevenue = 0;\nlet totalPaid = 0;\nlet totalOutstanding = 0;\nconst revenueByCategory = {};\n\nfor (const inv of invoices) {\n  const amount = parseFloat(inv.total) || 0;\n  totalRevenue += amount;\n  \n  if (inv.status === 'paid') {\n    totalPaid += amount;\n  } else {\n    totalOutstanding += amount;\n  }\n  \n  const cat = inv.category || 'general';\n  revenueByCategory[cat] = (revenueByCategory[cat] || 0) + amount;\n}\n\n// Expense calculations\nlet totalExpenses = 0;\nlet totalVat = 0;\nconst expensesByCategory = {};\n\nfor (const exp of expenses) {\n  const amount = parseFloat(exp.amount) || 0;\n  const vat = parseFloat(exp.vatAmount) || 0;\n  totalExpenses += amount;\n  totalVat += vat;\n  \n  const cat = exp.category || 'other';\n  expensesByCategory[cat] = (expensesByCategory[cat] || 0) + amount;\n}\n\n// Profit calculations\nconst grossProfit = totalPaid - totalExpenses;\nconst profitMargin = totalPaid > 0 ? ((grossProfit / totalPaid) * 100).toFixed(1) : 0;\n\n// Generate HTML report\nconst formatCurrency = (val) => 'R' + val.toFixed(2).replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',');\n\nconst categoryTable = (data, title) => {\n  const entries = Object.entries(data).sort((a, b) => b[1] - a[1]);\n  if (entries.length === 0) return '';\n  return `\n    <h3>${title}</h3>\n    <table style=\"width: 100%; border-collapse: collapse; margin-bottom: 20px;\">\n      ${entries.map(([cat, amt]) => `\n        <tr>\n          <td style=\"padding: 8px; border-bottom: 1px solid #eee; text-transform: capitalize;\">${cat.replace('_', ' ')}</td>\n          <td style=\"padding: 8px; border-bottom: 1px solid #eee; text-align: right;\">${formatCurrency(amt)}</td>\n        </tr>\n      `).join('')}\n    </table>\n  `;\n};\n\nconst html = `\n<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; margin: 40px; color: #333; }\n    .header { text-align: center; border-bottom: 3px solid #007AFF; padding-bottom: 20px; margin-bottom: 30px; }\n    h1 { color: #007AFF; margin-bottom: 5px; }\n    .period { color: #666; font-size: 18px; }\n    .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 30px; }\n    .summary-card { background: #f9f9f9; padding: 20px; border-radius: 10px; text-align: center; }\n    .summary-card.positive { background: #E8F5E9; }\n    .summary-card.negative { background: #FFEBEE; }\n    .summary-value { font-size: 28px; font-weight: bold; color: #333; }\n    .summary-label { font-size: 12px; color: #666; text-transform: uppercase; margin-top: 5px; }\n    .section { margin-bottom: 30px; }\n    h2 { color: #333; border-bottom: 1px solid #ddd; padding-bottom: 10px; }\n    .profit-section { background: linear-gradient(135deg, #007AFF 0%, #5856D6 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px; }\n    .profit-section h2 { color: white; border-bottom-color: rgba(255,255,255,0.3); }\n    .profit-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }\n    .profit-item { text-align: center; }\n    .profit-value { font-size: 32px; font-weight: bold; }\n    .profit-label { font-size: 14px; opacity: 0.8; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h1>Financial Report</h1>\n    <div class=\"period\">${period.periodName}</div>\n  </div>\n  \n  <div class=\"summary-grid\">\n    <div class=\"summary-card\">\n      <div class=\"summary-value\">${formatCurrency(totalRevenue)}</div>\n      <div class=\"summary-label\">Total Revenue</div>\n    </div>\n    <div class=\"summary-card\">\n      <div class=\"summary-value\">${formatCurrency(totalExpenses)}</div>\n      <div class=\"summary-label\">Total Expenses</div>\n    </div>\n    <div class=\"summary-card ${grossProfit >= 0 ? 'positive' : 'negative'}\">\n      <div class=\"summary-value\">${formatCurrency(grossProfit)}</div>\n      <div class=\"summary-label\">Net Profit</div>\n    </div>\n  </div>\n  \n  <div class=\"profit-section\">\n    <h2>Profitability</h2>\n    <div class=\"profit-grid\">\n      <div class=\"profit-item\">\n        <div class=\"profit-value\">${profitMargin}%</div>\n        <div class=\"profit-label\">Profit Margin</div>\n      </div>\n      <div class=\"profit-item\">\n        <div class=\"profit-value\">${invoices.length}</div>\n        <div class=\"profit-label\">Invoices Issued</div>\n      </div>\n    </div>\n  </div>\n  \n  <div class=\"section\">\n    <h2>Revenue Summary</h2>\n    <table style=\"width: 100%; border-collapse: collapse;\">\n      <tr><td style=\"padding: 10px;\">Invoiced</td><td style=\"padding: 10px; text-align: right;\">${formatCurrency(totalRevenue)}</td></tr>\n      <tr style=\"color: #34C759;\"><td style=\"padding: 10px;\">Collected</td><td style=\"padding: 10px; text-align: right;\">${formatCurrency(totalPaid)}</td></tr>\n      <tr style=\"color: #FF9500;\"><td style=\"padding: 10px;\">Outstanding</td><td style=\"padding: 10px; text-align: right;\">${formatCurrency(totalOutstanding)}</td></tr>\n    </table>\n    ${categoryTable(revenueByCategory, 'Revenue by Category')}\n  </div>\n  \n  <div class=\"section\">\n    <h2>Expense Summary</h2>\n    <table style=\"width: 100%; border-collapse: collapse;\">\n      <tr><td style=\"padding: 10px;\">Total Expenses</td><td style=\"padding: 10px; text-align: right;\">${formatCurrency(totalExpenses)}</td></tr>\n      <tr><td style=\"padding: 10px;\">VAT Claimed</td><td style=\"padding: 10px; text-align: right;\">${formatCurrency(totalVat)}</td></tr>\n    </table>\n    ${categoryTable(expensesByCategory, 'Expenses by Category')}\n  </div>\n  \n  <div style=\"margin-top: 40px; text-align: center; color: #888; font-size: 12px;\">\n    Report generated on ${new Date().toLocaleString()}\n  </div>\n</body>\n</html>\n`;\n\nreturn {\n  ...period,\n  revenue: {\n    total: totalRevenue,\n    collected: totalPaid,\n    outstanding: totalOutstanding,\n    byCategory: revenueByCategory,\n    invoiceCount: invoices.length\n  },\n  expenses: {\n    total: totalExpenses,\n    vatClaimed: totalVat,\n    byCategory: expensesByCategory,\n    count: expenses.length\n  },\n  profit: {\n    gross: grossProfit,\n    margin: profitMargin\n  },\n  reportHtml: html\n};"
+      },
+      "id": "generate-report",
+      "name": "Generate Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1130,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/reports",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"reportType\": \"{{ $json.reportType }}\",\n  \"periodName\": \"{{ $json.periodName }}\",\n  \"periodStart\": \"{{ $json.periodStart }}\",\n  \"periodEnd\": \"{{ $json.periodEnd }}\",\n  \"revenue\": {{ JSON.stringify($json.revenue) }},\n  \"expenses\": {{ JSON.stringify($json.expenses) }},\n  \"profit\": {{ JSON.stringify($json.profit) }},\n  \"generatedAt\": \"{{ $json.generatedAt }}\"\n}",
+        "options": {}
+      },
+      "id": "save-report",
+      "name": "Save Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1350,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $env.OWNER_EMAIL }}",
+        "subject": "=Financial Report: {{ $json.periodName }} - Profit R{{ $json.profit.gross.toFixed(2) }}",
+        "emailType": "html",
+        "html": "={{ $json.reportHtml }}",
+        "options": {}
+      },
+      "id": "send-report",
+      "name": "Send Report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1570,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Monthly Report (1st of Month)": {
+      "main": [
+        [
+          {
+            "node": "Set Report Period",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Report Period": {
+      "main": [
+        [
+          {
+            "node": "Fetch Invoices",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch Expenses",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Invoices": {
+      "main": [
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Expenses": {
+      "main": [
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Data": {
+      "main": [
+        [
+          {
+            "node": "Generate Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Report": {
+      "main": [
+        [
+          {
+            "node": "Save Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Report": {
+      "main": [
+        [
+          {
+            "node": "Send Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

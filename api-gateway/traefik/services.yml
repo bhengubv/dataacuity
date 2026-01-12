@@ -1,0 +1,539 @@
+# Traefik Dynamic Configuration - API Gateway Services
+# Routes traffic through internal/external gateways
+
+http:
+  routers:
+    # ==========================================================================
+    # EXTERNAL API GATEWAY (for client integrations)
+    # ==========================================================================
+
+    # External API Gateway - Main endpoint for all external API access
+    external-api:
+      rule: "Host(`api.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: external-gateway
+      middlewares:
+        - api-chain
+      tls:
+        certResolver: letsencrypt
+      priority: 100
+
+    # External API with versioned path (explicit v1)
+    external-api-v1:
+      rule: "Host(`api.dataacuity.co.za`) && PathPrefix(`/api/v1`)"
+      entryPoints:
+        - websecure
+      service: external-gateway
+      middlewares:
+        - api-chain
+      tls:
+        certResolver: letsencrypt
+      priority: 110
+
+    # API Documentation Portal
+    api-docs:
+      rule: "Host(`docs.dataacuity.co.za`) || (Host(`api.dataacuity.co.za`) && PathPrefix(`/docs`))"
+      entryPoints:
+        - websecure
+      service: docs-portal
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+      priority: 90
+
+    # ==========================================================================
+    # INTERNAL API GATEWAY (for service-to-service communication)
+    # ==========================================================================
+
+    # Internal API Gateway - accessible from internal network only
+    internal-api:
+      rule: "Host(`internal-api.dataacuity.local`) || Host(`gateway.internal`)"
+      entryPoints:
+        - web
+      service: internal-gateway
+      middlewares:
+        - internal-chain
+      priority: 100
+
+    # ==========================================================================
+    # DIRECT SERVICE ACCESS (Legacy support - to be deprecated)
+    # ==========================================================================
+
+    # Markets API - Direct access (deprecated, use /api/v1/markets instead)
+    markets-api-legacy:
+      rule: "Host(`api.dataacuity.co.za`) && PathPrefix(`/markets`)"
+      entryPoints:
+        - websecure
+      service: external-gateway
+      middlewares:
+        - api-chain
+        - deprecation-warning
+        - rewrite-markets
+      tls:
+        certResolver: letsencrypt
+      priority: 80
+
+    # ==========================================================================
+    # EXISTING SERVICES (unchanged from original)
+    # ==========================================================================
+
+    # Portal - Main Dashboard
+    portal:
+      rule: "Host(`dataacuity.co.za`) || Host(`www.dataacuity.co.za`) || Host(`portal.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: portal
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+
+    # Webstudio - Visual Builder (subdomain access)
+    webstudio:
+      rule: "Host(`sandbox.dataacuity.co.za`) && !PathPrefix(`/studio/ide`)"
+      entryPoints:
+        - websecure
+      service: webstudio
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+      priority: 100
+
+    # Developer IDE - React Native/Expo IDE
+    developer-ide:
+      rule: "Host(`sandbox.dataacuity.co.za`) && PathPrefix(`/studio/ide`)"
+      entryPoints:
+        - websecure
+      service: developer-ide
+      middlewares:
+        - public-chain
+        - ide-strip-prefix
+      tls:
+        certResolver: letsencrypt
+      priority: 120
+
+    # Webstudio - Visual Builder (path-based access from app suite)
+    webstudio-studio:
+      rule: "Host(`dataacuity.co.za`) && PathPrefix(`/studio`)"
+      entryPoints:
+        - websecure
+      service: webstudio
+      middlewares:
+        - public-chain
+        - studio-strip-prefix
+        - studio-headers
+      tls:
+        certResolver: letsencrypt
+      priority: 110
+
+    # Markets Dashboard
+    markets:
+      rule: "Host(`markets.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: markets
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+
+    # Twenty CRM
+    crm:
+      rule: "Host(`crm.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: crm
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+
+    # N8N Workflows
+    workflows:
+      rule: "Host(`workflows.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: workflows
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+
+    # AI Brain (Open WebUI)
+    ai:
+      rule: "Host(`ai.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: ai
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+
+    # Bio/Link in Bio
+    bio:
+      rule: "Host(`bio.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: bio
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+
+    # Morph File Converter
+    converter:
+      rule: "Host(`convert.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: converter
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+
+    # Grafana Monitoring
+    grafana:
+      rule: "Host(`monitor.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: grafana
+      middlewares:
+        - admin-chain
+      tls:
+        certResolver: letsencrypt
+
+    # System Status Dashboard
+    status:
+      rule: "Host(`status.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: status
+      middlewares:
+        - admin-chain
+      tls:
+        certResolver: letsencrypt
+
+    # Maps - Historical Maps & Navigation
+    maps:
+      rule: "Host(`maps.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: maps-frontend
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+
+    # Maps API
+    maps-api:
+      rule: "Host(`maps.dataacuity.co.za`) && PathPrefix(`/api`)"
+      entryPoints:
+        - websecure
+      service: maps-api-backend
+      middlewares:
+        - api-chain
+      tls:
+        certResolver: letsencrypt
+      priority: 110
+
+    # Maps SDK
+    maps-sdk:
+      rule: "Host(`maps.dataacuity.co.za`) && PathPrefix(`/sdk`)"
+      entryPoints:
+        - websecure
+      service: maps-frontend
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+      priority: 110
+
+    # Maps TagMe Ingestion
+    maps-tagme:
+      rule: "Host(`maps.dataacuity.co.za`) && PathPrefix(`/tagme`)"
+      entryPoints:
+        - websecure
+      service: maps-tagme-backend
+      middlewares:
+        - api-chain
+      tls:
+        certResolver: letsencrypt
+      priority: 110
+
+    # Airbyte ETL Platform
+    airbyte:
+      rule: "Host(`etl.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: airbyte
+      middlewares:
+        - admin-chain
+      tls:
+        certResolver: letsencrypt
+
+    # Traefik Dashboard
+    traefik-dashboard:
+      rule: "Host(`traefik.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: api@internal
+      middlewares:
+        - admin-chain
+        - traefik-auth
+      tls:
+        certResolver: letsencrypt
+
+  middlewares:
+    # Basic auth for Traefik dashboard
+    traefik-auth:
+      basicAuth:
+        users:
+          - "admin:$apr1$ruca84Hq$mbjdMZBAG.KWn7vfN/SNK/"
+
+    # Deprecation warning header for legacy endpoints
+    deprecation-warning:
+      headers:
+        customResponseHeaders:
+          Deprecation: "true"
+          Sunset: "2025-06-01"
+          Link: "</api/v1/markets>; rel=\"successor-version\""
+          X-Deprecation-Notice: "This endpoint is deprecated. Please migrate to /api/v1/markets"
+
+    # Rewrite /markets to /api/v1/markets for legacy support
+    rewrite-markets:
+      replacePathRegex:
+        regex: "^/markets/(.*)"
+        replacement: "/api/v1/markets/$1"
+
+    # API-specific middleware chain
+    api-chain:
+      chain:
+        middlewares:
+          - secure-headers
+          - api-rate-limit
+          - cors-api
+          - compress
+
+    # Internal services chain (no rate limiting, trusted network)
+    internal-chain:
+      chain:
+        middlewares:
+          - internal-whitelist
+          - compress
+
+    # Enhanced CORS for API endpoints
+    cors-api:
+      headers:
+        accessControlAllowMethods:
+          - "GET"
+          - "POST"
+          - "PUT"
+          - "PATCH"
+          - "DELETE"
+          - "OPTIONS"
+        accessControlAllowHeaders:
+          - "Content-Type"
+          - "Authorization"
+          - "X-API-Key"
+          - "X-Request-ID"
+          - "X-Correlation-ID"
+        accessControlExposeHeaders:
+          - "X-RateLimit-Limit"
+          - "X-RateLimit-Remaining"
+          - "X-RateLimit-Reset"
+          - "X-Request-ID"
+          - "X-Quota-Remaining"
+        accessControlAllowOriginList:
+          - "https://dataacuity.co.za"
+          - "https://www.dataacuity.co.za"
+          - "https://markets.dataacuity.co.za"
+          - "https://portal.dataacuity.co.za"
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 600
+        addVaryHeader: true
+
+    # Internal network whitelist
+    internal-whitelist:
+      ipWhiteList:
+        sourceRange:
+          - "127.0.0.1/32"
+          - "10.0.0.0/8"
+          - "172.16.0.0/12"
+          - "192.168.0.0/16"
+
+    # Company app IP whitelist - trusted company application sources
+    # These IPs receive special treatment:
+    # - Bypassed rate limiting
+    # - No quota enforcement
+    # - Automatic enterprise-level authentication
+    # - Full access to all services
+    company-app-whitelist:
+      ipWhiteList:
+        sourceRange:
+          - "197.97.200.118/32"
+          - "197.97.200.104/32"
+          - "197.97.200.105/32"
+          - "197.97.200.106/32"
+          - "196.22.142.107/32"
+
+    # Combined whitelist (internal + company apps)
+    trusted-whitelist:
+      ipWhiteList:
+        sourceRange:
+          # Internal networks
+          - "127.0.0.1/32"
+          - "10.0.0.0/8"
+          - "172.16.0.0/12"
+          - "192.168.0.0/16"
+          # Company app IPs
+          - "197.97.200.118/32"
+          - "197.97.200.104/32"
+          - "197.97.200.105/32"
+          - "197.97.200.106/32"
+          - "196.22.142.107/32"
+
+    # Strip /studio prefix for path-based Webstudio access
+    studio-strip-prefix:
+      stripPrefix:
+        prefixes:
+          - "/studio"
+
+    # Strip /studio/ide prefix for Developer IDE access
+    ide-strip-prefix:
+      stripPrefix:
+        prefixes:
+          - "/studio/ide"
+
+    # Add headers to help Webstudio understand the request origin
+    studio-headers:
+      headers:
+        customRequestHeaders:
+          X-Forwarded-Host: "sandbox.dataacuity.co.za"
+          X-Original-Host: "dataacuity.co.za"
+
+  services:
+    # ==========================================================================
+    # API GATEWAY SERVICES
+    # ==========================================================================
+
+    external-gateway:
+      loadBalancer:
+        servers:
+          - url: "http://api-gateway-external:8081"
+        healthCheck:
+          path: /health
+          interval: "10s"
+          timeout: "3s"
+
+    internal-gateway:
+      loadBalancer:
+        servers:
+          - url: "http://api-gateway-internal:8080"
+        healthCheck:
+          path: /health
+          interval: "10s"
+          timeout: "3s"
+
+    docs-portal:
+      loadBalancer:
+        servers:
+          - url: "http://api-docs:8082"
+        healthCheck:
+          path: /
+          interval: "30s"
+          timeout: "5s"
+
+    # ==========================================================================
+    # EXISTING SERVICES
+    # ==========================================================================
+
+    portal:
+      loadBalancer:
+        servers:
+          - url: "http://dataacuity_portal:80"
+
+    markets:
+      loadBalancer:
+        servers:
+          - url: "http://markets_dashboard:80"
+
+    markets-api:
+      loadBalancer:
+        servers:
+          - url: "http://markets_api:8000"
+
+    crm:
+      loadBalancer:
+        servers:
+          - url: "http://twenty_crm:3000"
+
+    workflows:
+      loadBalancer:
+        servers:
+          - url: "http://n8n:5678"
+
+    ai:
+      loadBalancer:
+        servers:
+          - url: "http://ai_brain_webui:8080"
+
+    bio:
+      loadBalancer:
+        servers:
+          - url: "http://bio_onelink:3000"
+
+    converter:
+      loadBalancer:
+        servers:
+          - url: "http://morph_convertx:3000"
+
+    grafana:
+      loadBalancer:
+        servers:
+          - url: "http://grafana:3000"
+
+    status:
+      loadBalancer:
+        servers:
+          - url: "http://dashboard-backend:5000"
+
+    # Webstudio Visual Builder
+    webstudio:
+      loadBalancer:
+        servers:
+          - url: "http://172.17.0.1:5012"
+
+    # Developer IDE - React Native/Expo browser IDE
+    developer-ide:
+      loadBalancer:
+        servers:
+          - url: "http://172.17.0.1:5013"
+
+    # Airbyte runs via abctl on host port 5002
+    # Using Docker bridge gateway to reach host from container
+    airbyte:
+      loadBalancer:
+        servers:
+          - url: "http://172.17.0.1:5002"
+
+    # Maps Frontend (nginx serving static + SDK)
+    maps-frontend:
+      loadBalancer:
+        servers:
+          - url: "http://172.17.0.1:5022"
+
+    # Maps API (FastAPI backend)
+    maps-api-backend:
+      loadBalancer:
+        servers:
+          - url: "http://172.17.0.1:5020"
+
+    # Maps TagMe Ingestion API
+    maps-tagme-backend:
+      loadBalancer:
+        servers:
+          - url: "http://172.17.0.1:5023"

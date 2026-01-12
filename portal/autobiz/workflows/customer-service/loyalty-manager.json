@@ -1,0 +1,259 @@
+{
+  "name": "AutoBiz - Loyalty Manager",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "daily-schedule",
+      "name": "Daily Check (9am)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CRM_API_URL }}/customers/loyalty-events",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-events",
+      "name": "Fetch Loyalty Events",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Identify customers for loyalty actions\nconst data = $input.first().json;\nconst today = new Date();\nconst actions = [];\n\n// Check for birthdays\nconst birthdays = data.birthdays || [];\nfor (const customer of birthdays) {\n  actions.push({\n    type: 'birthday',\n    customerId: customer.id,\n    customerName: customer.name,\n    customerEmail: customer.email,\n    subject: `Happy Birthday, ${customer.name.split(' ')[0]}! 🎂`,\n    body: `<p>Happy Birthday, ${customer.name.split(' ')[0]}!</p>\n<p>On behalf of everyone at our company, we wish you a wonderful birthday filled with joy!</p>\n<p>As a special birthday gift, here's a <strong>15% discount</strong> on your next purchase. Use code: <strong>BDAY15</strong></p>\n<p>Valid for 7 days from today.</p>`,\n    discountCode: 'BDAY15',\n    discountPercent: 15\n  });\n}\n\n// Check for anniversaries (customer since X years)\nconst anniversaries = data.anniversaries || [];\nfor (const customer of anniversaries) {\n  const years = customer.yearsAsCustomer;\n  actions.push({\n    type: 'anniversary',\n    customerId: customer.id,\n    customerName: customer.name,\n    customerEmail: customer.email,\n    subject: `Thank you for ${years} ${years === 1 ? 'year' : 'years'} with us! 🎉`,\n    body: `<p>Dear ${customer.name.split(' ')[0]},</p>\n<p>Today marks ${years} ${years === 1 ? 'year' : 'years'} since you became part of our family. We're so grateful for your loyalty!</p>\n<p>As a thank you, enjoy <strong>${10 + years * 5}% off</strong> your next order with code: <strong>LOYAL${years}</strong></p>`,\n    discountCode: `LOYAL${years}`,\n    discountPercent: 10 + years * 5\n  });\n}\n\n// Check for milestone purchases\nconst milestones = data.milestones || [];\nfor (const customer of milestones) {\n  const orderCount = customer.orderCount;\n  actions.push({\n    type: 'milestone',\n    customerId: customer.id,\n    customerName: customer.name,\n    customerEmail: customer.email,\n    subject: `You've reached ${orderCount} orders! 🏆`,\n    body: `<p>Congratulations ${customer.name.split(' ')[0]}!</p>\n<p>You've just placed your ${orderCount}th order with us. You're officially a VIP customer!</p>\n<p>Here's a special reward: <strong>20% off</strong> your next purchase with code: <strong>VIP${orderCount}</strong></p>`,\n    discountCode: `VIP${orderCount}`,\n    discountPercent: 20\n  });\n}\n\n// Check for win-back (inactive customers)\nconst winback = data.winback || [];\nfor (const customer of winback) {\n  const daysSinceLast = customer.daysSinceLastOrder;\n  actions.push({\n    type: 'winback',\n    customerId: customer.id,\n    customerName: customer.name,\n    customerEmail: customer.email,\n    subject: `We miss you, ${customer.name.split(' ')[0]}! 💝`,\n    body: `<p>Hi ${customer.name.split(' ')[0]},</p>\n<p>It's been a while since your last visit, and we miss you!</p>\n<p>We'd love to welcome you back with a special <strong>25% off</strong> discount on your next order.</p>\n<p>Use code: <strong>COMEBACK25</strong></p>\n<p>We hope to see you again soon!</p>`,\n    discountCode: 'COMEBACK25',\n    discountPercent: 25,\n    daysSinceLastOrder: daysSinceLast\n  });\n}\n\nreturn { actions, count: actions.length };"
+      },
+      "id": "identify-actions",
+      "name": "Identify Loyalty Actions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-actions",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "has-actions",
+      "name": "Has Actions?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        910,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "actions",
+        "options": {}
+      },
+      "id": "split-actions",
+      "name": "Split Actions",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1130,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/discount-codes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"code\": \"{{ $json.discountCode }}\",\n  \"percentOff\": {{ $json.discountPercent }},\n  \"customerId\": \"{{ $json.customerId }}\",\n  \"type\": \"{{ $json.type }}\",\n  \"validDays\": 30,\n  \"singleUse\": true,\n  \"createdAt\": \"{{ $now.toISO() }}\"\n}",
+        "options": {}
+      },
+      "id": "create-discount",
+      "name": "Create Discount Code",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1350,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $json.customerEmail }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "html": "={{ $json.body }}\n<br>\n<p>Best wishes,<br>{{ $env.BUSINESS_NAME }}</p>\n<p style=\"font-size: 12px; color: #888; margin-top: 30px;\">This is a personal offer just for you. The discount code is valid for 30 days.</p>",
+        "options": {}
+      },
+      "id": "send-loyalty-email",
+      "name": "Send Loyalty Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1570,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/customers/{{ $json.customerId }}/loyalty-activities",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"{{ $json.type }}\",\n  \"discountCode\": \"{{ $json.discountCode }}\",\n  \"discountPercent\": {{ $json.discountPercent }},\n  \"sentAt\": \"{{ $now.toISO() }}\"\n}",
+        "options": {}
+      },
+      "id": "log-activity",
+      "name": "Log Loyalty Activity",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1790,
+        200
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "no-actions",
+      "name": "No Actions Today",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1130,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Daily Check (9am)": {
+      "main": [
+        [
+          {
+            "node": "Fetch Loyalty Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Loyalty Events": {
+      "main": [
+        [
+          {
+            "node": "Identify Loyalty Actions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Identify Loyalty Actions": {
+      "main": [
+        [
+          {
+            "node": "Has Actions?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Actions?": {
+      "main": [
+        [
+          {
+            "node": "Split Actions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Actions Today",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Actions": {
+      "main": [
+        [
+          {
+            "node": "Create Discount Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Discount Code": {
+      "main": [
+        [
+          {
+            "node": "Send Loyalty Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Loyalty Email": {
+      "main": [
+        [
+          {
+            "node": "Log Loyalty Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

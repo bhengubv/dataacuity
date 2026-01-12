@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  superset-db:
+    image: postgres:14
+    container_name: superset_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: superset
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: ${SUPERSET_DB_PASSWORD}
+    volumes:
+      - superset_db:/var/lib/postgresql/data
+    networks:
+      - data-warehouse_data_stack
+
+  superset:
+    image: apache/superset:latest
+    container_name: superset
+    restart: unless-stopped
+    ports:
+      - "5003:8088"
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      SQLALCHEMY_DATABASE_URI: postgresql://superset:${SUPERSET_DB_PASSWORD}@superset-db:5432/superset
+    depends_on:
+      - superset-db
+    volumes:
+      - superset_home:/app/superset_home
+    networks:
+      - data-warehouse_data_stack
+
+volumes:
+  superset_db:
+  superset_home:
+
+networks:
+  data-warehouse_data_stack:
+    external: true

@@ -1,0 +1,13 @@
+node_modules
+.git
+.github
+*.md
+.gitignore
+.editorconfig
+.vscode
+.devcontainer
+.turbo
+.storybook
+storybook-static
+coverage
+*.log

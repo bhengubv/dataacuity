@@ -1,0 +1,506 @@
+================================================================================
+CHAPTER 18: MESH NETWORKING ARCHITECTURE
+================================================================================
+"The phone that keeps you connected when everything else fails."
+
+This is Circle OS's killer feature — decentralized, phone-to-phone communication
+that works without cell towers, internet, or central servers.
+
+================================================================================
+18.1 THE PROBLEM WE'RE SOLVING
+================================================================================
+
+SOUTH AFRICA / AFRICA REALITY:
+- Load shedding kills cell towers (batteries die after ~4 hours)
+- Data is expensive (R99/GB in SA vs R3/GB in India)
+- Rural coverage is sparse or nonexistent
+- Government surveillance via telecom providers
+- Single points of failure (towers, ISPs, undersea cables)
+
+THE SOLUTION:
+- WiFi/Bluetooth direct (phone-to-phone)
+- No internet required
+- No airtime required
+- No central server to compromise
+- Community IS the network
+
+================================================================================
+18.2 HOW MESH WORKS
+================================================================================
+
+BASIC CONCEPT:
+```
+Phone A ←──WiFi Direct──→ Phone B ←──Bluetooth──→ Phone C
+         ~100m range              ~30m range
+
+Message from A to C:
+1. A creates message for C
+2. A encrypts with C's public key
+3. A broadcasts to nearby devices
+4. B receives (can't read, not for B)
+5. B relays to other nearby devices
+6. C receives and decrypts
+```
+
+KEY PRINCIPLES:
+1. End-to-end encrypted (only sender/receiver can read)
+2. Store-and-forward (messages wait if recipient offline)
+3. Onion routing optional (hide who talks to whom)
+4. No central server (fully peer-to-peer)
+5. Works offline indefinitely
+
+================================================================================
+18.3 TECHNICAL STACK
+================================================================================
+
+TRANSPORT LAYER:
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      CIRCLE MESH DAEMON                         │
+│                     (circlemesd service)                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐       │
+│  │  WiFi Direct  │  │   Bluetooth   │  │   LoRa/Radio  │       │
+│  │  (P2P mode)   │  │   (BLE mesh)  │  │   (future)    │       │
+│  └───────┬───────┘  └───────┬───────┘  └───────┬───────┘       │
+│          │                  │                  │                │
+│          └──────────────────┴──────────────────┘                │
+│                             │                                   │
+│                    ┌────────┴────────┐                          │
+│                    │ Transport Layer │                          │
+│                    │ (abstraction)   │                          │
+│                    └────────┬────────┘                          │
+│                             │                                   │
+│  ┌───────────────┐  ┌───────┴───────┐  ┌───────────────┐       │
+│  │    Routing    │  │   Message     │  │    Peer       │       │
+│  │    Table      │  │   Queue       │  │  Discovery    │       │
+│  └───────────────┘  └───────────────┘  └───────────────┘       │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+APPLICATION LAYER:
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         APPLICATIONS                            │
+├─────────────────┬─────────────────┬─────────────────────────────┤
+│ Circle Messages │  Circle Beacon  │  Third-party apps (API)     │
+│ (secure chat)   │  (emergency)    │                             │
+└────────┬────────┴────────┬────────┴────────┬────────────────────┘
+         │                 │                 │
+         └─────────────────┴─────────────────┘
+                           │
+                  ┌────────┴────────┐
+                  │  Mesh API       │
+                  │  (Binder IPC)   │
+                  └────────┬────────┘
+                           │
+                  ┌────────┴────────┐
+                  │  circlemesd     │
+                  └─────────────────┘
+```
+
+================================================================================
+18.4 PROTOCOLS
+================================================================================
+
+PEER DISCOVERY:
+```
+1. WiFi Direct service discovery (DNSSD)
+   - Service type: _circlemesh._tcp
+   - TXT record: version, pubkey_hash, capabilities
+
+2. Bluetooth LE advertisement
+   - Service UUID: 0x1827 (Circle Mesh)
+   - Manufacturer data: node_id (truncated pubkey hash)
+
+3. Discovery response
+   - Exchange public keys
+   - Verify key signatures
+   - Establish encrypted channel
+```
+
+MESSAGE FORMAT:
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      MESH MESSAGE                               │
+├─────────────────────────────────────────────────────────────────┤
+│ version       │ 1 byte   │ Protocol version (0x01)             │
+│ type          │ 1 byte   │ 0x01=direct, 0x02=relay, 0x03=ack   │
+│ hop_count     │ 1 byte   │ Increments each relay               │
+│ max_hops      │ 1 byte   │ TTL (default 10)                    │
+│ message_id    │ 16 bytes │ UUID (for deduplication)            │
+│ sender_id     │ 32 bytes │ Sender's public key hash            │
+│ recipient_id  │ 32 bytes │ Recipient's public key hash         │
+│ timestamp     │ 8 bytes  │ Unix timestamp (milliseconds)       │
+│ payload_len   │ 4 bytes  │ Encrypted payload length            │
+│ payload       │ variable │ Encrypted content                   │
+│ signature     │ 64 bytes │ Ed25519 signature over all above    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+ENCRYPTION:
+```
+1. Key exchange: X25519 ECDH
+2. Symmetric encryption: XChaCha20-Poly1305
+3. Signatures: Ed25519
+4. Key derivation: HKDF-SHA256
+
+Per-message key derivation:
+  shared_secret = X25519(my_private, their_public)
+  message_key = HKDF(shared_secret, message_id, "CircleMesh-v1")
+  encrypted = XChaCha20-Poly1305(message_key, nonce, plaintext)
+```
+
+================================================================================
+18.5 ROUTING
+================================================================================
+
+ROUTING TABLE:
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ peer_id (hash)  │ last_seen │ hops │ signal │ transport        │
+├─────────────────┼───────────┼──────┼────────┼──────────────────┤
+│ a1b2c3d4...     │ 30s ago   │ 0    │ -45dBm │ wifi_direct      │
+│ e5f6g7h8...     │ 2m ago    │ 1    │ n/a    │ relay            │
+│ i9j0k1l2...     │ 5m ago    │ 3    │ n/a    │ relay            │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+ROUTING ALGORITHM:
+```
+on_receive_message(msg):
+    if msg.recipient_id == my_id:
+        deliver_to_app(msg)
+        send_ack(msg)
+        return
+
+    if msg.message_id in seen_messages:
+        return  # Already processed, deduplicate
+
+    if msg.hop_count >= msg.max_hops:
+        return  # TTL exceeded
+
+    seen_messages.add(msg.message_id)
+    msg.hop_count += 1
+
+    if msg.recipient_id in routing_table:
+        # Direct route known
+        next_hop = routing_table[msg.recipient_id].peer
+        send_to_peer(next_hop, msg)
+    else:
+        # Flood to all peers (gossip)
+        for peer in connected_peers:
+            send_to_peer(peer, msg)
+```
+
+DEDUPLICATION:
+- Message IDs stored in LRU cache (10,000 entries)
+- TTL: 24 hours
+- Prevents message loops
+
+================================================================================
+18.6 STORE-AND-FORWARD
+================================================================================
+
+When recipient is offline:
+```
+1. Message stored locally (encrypted, max 1000 messages)
+2. TTL: 7 days default (configurable)
+3. Retransmit to any peer that comes in range
+4. If recipient never online, message expires
+5. Delivery receipts optional (reveals timing)
+```
+
+STORAGE:
+```
+/data/circle/mesh/
+├── outbox/           # Messages awaiting delivery
+│   ├── {msg_id}.bin  # Encrypted message
+│   └── index.db      # SQLite: recipient, timestamp, attempts
+├── inbox/            # Received messages (for apps to retrieve)
+├── peers/            # Known peer public keys
+└── routing.db        # Routing table (volatile)
+```
+
+================================================================================
+18.7 RELAY INCENTIVES (SDPKT INTEGRATION)
+================================================================================
+
+NODE MODES:
+```
+FULL NODE:
+- Always relay (even on mobile data)
+- Store-and-forward enabled
+- Highest rewards
+- Priority routing (your messages get priority from other full nodes)
+
+HYBRID NODE:
+- Relay when: charging AND (WiFi OR unlimited data)
+- Store-and-forward limited (100 messages)
+- Medium rewards
+
+RELAY OFF:
+- Use network only, no relay
+- No rewards
+- May be deprioritized (fair use)
+```
+
+REWARD CALCULATION:
+```
+LOCAL COUNTER (privacy-preserving):
+- messages_relayed: count
+- bytes_relayed: total
+- unique_recipients: count (hashed, can't identify)
+- uptime_hours: online time
+
+MONTHLY CLAIM:
+1. Device generates proof (signed by device key)
+2. Proof includes: counters, sample of relay attestations
+3. Submit to SleptOn reward pool
+4. Receive SDPKT "coffee donation"
+
+ATTESTATION:
+- When message delivered, recipient signs attestation
+- "Device X helped deliver my message"
+- Attestation sent back (optionally) to relays
+- Prevents gaming (can't fake deliveries)
+```
+
+REWARD POOL:
+```
+FUNDING SOURCES:
+- Community donations (via SleptOn)
+- Premium Circle OS features
+- Corporate sponsors
+- NGO grants
+- Government digital inclusion programs
+
+DISTRIBUTION:
+- Monthly payout
+- Amount based on relay volume and attestations
+- Cap per device (prevents gaming via many devices)
+- Bonus for relay during emergencies/outages
+```
+
+================================================================================
+18.8 EMERGENCY MODE
+================================================================================
+
+CIRCLE BEACON:
+```
+During emergencies (earthquake, civil unrest, grid down):
+
+1. Auto-detect emergency:
+   - No cell signal for 1+ hour
+   - Significant mesh traffic spike
+   - User-triggered emergency mode
+
+2. Emergency broadcast:
+   - Message type: BEACON
+   - Contains: location (if shared), status, needs
+   - Higher TTL (20 hops)
+   - Priority relay (all nodes relay immediately)
+
+3. Emergency aggregation:
+   - Nodes aggregate nearby beacon data
+   - Create "status map" of area
+   - Share when internet restored
+```
+
+================================================================================
+18.9 PRIVACY CONSIDERATIONS
+================================================================================
+
+WHAT THE MESH REVEALS:
+```
+TO NEARBY DEVICES:
+- Your device is running Circle OS (service advertisement)
+- Your node ID (public key hash)
+- That you're relaying messages (traffic visible)
+
+NOT REVEALED:
+- Message contents (encrypted)
+- Who you're talking to (recipient ID visible, but not linked to identity)
+- Message content patterns (all messages look same size with padding)
+```
+
+OPTIONAL ONION ROUTING:
+```
+For extra privacy:
+
+1. Sender picks 3 random relay nodes
+2. Wraps message in 3 layers of encryption
+3. Each relay peels one layer
+4. Final relay delivers to recipient
+5. No single relay knows both sender and recipient
+
+TRADEOFF: Higher latency, more bandwidth
+DEFAULT: Off (direct routing)
+ENABLE: Settings → Mesh → Onion routing
+```
+
+================================================================================
+18.10 API FOR APPS
+================================================================================
+
+AIDL INTERFACE:
+```java
+// ICircleMeshService.aidl
+interface ICircleMeshService {
+    // Send message to recipient (by public key)
+    void sendMessage(in byte[] recipientPubKey, in byte[] payload,
+                     in MeshMessageOptions options);
+
+    // Receive messages for this app
+    void registerReceiver(String appId, IMessageReceiver callback);
+    void unregisterReceiver(String appId);
+
+    // Peer discovery
+    List<MeshPeer> getNearbyPeers();
+    void addContact(in byte[] pubKey, String alias);
+
+    // Status
+    MeshStatus getStatus();
+    boolean isRecipientReachable(in byte[] recipientPubKey);
+}
+
+// Options
+parcelable MeshMessageOptions {
+    int priority;           // 0=normal, 1=high, 2=emergency
+    int ttlHours;           // Message expiry (default 168 = 7 days)
+    boolean deliveryReceipt;
+    boolean useOnion;       // Onion routing
+}
+```
+
+CONTENT PROVIDER:
+```
+content://circle.mesh/peers          → List of known peers
+content://circle.mesh/messages       → Message history
+content://circle.mesh/status         → Network status
+```
+
+================================================================================
+18.11 POWER MANAGEMENT
+================================================================================
+
+BATTERY OPTIMIZATION:
+```
+SCREEN ON:
+- Full mesh participation
+- Aggressive peer discovery (5s intervals)
+- Relay all messages
+
+SCREEN OFF + CHARGING:
+- Full mesh participation
+- Normal peer discovery (30s intervals)
+- Relay all messages
+
+SCREEN OFF + BATTERY:
+- Reduced participation
+- Lazy peer discovery (5m intervals)
+- Relay only high-priority and store-and-forward
+- Wake on incoming message
+
+BATTERY < 15%:
+- Minimal participation
+- No relay (preserve battery)
+- Receive only
+```
+
+================================================================================
+18.12 TESTING
+================================================================================
+
+UNIT TESTS:
+```
+mesh/
+├── test/
+│   ├── RoutingTest.kt           # Routing table operations
+│   ├── EncryptionTest.kt        # Crypto operations
+│   ├── MessageQueueTest.kt      # Store-and-forward
+│   ├── DeduplicationTest.kt     # Message dedup
+│   └── TransportMockTest.kt     # Mock transport layer
+```
+
+INTEGRATION TESTS:
+```
+- 3-device relay test (A→B→C)
+- Store-and-forward test (recipient offline)
+- Emergency beacon propagation
+- Key exchange and rotation
+```
+
+STRESS TESTS:
+```
+- 100 simultaneous connections
+- 10,000 messages in queue
+- Network partition and recovery
+- Low memory conditions
+```
+
+================================================================================
+18.13 FILE STRUCTURE
+================================================================================
+
+AOSP INTEGRATION:
+```
+frameworks/
+├── base/
+│   └── services/
+│       └── core/
+│           └── java/com/circleos/server/
+│               └── mesh/
+│                   ├── CircleMeshService.java
+│                   ├── MeshDaemon.java
+│                   ├── transport/
+│                   │   ├── ITransport.java
+│                   │   ├── WifiDirectTransport.java
+│                   │   └── BluetoothTransport.java
+│                   ├── routing/
+│                   │   ├── RoutingTable.java
+│                   │   └── GossipRouter.java
+│                   ├── crypto/
+│                   │   ├── MeshCrypto.java
+│                   │   └── KeyManager.java
+│                   └── storage/
+│                       ├── MessageStore.java
+│                       └── PeerStore.java
+│
+packages/
+├── apps/
+│   └── CircleMessages/          # Default mesh messaging app
+│       ├── src/
+│       │   └── com/circleos/messages/
+│       │       ├── MainActivity.kt
+│       │       ├── ConversationFragment.kt
+│       │       ├── MeshServiceClient.kt
+│       │       └── ...
+│       └── AndroidManifest.xml
+│
+└── CircleBeacon/                # Emergency beacon app
+    └── ...
+```
+
+================================================================================
+18.14 REFERENCE IMPLEMENTATIONS
+================================================================================
+
+INSPIRED BY:
+- Briar (https://briarproject.org) - Tor-based mesh, proven crypto
+- SPAN (Smart Phone Ad-hoc Networks) - Research project
+- Bridgefy - Commercial mesh SDK (closed source)
+- Meshtastic - LoRa mesh (hardware focus)
+- Scuttlebutt - Gossip protocol design
+
+WE DIFFER:
+- Native OS integration (not an app)
+- Incentive layer (SDPKT rewards)
+- Emergency-first design
+- African context (load shedding, data costs)
+
+================================================================================
+END OF CHAPTER 18
+================================================================================

@@ -1,0 +1,860 @@
+version: '3.8'
+
+#############################################################################
+# DataAcuity Suite - Master Orchestration
+#
+# Usage:
+#   Start all:          docker compose up -d
+#   Start core only:    docker compose --profile core up -d
+#   Start analytics:    docker compose --profile analytics up -d
+#   Start multiple:     docker compose --profile core --profile analytics up -d
+#
+# Profiles:
+#   - gateway     : Traefik reverse proxy + SSL (always recommended)
+#   - auth        : Keycloak SSO
+#   - core        : Portal, Markets (API + Dashboard), Bio
+#   - crm         : Twenty CRM
+#   - analytics   : Superset, Data Warehouse, DBT
+#   - automation  : N8N workflow automation
+#   - etl         : Airbyte data integration
+#   - ai          : Ollama + Open WebUI
+#   - tools       : Morph (file converter), System Dashboard
+#   - monitoring  : Prometheus, Grafana, Loki, Alertmanager, Exporters
+#############################################################################
+
+networks:
+  dataacuity:
+    driver: bridge
+    name: dataacuity_network
+
+  # Keep external network for backward compatibility during migration
+  data-warehouse_data_stack:
+    external: true
+
+volumes:
+  # Gateway
+  traefik_certs:
+  traefik_acme:
+
+  # Auth
+  keycloak_db:
+
+  # Core
+  markets_db_data:
+  bio_data:
+
+  # CRM
+  twenty_db:
+  twenty_storage:
+
+  # Analytics
+  superset_db:
+  superset_home:
+  postgres_dwh:
+
+  # Automation
+  n8n_data:
+
+  # ETL
+  airbyte_db:
+
+  # AI
+  ollama_data:
+  open_webui_data:
+
+  # Monitoring
+  prometheus_data:
+  grafana_data:
+  loki_data:
+
+#############################################################################
+# SERVICES
+#############################################################################
+
+services:
+
+  #---------------------------------------------------------------------------
+  # GATEWAY - Traefik Reverse Proxy (profile: gateway)
+  #---------------------------------------------------------------------------
+
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    profiles: ["gateway"]
+    restart: unless-stopped
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=false"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=dataacuity_network"
+      - "--providers.file.directory=/etc/traefik/config"
+      - "--providers.file.watch=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entryPoint.scheme=https"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-admin@dataacuity.co.za}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/acme/acme.json"
+      - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
+      - "--log.level=${TRAEFIK_LOG_LEVEL:-INFO}"
+      - "--accesslog=true"
+      - "--metrics.prometheus=true"
+      - "--metrics.prometheus.buckets=0.1,0.3,1.2,5.0"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/config:/etc/traefik/config:ro
+      - traefik_acme:/acme
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    labels:
+      - "traefik.enable=true"
+      # Dashboard
+      - "traefik.http.routers.traefik.rule=Host(`traefik.${DOMAIN:-dataacuity.co.za}`)"
+      - "traefik.http.routers.traefik.entrypoints=websecure"
+      - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik.service=api@internal"
+      - "traefik.http.routers.traefik.middlewares=auth-basic"
+      # Basic auth for dashboard
+      - "traefik.http.middlewares.auth-basic.basicauth.users=${TRAEFIK_DASHBOARD_AUTH}"
+
+  #---------------------------------------------------------------------------
+  # AUTH - Keycloak SSO (profile: auth)
+  #---------------------------------------------------------------------------
+
+  keycloak-db:
+    image: postgres:15-alpine
+    container_name: keycloak_db
+    profiles: ["auth"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_secret}
+    volumes:
+      - keycloak_db:/var/lib/postgresql/data
+    networks:
+      - dataacuity
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak
+    profiles: ["auth"]
+    restart: unless-stopped
+    command: start
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_secret}
+      KC_HOSTNAME: auth.${DOMAIN:-dataacuity.co.za}
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY: edge
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin_secret}
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.keycloak.rule=Host(`auth.${DOMAIN:-dataacuity.co.za}`)"
+      - "traefik.http.routers.keycloak.entrypoints=websecure"
+      - "traefik.http.routers.keycloak.tls.certresolver=letsencrypt"
+      - "traefik.http.services.keycloak.loadbalancer.server.port=8080"
+
+  #---------------------------------------------------------------------------
+  # CORE - Portal (profile: core)
+  #---------------------------------------------------------------------------
+
+  portal:
+    image: nginx:alpine
+    container_name: dataacuity_portal
+    profiles: ["core"]
+    restart: unless-stopped
+    volumes:
+      - ../portal/index.html:/usr/share/nginx/html/index.html:ro
+      - ../portal/css:/usr/share/nginx/html/css:ro
+      - ../portal/js:/usr/share/nginx/html/js:ro
+      - ../portal/assets:/usr/share/nginx/html/assets:ro
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.portal.rule=Host(`${DOMAIN:-dataacuity.co.za}`) || Host(`www.${DOMAIN:-dataacuity.co.za}`)"
+      - "traefik.http.routers.portal.entrypoints=websecure"
+      - "traefik.http.routers.portal.tls.certresolver=letsencrypt"
+      - "traefik.http.services.portal.loadbalancer.server.port=80"
+      # Redirect www to non-www
+      - "traefik.http.middlewares.www-redirect.redirectregex.regex=^https://www\\.(.+)"
+      - "traefik.http.middlewares.www-redirect.redirectregex.replacement=https://$${1}"
+      - "traefik.http.routers.portal.middlewares=www-redirect"
+
+  #---------------------------------------------------------------------------
+  # CORE - Markets Platform (profile: core)
+  #---------------------------------------------------------------------------
+
+  markets-db:
+    image: postgres:15
+    container_name: markets_db
+    profiles: ["core"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${MARKETS_DB_NAME:-openbb_data}
+      POSTGRES_USER: ${MARKETS_DB_USER:-openbb}
+      POSTGRES_PASSWORD: ${MARKETS_DB_PASSWORD:-openbb_pass}
+    volumes:
+      - markets_db_data:/var/lib/postgresql/data
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${MARKETS_DB_USER:-openbb}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  markets-redis:
+    image: redis:7-alpine
+    container_name: markets_redis
+    profiles: ["core"]
+    restart: unless-stopped
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  markets-api:
+    build:
+      context: ../markets/api
+      dockerfile: Dockerfile
+    container_name: markets_api
+    profiles: ["core"]
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${MARKETS_DB_USER:-openbb}:${MARKETS_DB_PASSWORD:-openbb_pass}@markets-db:5432/${MARKETS_DB_NAME:-openbb_data}
+      REDIS_URL: redis://markets-redis:6379
+      ALLOWED_ORIGINS: ${MARKETS_ALLOWED_ORIGINS:-https://markets.dataacuity.co.za,https://dataacuity.co.za}
+    depends_on:
+      markets-db:
+        condition: service_healthy
+      markets-redis:
+        condition: service_healthy
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.markets-api.rule=Host(`api.markets.${DOMAIN:-dataacuity.co.za}`)"
+      - "traefik.http.routers.markets-api.entrypoints=websecure"
+      - "traefik.http.routers.markets-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.markets-api.loadbalancer.server.port=8000"
+
+  markets-dashboard:
+    build:
+      context: ../markets/dashboard
+      dockerfile: Dockerfile.dashboard
+    container_name: markets_dashboard
+    profiles: ["core"]
+    restart: unless-stopped
+    depends_on:
+      - markets-api
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.markets.rule=Host(`markets.${DOMAIN:-dataacuity.co.za}`)"
+      - "traefik.http.routers.markets.entrypoints=websecure"
+      - "traefik.http.routers.markets.tls.certresolver=letsencrypt"
+      - "traefik.http.services.markets.loadbalancer.server.port=80"
+
+  markets-openbb:
+    build:
+      context: ../markets
+      dockerfile: Dockerfile.backend
+    container_name: markets_openbb_backend
+    profiles: ["core"]
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${MARKETS_DB_USER:-openbb}:${MARKETS_DB_PASSWORD:-openbb_pass}@markets-db:5432/${MARKETS_DB_NAME:-openbb_data}
+    depends_on:
+      markets-db:
+        condition: service_healthy
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+
+  #---------------------------------------------------------------------------
+  # CORE - Bio / Onelink (profile: core)
+  #---------------------------------------------------------------------------
+
+  bio-db:
+    image: postgres:15
+    container_name: bio_db
+    profiles: ["core"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: onelink
+      POSTGRES_USER: onelink
+      POSTGRES_PASSWORD: ${BIO_DB_PASSWORD:-onelink_pass}
+    volumes:
+      - bio_data:/var/lib/postgresql/data
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U onelink"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  bio:
+    build: ../bio
+    container_name: bio_onelink
+    profiles: ["core"]
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://onelink:${BIO_DB_PASSWORD:-onelink_pass}@bio-db:5432/onelink
+      NEXTAUTH_URL: https://bio.${DOMAIN:-dataacuity.co.za}
+      NEXTAUTH_SECRET: ${BIO_AUTH_SECRET:-change_this_secret}
+    depends_on:
+      bio-db:
+        condition: service_healthy
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.bio.rule=Host(`bio.${DOMAIN:-dataacuity.co.za}`)"
+      - "traefik.http.routers.bio.entrypoints=websecure"
+      - "traefik.http.routers.bio.tls.certresolver=letsencrypt"
+      - "traefik.http.services.bio.loadbalancer.server.port=3000"
+
+  #---------------------------------------------------------------------------
+  # CRM - Twenty (profile: crm)
+  #---------------------------------------------------------------------------
+
+  twenty-db:
+    image: postgres:14
+    container_name: twenty_db
+    profiles: ["crm"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: twenty
+      POSTGRES_USER: twenty
+      POSTGRES_PASSWORD: ${TWENTY_DB_PASSWORD:-twenty_secret}
+    volumes:
+      - twenty_db:/var/lib/postgresql/data
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U twenty"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  twenty-redis:
+    image: redis:7-alpine
+    container_name: twenty_redis
+    profiles: ["crm"]
+    restart: unless-stopped
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+
+  twenty:
+    image: twentycrm/twenty:latest
+    container_name: twenty_crm
+    profiles: ["crm"]
+    restart: unless-stopped
+    environment:
+      PG_DATABASE_URL: postgres://twenty:${TWENTY_DB_PASSWORD:-twenty_secret}@twenty-db:5432/twenty
+      REDIS_URL: redis://twenty-redis:6379
+      FRONT_BASE_URL: https://crm.${DOMAIN:-dataacuity.co.za}
+      SERVER_URL: https://crm.${DOMAIN:-dataacuity.co.za}
+      APP_SECRET: ${TWENTY_APP_SECRET}
+      ACCESS_TOKEN_SECRET: ${TWENTY_ACCESS_TOKEN_SECRET}
+      LOGIN_TOKEN_SECRET: ${TWENTY_LOGIN_TOKEN_SECRET}
+      REFRESH_TOKEN_SECRET: ${TWENTY_REFRESH_TOKEN_SECRET}
+      FILE_TOKEN_SECRET: ${TWENTY_FILE_TOKEN_SECRET}
+    depends_on:
+      twenty-db:
+        condition: service_healthy
+      twenty-redis:
+        condition: service_started
+    volumes:
+      - twenty_storage:/app/storage
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.twenty.rule=Host(`crm.${DOMAIN:-dataacuity.co.za}`)"
+      - "traefik.http.routers.twenty.entrypoints=websecure"
+      - "traefik.http.routers.twenty.tls.certresolver=letsencrypt"
+      - "traefik.http.services.twenty.loadbalancer.server.port=3000"
+
+  #---------------------------------------------------------------------------
+  # ANALYTICS - Superset (profile: analytics)
+  #---------------------------------------------------------------------------
+
+  superset-db:
+    image: postgres:14
+    container_name: superset_db
+    profiles: ["analytics"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: superset
+      POSTGRES_USER: superset
+      POSTGRES_PASSWORD: ${SUPERSET_DB_PASSWORD:-superset_secret}
+    volumes:
+      - superset_db:/var/lib/postgresql/data
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U superset"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  superset:
+    image: apache/superset:latest
+    container_name: superset
+    profiles: ["analytics"]
+    restart: unless-stopped
+    environment:
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:-change_this_secret}
+      SQLALCHEMY_DATABASE_URI: postgresql://superset:${SUPERSET_DB_PASSWORD:-superset_secret}@superset-db:5432/superset
+    depends_on:
+      superset-db:
+        condition: service_healthy
+    volumes:
+      - superset_home:/app/superset_home
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.superset.rule=Host(`analytics.${DOMAIN:-dataacuity.co.za}`)"
+      - "traefik.http.routers.superset.entrypoints=websecure"
+      - "traefik.http.routers.superset.tls.certresolver=letsencrypt"
+      - "traefik.http.services.superset.loadbalancer.server.port=8088"
+
+  #---------------------------------------------------------------------------
+  # ANALYTICS - Data Warehouse (profile: analytics)
+  #---------------------------------------------------------------------------
+
+  data-warehouse:
+    image: postgres:15
+    container_name: data_warehouse
+    profiles: ["analytics"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: datawarehouse
+      POSTGRES_USER: dwh_user
+      POSTGRES_PASSWORD: ${DWH_PASSWORD:-dwh_secret}
+      POSTGRES_INITDB_ARGS: "-E UTF8"
+    volumes:
+      - postgres_dwh:/var/lib/postgresql/data
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dwh_user -d datawarehouse"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  #---------------------------------------------------------------------------
+  # ANALYTICS - DBT (profile: analytics)
+  #---------------------------------------------------------------------------
+
+  dbt:
+    image: ghcr.io/dbt-labs/dbt-postgres:1.7.latest
+    container_name: dbt_transform
+    profiles: ["analytics"]
+    restart: unless-stopped
+    working_dir: /usr/app
+    volumes:
+      - ../dbt/dbt_project:/usr/app
+      - ../dbt/profiles.yml:/root/.dbt/profiles.yml
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    entrypoint: ["/bin/bash"]
+    command: ["-c", "sleep infinity"]
+
+  #---------------------------------------------------------------------------
+  # AUTOMATION - N8N (profile: automation)
+  #---------------------------------------------------------------------------
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    profiles: ["automation"]
+    restart: unless-stopped
+    environment:
+      N8N_HOST: n8n.${DOMAIN:-dataacuity.co.za}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: https
+      NODE_ENV: production
+      WEBHOOK_URL: https://n8n.${DOMAIN:-dataacuity.co.za}
+      GENERIC_TIMEZONE: ${TIMEZONE:-Africa/Johannesburg}
+      N8N_SECURE_COOKIE: "false"
+      N8N_METRICS: "true"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.n8n.rule=Host(`n8n.${DOMAIN:-dataacuity.co.za}`)"
+      - "traefik.http.routers.n8n.entrypoints=websecure"
+      - "traefik.http.routers.n8n.tls.certresolver=letsencrypt"
+      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
+
+  #---------------------------------------------------------------------------
+  # ETL - Airbyte (profile: etl)
+  #---------------------------------------------------------------------------
+
+  airbyte-db:
+    image: postgres:13
+    container_name: airbyte_db
+    profiles: ["etl"]
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: airbyte
+      POSTGRES_PASSWORD: ${AIRBYTE_DB_PASSWORD:-airbyte_secret}
+      POSTGRES_DB: airbyte
+    volumes:
+      - airbyte_db:/var/lib/postgresql/data
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U airbyte"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  airbyte-server:
+    image: airbyte/server:latest
+    container_name: airbyte_server
+    profiles: ["etl"]
+    restart: unless-stopped
+    environment:
+      DATABASE_USER: airbyte
+      DATABASE_PASSWORD: ${AIRBYTE_DB_PASSWORD:-airbyte_secret}
+      DATABASE_HOST: airbyte-db
+      DATABASE_PORT: 5432
+      DATABASE_DB: airbyte
+    depends_on:
+      airbyte-db:
+        condition: service_healthy
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+
+  airbyte-webapp:
+    image: airbyte/webapp:latest
+    container_name: airbyte_webapp
+    profiles: ["etl"]
+    restart: unless-stopped
+    depends_on:
+      - airbyte-server
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.airbyte.rule=Host(`etl.${DOMAIN:-dataacuity.co.za}`)"
+      - "traefik.http.routers.airbyte.entrypoints=websecure"
+      - "traefik.http.routers.airbyte.tls.certresolver=letsencrypt"
+      - "traefik.http.services.airbyte.loadbalancer.server.port=80"
+
+  airbyte-worker:
+    image: airbyte/worker:latest
+    container_name: airbyte_worker
+    profiles: ["etl"]
+    restart: unless-stopped
+    environment:
+      DATABASE_USER: airbyte
+      DATABASE_PASSWORD: ${AIRBYTE_DB_PASSWORD:-airbyte_secret}
+      DATABASE_HOST: airbyte-db
+      DATABASE_PORT: 5432
+      DATABASE_DB: airbyte
+    depends_on:
+      - airbyte-server
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+
+  #---------------------------------------------------------------------------
+  # AI - Ollama + Open WebUI (profile: ai)
+  #---------------------------------------------------------------------------
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ai_brain_ollama
+    profiles: ["ai"]
+    restart: unless-stopped
+    environment:
+      OLLAMA_HOST: 0.0.0.0
+      OLLAMA_KEEP_ALIVE: 24h
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: ai_brain_webui
+    profiles: ["ai"]
+    restart: unless-stopped
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      WEBUI_AUTH: "true"
+      WEBUI_NAME: DataAcuity AI Brain
+      ENABLE_SIGNUP: "false"
+    volumes:
+      - open_webui_data:/app/backend/data
+    depends_on:
+      - ollama
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ai.rule=Host(`ai.${DOMAIN:-dataacuity.co.za}`)"
+      - "traefik.http.routers.ai.entrypoints=websecure"
+      - "traefik.http.routers.ai.tls.certresolver=letsencrypt"
+      - "traefik.http.services.ai.loadbalancer.server.port=8080"
+
+  #---------------------------------------------------------------------------
+  # TOOLS - Morph / ConvertX (profile: tools)
+  #---------------------------------------------------------------------------
+
+  morph:
+    build: ../morph
+    container_name: morph_convertx
+    profiles: ["tools"]
+    restart: unless-stopped
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.morph.rule=Host(`convert.${DOMAIN:-dataacuity.co.za}`)"
+      - "traefik.http.routers.morph.entrypoints=websecure"
+      - "traefik.http.routers.morph.tls.certresolver=letsencrypt"
+      - "traefik.http.services.morph.loadbalancer.server.port=3000"
+
+  #---------------------------------------------------------------------------
+  # TOOLS - System Dashboard (profile: tools)
+  #---------------------------------------------------------------------------
+
+  dashboard:
+    build: ../dashboard/backend
+    container_name: dashboard_backend
+    profiles: ["tools"]
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`status.${DOMAIN:-dataacuity.co.za}`)"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.services.dashboard.loadbalancer.server.port=5000"
+
+  #---------------------------------------------------------------------------
+  # MONITORING - Prometheus (profile: monitoring)
+  #---------------------------------------------------------------------------
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-90d}'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ../monitoring/prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.${DOMAIN:-dataacuity.co.za}`)"
+      - "traefik.http.routers.prometheus.entrypoints=websecure"
+      - "traefik.http.routers.prometheus.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.prometheus.middlewares=auth-basic"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
+
+  #---------------------------------------------------------------------------
+  # MONITORING - Grafana (profile: monitoring)
+  #---------------------------------------------------------------------------
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GF_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_ADMIN_PASSWORD:-admin_secret}
+      GF_SERVER_ROOT_URL: https://grafana.${DOMAIN:-dataacuity.co.za}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+      - loki
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.${DOMAIN:-dataacuity.co.za}`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.tls.certresolver=letsencrypt"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+
+  #---------------------------------------------------------------------------
+  # MONITORING - Loki (profile: monitoring)
+  #---------------------------------------------------------------------------
+
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ../monitoring/loki:/etc/loki
+      - loki_data:/tmp/loki
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+
+  #---------------------------------------------------------------------------
+  # MONITORING - Promtail (profile: monitoring)
+  #---------------------------------------------------------------------------
+
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ../monitoring/promtail:/etc/promtail
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+
+  #---------------------------------------------------------------------------
+  # MONITORING - Alertmanager (profile: monitoring)
+  #---------------------------------------------------------------------------
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    volumes:
+      - ../monitoring/alertmanager:/etc/alertmanager
+    depends_on:
+      - prometheus
+    networks:
+      - dataacuity
+      - data-warehouse_data_stack
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.alertmanager.rule=Host(`alerts.${DOMAIN:-dataacuity.co.za}`)"
+      - "traefik.http.routers.alertmanager.entrypoints=websecure"
+      - "traefik.http.routers.alertmanager.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.alertmanager.middlewares=auth-basic"
+      - "traefik.http.services.alertmanager.loadbalancer.server.port=9093"
+
+  #---------------------------------------------------------------------------
+  # MONITORING - Node Exporter (profile: monitoring)
+  #---------------------------------------------------------------------------
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node_exporter
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks:
+      - dataacuity
+
+  #---------------------------------------------------------------------------
+  # MONITORING - cAdvisor (profile: monitoring)
+  #---------------------------------------------------------------------------
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    devices:
+      - /dev/kmsg
+    networks:
+      - dataacuity

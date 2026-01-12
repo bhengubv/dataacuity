@@ -1,0 +1,117 @@
+{
+  "name": "DataAcuity - Waitlist Signup",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autobiz/waitlist-signup",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Waitlist Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "signup-id",
+              "name": "signupId",
+              "value": "={{ $now.toMillis() }}-{{ $randomInt(1000, 9999) }}",
+              "type": "string"
+            },
+            {
+              "id": "processed-at",
+              "name": "processedAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "first-name",
+              "name": "firstName",
+              "value": "={{ $json.firstName || $json.name?.split(' ')[0] || 'there' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "enrich-data",
+      "name": "Enrich Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "hello@dataacuity.co.za",
+        "toEmail": "={{ $json.email }}",
+        "subject": "You're on the DataAcuity Waitlist!",
+        "emailType": "html",
+        "html": "=<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"utf-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Welcome to the Waitlist</title>\n</head>\n<body style=\"margin: 0; padding: 0; background-color: #f2f2f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\">\n  <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color: #f2f2f7; padding: 40px 20px;\">\n    <tr>\n      <td align=\"center\">\n        <table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" style=\"background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);\">\n          <!-- Header -->\n          <tr>\n            <td style=\"background: linear-gradient(135deg, #007AFF 0%, #5856d6 100%); padding: 40px; text-align: center;\">\n              <h1 style=\"color: #ffffff; margin: 0; font-size: 28px; font-weight: 700;\">DataAcuity</h1>\n              <p style=\"color: rgba(255,255,255,0.9); margin: 10px 0 0 0; font-size: 16px;\">Data Intelligence Platform</p>\n            </td>\n          </tr>\n          \n          <!-- Content -->\n          <tr>\n            <td style=\"padding: 40px;\">\n              <h2 style=\"color: #000000; margin: 0 0 20px 0; font-size: 24px; font-weight: 600;\">You're on the list, {{ $json.firstName }}!</h2>\n              \n              <p style=\"color: #3c3c43; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;\">\n                Thanks for signing up for early access to DataAcuity. We're rolling out access gradually to ensure the best possible experience for everyone.\n              </p>\n              \n              <div style=\"background-color: #f2f2f7; border-radius: 12px; padding: 24px; margin: 24px 0;\">\n                <h3 style=\"color: #000000; margin: 0 0 16px 0; font-size: 18px;\">What you'll get access to:</h3>\n                <ul style=\"color: #3c3c43; font-size: 15px; line-height: 1.8; padding-left: 20px; margin: 0;\">\n                  <li><strong>AutoBiz</strong> - 27 pre-built automations for your business</li>\n                  <li><strong>Analytics</strong> - Powerful dashboards and insights</li>\n                  <li><strong>AI Assistant</strong> - Your intelligent business companion</li>\n                  <li><strong>Integrations</strong> - Connect 400+ apps and services</li>\n                  <li><strong>CRM</strong> - Customer relationship management</li>\n                </ul>\n              </div>\n              \n              <p style=\"color: #3c3c43; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;\">\n                We'll email you as soon as your access is ready. In the meantime, feel free to reach out if you have any questions.\n              </p>\n              \n              <div style=\"text-align: center; margin: 32px 0;\">\n                <a href=\"https://dataacuity.co.za\" style=\"display: inline-block; background-color: #007AFF; color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 16px; font-weight: 600;\">Visit DataAcuity</a>\n              </div>\n            </td>\n          </tr>\n          \n          <!-- Footer -->\n          <tr>\n            <td style=\"background-color: #f2f2f7; padding: 24px 40px; text-align: center;\">\n              <p style=\"color: #8e8e93; font-size: 14px; margin: 0 0 8px 0;\">\n                Questions? Reply to this email or contact us at hello@dataacuity.co.za\n              </p>\n              <p style=\"color: #aeaeb2; font-size: 12px; margin: 0;\">\n                DataAcuity &copy; 2024 | South Africa\n              </p>\n            </td>\n          </tr>\n        </table>\n      </td>\n    </tr>\n  </table>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "send-welcome-email",
+      "name": "Send Welcome Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [690, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "hello@dataacuity.co.za",
+        "toEmail": "tbengu@thegeek.co.za",
+        "subject": "=New Waitlist Signup: {{ $json.name }} ({{ $json.email }})",
+        "emailType": "html",
+        "html": "=<h2>New Waitlist Signup</h2>\n<table style=\"border-collapse: collapse; width: 100%; max-width: 500px;\">\n<tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>Name:</strong></td><td style=\"padding: 8px; border-bottom: 1px solid #eee;\">{{ $json.name }}</td></tr>\n<tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>Email:</strong></td><td style=\"padding: 8px; border-bottom: 1px solid #eee;\">{{ $json.email }}</td></tr>\n<tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>Source:</strong></td><td style=\"padding: 8px; border-bottom: 1px solid #eee;\">{{ $json.source || 'portal-login' }}</td></tr>\n<tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>Timestamp:</strong></td><td style=\"padding: 8px; border-bottom: 1px solid #eee;\">{{ $json.timestamp }}</td></tr>\n<tr><td style=\"padding: 8px;\"><strong>Signup ID:</strong></td><td style=\"padding: 8px;\">{{ $json.signupId }}</td></tr>\n</table>\n<p style=\"margin-top: 20px; color: #666;\">To grant access, add their email to the allowed list in the portal.</p>",
+        "options": {}
+      },
+      "id": "notify-admin",
+      "name": "Notify Admin",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [910, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"signupId\": \"{{ $json.signupId }}\",\n  \"message\": \"Welcome email sent\"\n}",
+        "options": {}
+      },
+      "id": "success-response",
+      "name": "Success Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1130, 300]
+    }
+  ],
+  "connections": {
+    "Waitlist Webhook": {
+      "main": [
+        [{ "node": "Enrich Data", "type": "main", "index": 0 }]
+      ]
+    },
+    "Enrich Data": {
+      "main": [
+        [{ "node": "Send Welcome Email", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Welcome Email": {
+      "main": [
+        [{ "node": "Notify Admin", "type": "main", "index": 0 }]
+      ]
+    },
+    "Notify Admin": {
+      "main": [
+        [{ "node": "Success Response", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

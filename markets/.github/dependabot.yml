@@ -1,0 +1,74 @@
+# Dependabot configuration for Markets project
+# Automated dependency updates with focus on security
+
+version: 2
+updates:
+  # Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "python"
+
+  # NPM - Desktop app
+  - package-ecosystem: "npm"
+    directory: "/desktop"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 5
+    groups:
+      react-security:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "react-router*"
+          - "@types/react*"
+        update-types:
+          - "patch"
+          - "minor"
+      electron:
+        patterns:
+          - "electron"
+          - "electron-*"
+    labels:
+      - "dependencies"
+      - "desktop"
+      - "security"
+
+  # NPM - Frontend components
+  - package-ecosystem: "npm"
+    directory: "/frontend-components/plotly"
+    schedule:
+      interval: weekly
+    labels:
+      - "dependencies"
+      - "frontend"
+
+  - package-ecosystem: "npm"
+    directory: "/frontend-components/tables"
+    schedule:
+      interval: weekly
+    labels:
+      - "dependencies"
+      - "frontend"
+
+  # Docker images
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels:
+      - "dependencies"
+      - "docker"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels:
+      - "dependencies"
+      - "ci"

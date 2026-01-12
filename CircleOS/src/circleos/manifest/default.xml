@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Circle OS Manifest
+
+    This is the main manifest for Circle OS.
+    It inherits from AOSP and adds Circle OS repositories.
+
+    Usage:
+    repo init -u https://github.com/circleos/manifest.git -b circle-14.0
+    repo sync
+-->
+<manifest>
+    <!-- Include AOSP base manifest -->
+    <include name="default.xml"
+             groups="all" />
+
+    <!-- Circle OS Remote -->
+    <remote name="circle"
+            fetch="https://github.com/circleos"
+            revision="circle-14.0" />
+
+    <!-- ============================================================ -->
+    <!-- REMOVE AOSP REPOS WE'RE REPLACING                            -->
+    <!-- ============================================================ -->
+
+    <remove-project name="platform/frameworks/base" />
+    <remove-project name="platform/build" />
+    <remove-project name="platform/packages/apps/Settings" />
+
+    <!-- ============================================================ -->
+    <!-- CIRCLE OS FORKS OF AOSP                                      -->
+    <!-- ============================================================ -->
+
+    <!-- Framework (contains Circle system services) -->
+    <project path="frameworks/base"
+             name="platform_frameworks_base"
+             remote="circle"
+             revision="circle-14.0" />
+
+    <!-- Build system -->
+    <project path="build/make"
+             name="platform_build"
+             remote="circle"
+             revision="circle-14.0" />
+
+    <!-- Settings app (modified) -->
+    <project path="packages/apps/Settings"
+             name="platform_packages_apps_Settings"
+             remote="circle"
+             revision="circle-14.0" />
+
+    <!-- ============================================================ -->
+    <!-- CIRCLE OS NEW REPOSITORIES                                   -->
+    <!-- ============================================================ -->
+
+    <!-- Vendor overlay (config, branding) -->
+    <project path="vendor/circle"
+             name="vendor_circle"
+             remote="circle"
+             revision="circle-14.0" />
+
+    <!-- Common device configuration -->
+    <project path="device/circle/common"
+             name="device_circle_common"
+             remote="circle"
+             revision="circle-14.0" />
+
+    <!-- Circle Settings (privacy dashboard, firewall settings) -->
+    <project path="packages/apps/CircleSettings"
+             name="platform_packages_apps_CircleSettings"
+             remote="circle"
+             revision="circle-14.0" />
+
+    <!-- Circle Messages (mesh messaging) - optional -->
+    <!--
+    <project path="packages/apps/CircleMessages"
+             name="platform_packages_apps_CircleMessages"
+             remote="circle"
+             revision="circle-14.0" />
+    -->
+
+    <!-- Circle Launcher - optional -->
+    <!--
+    <project path="packages/apps/CircleLauncher"
+             name="platform_packages_apps_CircleLauncher"
+             remote="circle"
+             revision="circle-14.0" />
+    -->
+
+</manifest>

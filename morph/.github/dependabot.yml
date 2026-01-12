@@ -1,0 +1,49 @@
+# Dependabot configuration for Morph File Converter
+# Automated dependency updates with focus on security
+
+version: 2
+updates:
+  # NPM dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    groups:
+      react-security:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "react-router*"
+          - "next"
+          - "@next/*"
+        update-types:
+          - "patch"
+          - "minor"
+      security-patches:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+        applies-to: security-updates
+    labels:
+      - "dependencies"
+      - "security"
+
+  # Docker images
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels:
+      - "dependencies"
+      - "docker"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels:
+      - "dependencies"
+      - "ci"

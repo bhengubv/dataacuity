@@ -1,0 +1,52 @@
+
+@app.get("/api/top-movers")
+def get_top_movers(category: str = "all"):
+    """Get top movers with proper closing prices"""
+    asset_filter = ""
+    if category == "stocks":
+        asset_filter = "AND asset_type = 'EQUITY'"
+    elif category == "crypto":
+        asset_filter = "AND asset_type = 'CRYPTOCURRENCY'"
+    elif category == "metals":
+        asset_filter = "AND asset_type = 'FUTURE'"
+    elif category == "indices":
+        asset_filter = "AND asset_type = 'ETF'"
+    
+    query = text(f"""
+        WITH daily_prices AS (
+            SELECT DISTINCT ON (symbol, DATE(date AT TIME ZONE 'America/New_York'))
+                symbol,
+                DATE(date AT TIME ZONE 'America/New_York') as trade_date,
+                close,
+                asset_type
+            FROM stock_prices
+            WHERE close IS NOT NULL
+            AND date >= CURRENT_DATE - INTERVAL '10 days'
+            {asset_filter}
+            AND (asset_type = 'CRYPTOCURRENCY' OR EXTRACT(HOUR FROM date AT TIME ZONE 'America/New_York') = 5)
+            ORDER BY symbol, DATE(date AT TIME ZONE 'America/New_York') DESC, date DESC
+        ),
+        ranked AS (
+            SELECT symbol, trade_date, close, asset_type,
+                   ROW_NUMBER() OVER (PARTITION BY symbol ORDER BY trade_date DESC) as rn
+            FROM daily_prices
+        )
+        SELECT curr.symbol, curr.close, prev.close, curr.asset_type,
+               ROUND(((curr.close - prev.close) / prev.close * 100)::numeric, 2) as change_pct
+        FROM ranked curr
+        JOIN ranked prev ON curr.symbol = prev.symbol AND prev.rn = 2
+        WHERE curr.rn = 1 AND prev.close > 0 AND ABS(curr.close - prev.close) > 0.01
+        ORDER BY change_pct DESC
+    """)
+    
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(query)
+            movers = [{"symbol": r[0], "price": float(r[1]), "change": float(r[4]), "asset_type": r[3]} for r in result]
+            gainers = [m for m in movers if m["change"] > 0][:10]
+            losers = sorted([m for m in movers if m["change"] < 0], key=lambda x: x["change"])[:10]
+            return {"gainers": gainers, "losers": losers, "comparison": {"latest_date": None, "previous_date": None, "description": "Current data"}}
+    except Exception as e:
+        print(f"top-movers error: {e}")
+        return {"gainers": [], "losers": [], "comparison": {"latest_date": None, "previous_date": None, "description": "Error"}}
+

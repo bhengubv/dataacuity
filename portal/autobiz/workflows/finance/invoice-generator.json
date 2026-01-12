@@ -1,0 +1,188 @@
+{
+  "name": "AutoBiz - Invoice Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autobiz/generate-invoice",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "invoice-webhook",
+      "name": "Invoice Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "invoice-number",
+              "name": "invoiceNumber",
+              "value": "=INV-{{ $now.format('yyyyMM') }}-{{ $randomInt(1000, 9999) }}",
+              "type": "string"
+            },
+            {
+              "id": "invoice-date",
+              "name": "invoiceDate",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "due-date",
+              "name": "dueDate",
+              "value": "={{ $now.plus({ days: $json.paymentTermsDays || 30 }).toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "name": "status",
+              "value": "unpaid",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "generate-invoice-number",
+      "name": "Generate Invoice Number",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate invoice totals\nconst data = $input.first().json;\nconst items = data.items || [];\nconst currency = data.currency || 'ZAR';\n\nlet subtotal = 0;\nconst processedItems = items.map((item, idx) => {\n  const qty = parseFloat(item.quantity) || 1;\n  const price = parseFloat(item.unitPrice) || 0;\n  const discount = parseFloat(item.discount) || 0;\n  const lineSubtotal = qty * price;\n  const lineDiscount = lineSubtotal * (discount / 100);\n  const lineTotal = lineSubtotal - lineDiscount;\n  subtotal += lineTotal;\n  \n  return {\n    lineNumber: idx + 1,\n    description: item.description,\n    quantity: qty,\n    unitPrice: price,\n    discount: discount,\n    lineTotal: lineTotal\n  };\n});\n\nconst taxRate = parseFloat(data.taxRate) || 15;\nconst taxAmount = subtotal * (taxRate / 100);\nconst total = subtotal + taxAmount;\n\n// Generate invoice HTML\nconst html = `\n<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; margin: 40px; color: #333; }\n    .header { display: flex; justify-content: space-between; border-bottom: 3px solid #007AFF; padding-bottom: 20px; margin-bottom: 30px; }\n    .logo { font-size: 28px; font-weight: bold; color: #007AFF; }\n    .invoice-title { text-align: right; }\n    .invoice-title h1 { margin: 0; color: #333; font-size: 32px; }\n    .invoice-number { color: #666; margin-top: 5px; }\n    .parties { display: flex; justify-content: space-between; margin-bottom: 40px; }\n    .party { width: 45%; }\n    .party-label { font-size: 12px; color: #888; text-transform: uppercase; margin-bottom: 5px; }\n    table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }\n    th { background: #007AFF; color: white; padding: 12px; text-align: left; }\n    td { padding: 12px; border-bottom: 1px solid #eee; }\n    .totals { width: 300px; margin-left: auto; }\n    .totals td { padding: 8px 12px; }\n    .total-row { font-weight: bold; font-size: 18px; background: #f5f5f5; }\n    .payment-info { background: #f9f9f9; padding: 20px; border-radius: 8px; margin-top: 30px; }\n    .footer { margin-top: 50px; text-align: center; color: #888; font-size: 12px; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <div class=\"logo\">${data.businessName || 'Your Company'}</div>\n    <div class=\"invoice-title\">\n      <h1>INVOICE</h1>\n      <div class=\"invoice-number\">${data.invoiceNumber}</div>\n    </div>\n  </div>\n  \n  <div class=\"parties\">\n    <div class=\"party\">\n      <div class=\"party-label\">From</div>\n      <strong>${data.businessName || 'Your Company'}</strong><br>\n      ${data.businessAddress || ''}<br>\n      ${data.businessEmail || ''}<br>\n      VAT: ${data.businessVat || ''}\n    </div>\n    <div class=\"party\">\n      <div class=\"party-label\">Bill To</div>\n      <strong>${data.customerName}</strong><br>\n      ${data.customerAddress || ''}<br>\n      ${data.customerEmail || ''}\n    </div>\n  </div>\n  \n  <table style=\"width: 50%; margin-bottom: 30px;\">\n    <tr><td style=\"background: #f5f5f5; width: 50%;\"><strong>Invoice Date:</strong></td><td>${new Date(data.invoiceDate).toLocaleDateString()}</td></tr>\n    <tr><td style=\"background: #f5f5f5;\"><strong>Due Date:</strong></td><td>${new Date(data.dueDate).toLocaleDateString()}</td></tr>\n    <tr><td style=\"background: #f5f5f5;\"><strong>Payment Terms:</strong></td><td>Net ${data.paymentTermsDays || 30}</td></tr>\n  </table>\n  \n  <table>\n    <thead>\n      <tr>\n        <th>#</th>\n        <th>Description</th>\n        <th style=\"text-align: right;\">Qty</th>\n        <th style=\"text-align: right;\">Price</th>\n        <th style=\"text-align: right;\">Total</th>\n      </tr>\n    </thead>\n    <tbody>\n      ${processedItems.map(item => \\`\n        <tr>\n          <td>\\${item.lineNumber}</td>\n          <td>\\${item.description}</td>\n          <td style=\"text-align: right;\">\\${item.quantity}</td>\n          <td style=\"text-align: right;\">\\${currency} \\${item.unitPrice.toFixed(2)}</td>\n          <td style=\"text-align: right;\">\\${currency} \\${item.lineTotal.toFixed(2)}</td>\n        </tr>\n      \\`).join('')}\n    </tbody>\n  </table>\n  \n  <table class=\"totals\">\n    <tr><td>Subtotal:</td><td style=\"text-align: right;\">${currency} ${subtotal.toFixed(2)}</td></tr>\n    <tr><td>VAT (${taxRate}%):</td><td style=\"text-align: right;\">${currency} ${taxAmount.toFixed(2)}</td></tr>\n    <tr class=\"total-row\"><td>Total Due:</td><td style=\"text-align: right;\">${currency} ${total.toFixed(2)}</td></tr>\n  </table>\n  \n  <div class=\"payment-info\">\n    <strong>Payment Details:</strong><br>\n    Bank: ${data.bankName || 'Your Bank'}<br>\n    Account: ${data.accountNumber || '000000000'}<br>\n    Reference: ${data.invoiceNumber}\n  </div>\n  \n  <div class=\"footer\">\n    Thank you for your business!\n  </div>\n</body>\n</html>\n`;\n\nreturn {\n  ...data,\n  items: processedItems,\n  subtotal: subtotal.toFixed(2),\n  taxRate: taxRate,\n  taxAmount: taxAmount.toFixed(2),\n  total: total.toFixed(2),\n  currency: currency,\n  invoiceHtml: html\n};"
+      },
+      "id": "calculate-invoice",
+      "name": "Calculate Invoice",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/invoices",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"invoiceNumber\": \"{{ $json.invoiceNumber }}\",\n  \"customerId\": \"{{ $json.customerId }}\",\n  \"customerName\": \"{{ $json.customerName }}\",\n  \"items\": {{ JSON.stringify($json.items) }},\n  \"subtotal\": {{ $json.subtotal }},\n  \"taxAmount\": {{ $json.taxAmount }},\n  \"total\": {{ $json.total }},\n  \"invoiceDate\": \"{{ $json.invoiceDate }}\",\n  \"dueDate\": \"{{ $json.dueDate }}\",\n  \"status\": \"{{ $json.status }}\"\n}",
+        "options": {}
+      },
+      "id": "save-invoice",
+      "name": "Save Invoice",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        910,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $json.customerEmail }}",
+        "subject": "=Invoice {{ $json.invoiceNumber }} from {{ $env.BUSINESS_NAME }}",
+        "emailType": "html",
+        "html": "=<p>Hi {{ $json.customerName.split(' ')[0] }},</p>\n<p>Please find attached your invoice {{ $json.invoiceNumber }}.</p>\n<p><strong>Amount Due:</strong> {{ $json.currency }} {{ $json.total }}</p>\n<p><strong>Due Date:</strong> {{ new Date($json.dueDate).toLocaleDateString() }}</p>\n<p>If you have any questions, please don't hesitate to contact us.</p>\n<p>Thank you for your business!</p>\n<hr>\n{{ $json.invoiceHtml }}",
+        "options": {}
+      },
+      "id": "send-invoice",
+      "name": "Send Invoice",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1130,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"invoiceNumber\": \"{{ $json.invoiceNumber }}\",\n  \"total\": \"{{ $json.currency }} {{ $json.total }}\",\n  \"dueDate\": \"{{ $json.dueDate }}\"\n}",
+        "options": {}
+      },
+      "id": "invoice-response",
+      "name": "Invoice Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1350,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Invoice Request": {
+      "main": [
+        [
+          {
+            "node": "Generate Invoice Number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Invoice Number": {
+      "main": [
+        [
+          {
+            "node": "Calculate Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Invoice": {
+      "main": [
+        [
+          {
+            "node": "Save Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Invoice": {
+      "main": [
+        [
+          {
+            "node": "Send Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Invoice": {
+      "main": [
+        [
+          {
+            "node": "Invoice Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

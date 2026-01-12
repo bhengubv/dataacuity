@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  portal:
+    image: nginx:alpine
+    container_name: dataacuity_portal
+    restart: unless-stopped
+    ports:
+      - "5006:80"
+    volumes:
+      - ./index.html:/usr/share/nginx/html/index.html:ro
+      - ./silent-check-sso.html:/usr/share/nginx/html/silent-check-sso.html:ro
+      - ./css:/usr/share/nginx/html/css:ro
+      - ./js:/usr/share/nginx/html/js:ro
+      - ./assets:/usr/share/nginx/html/assets:ro
+      - ./autobiz:/usr/share/nginx/html/autobiz:ro
+    networks:
+      - data-warehouse_data_stack
+
+networks:
+  data-warehouse_data_stack:
+    external: true

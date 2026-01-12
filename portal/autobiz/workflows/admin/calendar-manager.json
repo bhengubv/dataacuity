@@ -1,0 +1,228 @@
+{
+  "name": "AutoBiz - Calendar Manager",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "hourly-check",
+      "name": "Hourly Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CRM_API_URL }}/calendar/events?from={{ $now.toISO() }}&to={{ $now.plus({ hours: 24 }).toISO() }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-events",
+      "name": "Fetch Upcoming Events",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process events and prepare reminders\nconst events = $input.first().json.events || [];\nconst now = new Date();\nconst reminders = [];\n\nfor (const event of events) {\n  const eventStart = new Date(event.startTime);\n  const minutesUntil = Math.floor((eventStart - now) / (1000 * 60));\n  \n  // Different reminder windows\n  const reminder15 = minutesUntil >= 14 && minutesUntil <= 16;\n  const reminder60 = minutesUntil >= 59 && minutesUntil <= 61;\n  const reminderDay = minutesUntil >= 1430 && minutesUntil <= 1450; // ~24 hours\n  \n  if (reminder15 || reminder60 || reminderDay) {\n    let reminderType, timeText;\n    if (reminder15) {\n      reminderType = '15min';\n      timeText = '15 minutes';\n    } else if (reminder60) {\n      reminderType = '1hour';\n      timeText = '1 hour';\n    } else {\n      reminderType = '1day';\n      timeText = 'tomorrow';\n    }\n    \n    reminders.push({\n      eventId: event.id,\n      title: event.title,\n      description: event.description,\n      startTime: event.startTime,\n      endTime: event.endTime,\n      location: event.location,\n      attendees: event.attendees || [],\n      organizer: event.organizer,\n      reminderType: reminderType,\n      timeText: timeText,\n      meetingUrl: event.meetingUrl\n    });\n  }\n}\n\nreturn { reminders, count: reminders.length };"
+      },
+      "id": "process-events",
+      "name": "Process Events",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-reminders",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "has-reminders",
+      "name": "Has Reminders?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        910,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "reminders",
+        "options": {}
+      },
+      "id": "split-reminders",
+      "name": "Split Reminders",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1130,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $json.organizer?.email || $env.OWNER_EMAIL }}",
+        "subject": "=Reminder: {{ $json.title }} in {{ $json.timeText }}",
+        "emailType": "html",
+        "html": "=<h2>Meeting Reminder</h2>\n<p><strong>{{ $json.title }}</strong></p>\n<table style=\"width: 100%; border-collapse: collapse; margin: 20px 0;\">\n<tr><td style=\"padding: 10px; background: #f5f5f5; width: 30%;\"><strong>When:</strong></td><td style=\"padding: 10px;\">{{ new Date($json.startTime).toLocaleString() }}</td></tr>\n<tr><td style=\"padding: 10px; background: #f5f5f5;\"><strong>Duration:</strong></td><td style=\"padding: 10px;\">{{ Math.round((new Date($json.endTime) - new Date($json.startTime)) / (1000 * 60)) }} minutes</td></tr>\n{{ $json.location ? '<tr><td style=\"padding: 10px; background: #f5f5f5;\"><strong>Location:</strong></td><td style=\"padding: 10px;\">' + $json.location + '</td></tr>' : '' }}\n{{ $json.meetingUrl ? '<tr><td style=\"padding: 10px; background: #f5f5f5;\"><strong>Join:</strong></td><td style=\"padding: 10px;\"><a href=\"' + $json.meetingUrl + '\">Join Meeting</a></td></tr>' : '' }}\n{{ $json.attendees.length > 0 ? '<tr><td style=\"padding: 10px; background: #f5f5f5;\"><strong>Attendees:</strong></td><td style=\"padding: 10px;\">' + $json.attendees.map(a => a.name || a.email).join(', ') + '</td></tr>' : '' }}\n</table>\n{{ $json.description ? '<p><strong>Description:</strong><br>' + $json.description + '</p>' : '' }}\n<p style=\"margin-top: 20px;\">\n{{ $json.meetingUrl ? '<a href=\"' + $json.meetingUrl + '\" style=\"background: #007AFF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;\">Join Meeting</a>' : '' }}\n</p>",
+        "options": {}
+      },
+      "id": "send-reminder",
+      "name": "Send Reminder",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1350,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/calendar/events/{{ $json.eventId }}/reminders",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"{{ $json.reminderType }}\",\n  \"sentAt\": \"{{ $now.toISO() }}\"\n}",
+        "options": {}
+      },
+      "id": "log-reminder",
+      "name": "Log Reminder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1570,
+        200
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "no-reminders",
+      "name": "No Reminders",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1130,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Hourly Check": {
+      "main": [
+        [
+          {
+            "node": "Fetch Upcoming Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Upcoming Events": {
+      "main": [
+        [
+          {
+            "node": "Process Events",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Events": {
+      "main": [
+        [
+          {
+            "node": "Has Reminders?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Reminders?": {
+      "main": [
+        [
+          {
+            "node": "Split Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Reminders": {
+      "main": [
+        [
+          {
+            "node": "Send Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Reminder": {
+      "main": [
+        [
+          {
+            "node": "Log Reminder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

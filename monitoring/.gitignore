@@ -1,0 +1,33 @@
+# Environment files containing sensitive data
+.env
+
+# Grafana data
+grafana/data/
+
+# Prometheus data
+prometheus_data/
+
+# Loki data
+loki_data/
+
+# Temporary Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Temporary scripts
+/tmp/

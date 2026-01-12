@@ -1,0 +1,349 @@
+# Traefik Dynamic Configuration - Services
+# Routes traffic to existing running services
+# Updated to match actual DNS records
+
+http:
+  routers:
+    # API Gateway - All API endpoints under /api/*
+    api-gateway:
+      rule: "Host(`dataacuity.co.za`) && PathPrefix(`/api`)"
+      entryPoints:
+        - websecure
+      service: api-gateway
+      middlewares:
+        - public-chain
+        - api-strip-prefix
+      tls:
+        certResolver: letsencrypt
+      priority: 200
+
+    # Portal - Main Dashboard
+    portal:
+      rule: "Host(`dataacuity.co.za`) || Host(`www.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: portal
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+      priority: 100
+
+    # API Documentation Portal (path-based)
+    docs:
+      rule: "Host(`dataacuity.co.za`) && PathPrefix(`/docs`)"
+      entryPoints:
+        - websecure
+      service: api-docs
+      middlewares:
+        - public-chain
+        - docs-strip-prefix
+        - docs-security-headers
+      tls:
+        certResolver: letsencrypt
+      priority: 150
+
+    # Markets Dashboard
+    markets:
+      rule: "Host(`markets.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: markets
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+
+    # Twenty CRM (DNS: twenty.dataacuity.co.za)
+    twenty:
+      rule: "Host(`twenty.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: twenty
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+
+    # N8N Workflows (DNS: n8n.dataacuity.co.za)
+    n8n:
+      rule: "Host(`n8n.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: n8n
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+
+    # AI Brain / Open WebUI (DNS: brain.dataacuity.co.za)
+    brain:
+      rule: "Host(`brain.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: brain
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+
+    # Bio/Link in Bio
+    bio:
+      rule: "Host(`bio.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: bio
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+
+    # Morph File Converter (DNS: morph.dataacuity.co.za)
+    morph:
+      rule: "Host(`morph.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: morph
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+
+    # Dashboard / Status (DNS: dashboard.dataacuity.co.za)
+    dashboard:
+      rule: "Host(`dashboard.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: dashboard
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+
+    # Airbyte ETL (DNS: airbyte.dataacuity.co.za)
+    airbyte:
+      rule: "Host(`airbyte.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: airbyte
+      middlewares:
+        - admin-chain
+      tls:
+        certResolver: letsencrypt
+
+    # Superset Analytics (DNS: super.dataacuity.co.za)
+    super:
+      rule: "Host(`super.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: super
+      middlewares:
+        - admin-chain
+      tls:
+        certResolver: letsencrypt
+
+    # Auth / Keycloak (DNS: auth.dataacuity.co.za)
+    auth:
+      rule: "Host(`auth.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: auth
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+
+    # Maps (DNS: maps.dataacuity.co.za)
+    # Frontend - serves static files, SPA, and SDK
+    maps:
+      rule: "Host(`maps.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: maps-frontend
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+      priority: 100
+
+    # Maps API - backend endpoints
+    maps-api:
+      rule: "Host(`maps.dataacuity.co.za`) && PathPrefix(`/api`)"
+      entryPoints:
+        - websecure
+      service: maps-api
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+      priority: 110
+
+    # Maps TagMe Ingestion API
+    maps-tagme:
+      rule: "Host(`maps.dataacuity.co.za`) && PathPrefix(`/tagme`)"
+      entryPoints:
+        - websecure
+      service: maps-tagme
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+      priority: 110
+
+    # Traefik Dashboard
+    traefik-dashboard:
+      rule: "Host(`traefik.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: api@internal
+      middlewares:
+        - admin-chain
+        - traefik-auth
+      tls:
+        certResolver: letsencrypt
+
+    # Sandbox - Developer IDE (must be before webstudio for priority)
+    developer-ide:
+      rule: "Host(`sandbox.dataacuity.co.za`) && PathPrefix(`/studio/ide`)"
+      entryPoints:
+        - websecure
+      service: developer-ide
+      middlewares:
+        - public-chain
+        - ide-strip-prefix
+      tls:
+        certResolver: letsencrypt
+      priority: 120
+
+    # Sandbox - Webstudio Visual Builder
+    webstudio:
+      rule: "Host(`sandbox.dataacuity.co.za`)"
+      entryPoints:
+        - websecure
+      service: webstudio
+      middlewares:
+        - public-chain
+      tls:
+        certResolver: letsencrypt
+      priority: 100
+
+  middlewares:
+    # Basic auth for Traefik dashboard
+    traefik-auth:
+      basicAuth:
+        users:
+          - "admin:$apr1$ruca84Hq$mbjdMZBAG.KWn7vfN/SNK/"
+
+    # Strip /studio/ide prefix for Developer IDE
+    ide-strip-prefix:
+      stripPrefix:
+        prefixes:
+          - "/studio/ide"
+
+    # Strip /api prefix for API Gateway
+    api-strip-prefix:
+      stripPrefix:
+        prefixes:
+          - "/api"
+
+  services:
+    portal:
+      loadBalancer:
+        servers:
+          - url: "http://dataacuity_portal:80"
+
+    markets:
+      loadBalancer:
+        servers:
+          - url: "http://markets_dashboard:80"
+
+    twenty:
+      loadBalancer:
+        servers:
+          - url: "http://twenty_crm:3000"
+
+    n8n:
+      loadBalancer:
+        servers:
+          - url: "http://n8n:5678"
+
+    brain:
+      loadBalancer:
+        servers:
+          - url: "http://ai_brain_webui:8080"
+
+    bio:
+      loadBalancer:
+        servers:
+          - url: "http://bio_onelink:3000"
+
+    morph:
+      loadBalancer:
+        servers:
+          - url: "http://morph_convertx:3000"
+
+    dashboard:
+      loadBalancer:
+        servers:
+          - url: "http://dashboard-backend:5000"
+
+    airbyte:
+      loadBalancer:
+        servers:
+          - url: "http://172.17.0.1:5002"
+
+    super:
+      loadBalancer:
+        servers:
+          - url: "http://superset:8088"
+
+    auth:
+      loadBalancer:
+        servers:
+          - url: "http://keycloak:8080"
+
+    # Maps Frontend - nginx serving static files + SDK
+    maps-frontend:
+      loadBalancer:
+        servers:
+          - url: "http://maps_frontend:80"
+
+    # Maps API - FastAPI backend
+    maps-api:
+      loadBalancer:
+        servers:
+          - url: "http://maps_api:8000"
+
+    # Maps TagMe Ingestion API
+    maps-tagme:
+      loadBalancer:
+        servers:
+          - url: "http://maps_tagme:8000"
+
+    # Webstudio Visual Builder
+    webstudio:
+      loadBalancer:
+        servers:
+          - url: "http://172.17.0.1:5012"
+
+    # Developer IDE - React Native/Expo browser IDE
+    developer-ide:
+      loadBalancer:
+        servers:
+          - url: "http://sandbox_developer_ide:80"
+
+    # API Gateway
+    api-gateway:
+      loadBalancer:
+        servers:
+          - url: "http://api-gateway-external:8081"
+        healthCheck:
+          path: /health
+          interval: "10s"
+          timeout: "3s"
+
+    # API Documentation Portal
+    api-docs:
+      loadBalancer:
+        servers:
+          - url: "http://api-docs:8082"

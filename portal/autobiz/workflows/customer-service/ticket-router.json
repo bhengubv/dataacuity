@@ -1,0 +1,240 @@
+{
+  "name": "AutoBiz - Ticket Router",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autobiz/new-ticket",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "ticket-webhook",
+      "name": "New Ticket",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ticket-id",
+              "name": "ticketId",
+              "value": "=TKT-{{ $now.format('yyyyMMdd') }}-{{ $randomInt(1000, 9999) }}",
+              "type": "string"
+            },
+            {
+              "id": "created-at",
+              "name": "createdAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "generate-ticket-id",
+      "name": "Generate Ticket ID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Classify and route ticket\nconst ticket = $input.first().json;\nconst subject = (ticket.subject || '').toLowerCase();\nconst body = (ticket.body || '').toLowerCase();\nconst content = subject + ' ' + body;\n\nlet category = 'general';\nlet priority = 'medium';\nlet department = 'support';\nlet slaHours = 24;\nlet autoResponse = null;\n\n// Classify category\nif (content.match(/refund|money back|charge|payment issue|billing error/)) {\n  category = 'billing';\n  department = 'finance';\n  slaHours = 4;\n} else if (content.match(/broken|not working|error|bug|crash|issue/)) {\n  category = 'technical';\n  department = 'tech_support';\n  slaHours = 8;\n} else if (content.match(/delivery|shipping|tracking|order status|where is my/)) {\n  category = 'order';\n  department = 'operations';\n  slaHours = 4;\n} else if (content.match(/cancel|close account|unsubscribe|stop/)) {\n  category = 'cancellation';\n  department = 'retention';\n  priority = 'high';\n  slaHours = 2;\n} else if (content.match(/complaint|manager|escalate|legal|lawyer|sue/)) {\n  category = 'complaint';\n  department = 'management';\n  priority = 'urgent';\n  slaHours = 1;\n} else if (content.match(/how to|help|question|confused|explain/)) {\n  category = 'inquiry';\n  department = 'support';\n  slaHours = 24;\n}\n\n// Priority modifiers\nif (content.match(/urgent|asap|immediately|emergency|critical/)) {\n  priority = 'urgent';\n  slaHours = Math.min(slaHours, 2);\n} else if (content.match(/angry|frustrated|disappointed|terrible|worst/)) {\n  priority = priority === 'medium' ? 'high' : priority;\n  slaHours = Math.min(slaHours, 4);\n}\n\n// Check if existing customer (higher priority)\nif (ticket.customerId) {\n  priority = priority === 'medium' ? 'high' : priority;\n  slaHours = Math.ceil(slaHours * 0.75);\n}\n\n// Calculate SLA deadline\nconst slaDue = new Date(Date.now() + slaHours * 60 * 60 * 1000).toISOString();\n\n// Auto-response templates\nconst autoResponses = {\n  billing: 'We\\'ve received your billing inquiry and our finance team is reviewing it. We\\'ll have an update for you within 4 hours.',\n  technical: 'Our technical team has been notified of your issue and is investigating. We\\'ll update you as soon as possible.',\n  order: 'We\\'re looking into your order right now. You\\'ll receive an update shortly.',\n  cancellation: 'We\\'re sorry to hear you want to cancel. A retention specialist will reach out to discuss options.',\n  complaint: 'We take your feedback seriously. A senior team member has been assigned and will contact you directly.',\n  inquiry: 'Thanks for reaching out! We\\'ve received your question and will respond soon.',\n  general: 'Thank you for contacting us. Your ticket has been received and we\\'ll get back to you shortly.'\n};\n\nautoResponse = autoResponses[category] || autoResponses.general;\n\nreturn {\n  ...ticket,\n  category: category,\n  priority: priority,\n  department: department,\n  slaHours: slaHours,\n  slaDue: slaDue,\n  autoResponse: autoResponse,\n  status: 'open'\n};"
+      },
+      "id": "classify-ticket",
+      "name": "Classify & Route",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/tickets",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"ticketId\": \"{{ $json.ticketId }}\",\n  \"customerId\": \"{{ $json.customerId || '' }}\",\n  \"customerName\": \"{{ $json.customerName }}\",\n  \"customerEmail\": \"{{ $json.customerEmail }}\",\n  \"subject\": \"{{ $json.subject }}\",\n  \"body\": \"{{ $json.body }}\",\n  \"category\": \"{{ $json.category }}\",\n  \"priority\": \"{{ $json.priority }}\",\n  \"department\": \"{{ $json.department }}\",\n  \"slaDue\": \"{{ $json.slaDue }}\",\n  \"status\": \"{{ $json.status }}\",\n  \"createdAt\": \"{{ $json.createdAt }}\"\n}",
+        "options": {}
+      },
+      "id": "save-ticket",
+      "name": "Save Ticket",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        910,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $json.customerEmail }}",
+        "subject": "=Re: {{ $json.subject }} [{{ $json.ticketId }}]",
+        "emailType": "html",
+        "html": "=<p>Hi {{ $json.customerName?.split(' ')[0] || 'there' }},</p>\n<p>{{ $json.autoResponse }}</p>\n<p>Your ticket reference is: <strong>{{ $json.ticketId }}</strong></p>\n<p>You can reply to this email to add more information to your ticket.</p>\n<p>Best regards,<br>Customer Support<br>{{ $env.BUSINESS_NAME }}</p>",
+        "options": {}
+      },
+      "id": "send-confirmation",
+      "name": "Send Confirmation",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1130,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CRM_API_URL }}/departments/{{ $json.department }}/agents?available=true",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "get-agents",
+      "name": "Get Available Agents",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1130,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $input.first().json.agents?.[0]?.email || $env.OWNER_EMAIL }}",
+        "subject": "=[{{ $json.priority.toUpperCase() }}] New Ticket: {{ $json.subject }} [{{ $json.ticketId }}]",
+        "emailType": "html",
+        "html": "=<div style=\"{{ $json.priority === 'urgent' ? 'border-left: 4px solid #FF3B30; padding-left: 15px;' : ($json.priority === 'high' ? 'border-left: 4px solid #FF9500; padding-left: 15px;' : '') }}\">\n<h2>New Support Ticket</h2>\n<table style=\"width: 100%; border-collapse: collapse;\">\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Ticket ID:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee;\">{{ $json.ticketId }}</td></tr>\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>From:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee;\">{{ $json.customerName }} ({{ $json.customerEmail }})</td></tr>\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Category:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee; text-transform: capitalize;\">{{ $json.category }}</td></tr>\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Priority:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee; font-weight: bold; text-transform: uppercase; color: {{ $json.priority === 'urgent' ? '#FF3B30' : ($json.priority === 'high' ? '#FF9500' : '#333') }};\">{{ $json.priority }}</td></tr>\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>SLA Due:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee;\">{{ new Date($json.slaDue).toLocaleString() }} ({{ $json.slaHours }}h)</td></tr>\n</table>\n<p style=\"margin-top: 20px;\"><strong>Subject:</strong> {{ $json.subject }}</p>\n<div style=\"margin-top: 15px; padding: 15px; background: #f9f9f9; border-radius: 8px;\">\n<strong>Message:</strong><br>\n{{ $json.body }}\n</div>\n<p style=\"margin-top: 20px;\">\n<a href=\"{{ $env.CRM_URL }}/tickets/{{ $json.ticketId }}\" style=\"background: #007AFF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;\">View & Respond</a>\n</p>\n</div>",
+        "options": {}
+      },
+      "id": "notify-agent",
+      "name": "Notify Agent",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1350,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"ticketId\": \"{{ $json.ticketId }}\",\n  \"category\": \"{{ $json.category }}\",\n  \"priority\": \"{{ $json.priority }}\",\n  \"slaDue\": \"{{ $json.slaDue }}\"\n}",
+        "options": {}
+      },
+      "id": "ticket-response",
+      "name": "Ticket Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1570,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "New Ticket": {
+      "main": [
+        [
+          {
+            "node": "Generate Ticket ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Ticket ID": {
+      "main": [
+        [
+          {
+            "node": "Classify & Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify & Route": {
+      "main": [
+        [
+          {
+            "node": "Save Ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Ticket": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Available Agents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Ticket Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Available Agents": {
+      "main": [
+        [
+          {
+            "node": "Notify Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Agent": {
+      "main": [
+        [
+          {
+            "node": "Ticket Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,45 @@
+version: 2
+
+models:
+  - name: fct_tgn_daily_metrics
+    description: "Daily aggregated metrics from all TGN sources"
+    columns:
+      - name: metric_id
+        description: "Surrogate key (source + date)"
+        tests:
+          - unique
+          - not_null
+
+      - name: source_name
+        description: "TGN source API"
+        tests:
+          - not_null
+
+      - name: period_date
+        description: "Date of metrics"
+        tests:
+          - not_null
+
+      - name: login_failure_rate
+        description: "Ratio of failed logins to total logins"
+
+      - name: ticket_resolution_rate
+        description: "Ratio of resolved to opened tickets"
+
+  - name: fct_tgn_source_summary
+    description: "Summary statistics per TGN source for monitoring"
+    columns:
+      - name: source_name
+        description: "TGN source API"
+        tests:
+          - unique
+          - not_null
+
+      - name: source_status
+        description: "Health status (active/stale/inactive)"
+        tests:
+          - accepted_values:
+              values: ['active', 'stale', 'inactive']
+
+      - name: ingest_success_rate
+        description: "Percentage of successful ingests"

@@ -1,0 +1,336 @@
+================================================================================
+CIRCLE OS SPECIFICATION
+Chapter 14: Offline & Low-Resource Operation
+================================================================================
+
+Document: 14_offline_lowres.txt
+Version: 1.0
+Date: December 2025
+Status: Foundation
+
+================================================================================
+1. CONTEXT
+================================================================================
+
+Target markets face:
+- Unreliable internet (South Africa: load shedding, data costs)
+- Limited connectivity (rural Kenya, Nigeria)
+- Older devices (4GB RAM, 64GB storage)
+- Expensive data plans
+
+Circle OS must work well offline and on constrained hardware.
+
+================================================================================
+2. OFFLINE-FIRST DESIGN
+================================================================================
+
+2.1 PHILOSOPHY
+--------------
+Every feature should work offline where possible.
+Network should enhance, not enable.
+
+2.2 OFFLINE CAPABILITIES
+------------------------
+FULLY OFFLINE:
+- All system UI
+- Camera and Gallery
+- Music player (local files)
+- Notes app
+- Calculator
+- Clock / Alarms
+- Calendar (local events)
+- Files app
+- Settings
+
+OFFLINE WITH SYNC:
+- Contacts (local storage, optional cloud sync)
+- Messages (SMS works offline, IP messaging syncs)
+- Email (cached, sync when online)
+
+REQUIRES NETWORK:
+- Browser (obviously)
+- Circle Store (for downloads)
+- Maps (without cached areas)
+- VoIP calls
+
+================================================================================
+3. DATA EFFICIENCY
+================================================================================
+
+3.1 DATA SAVING MODE
+--------------------
+GLOBAL TOGGLE:
+Settings > Network > Data Saver
+
+EFFECTS:
+- Images load at lower resolution
+- Videos don't autoplay
+- Background data restricted
+- Sync frequency reduced
+- Apps notified of data saver mode
+
+3.2 PER-APP DATA CONTROL
+------------------------
+For each app:
+- Allow background data: Yes/No
+- Unrestricted data: Yes/No
+- Data warning threshold
+- Data limit threshold
+
+3.3 COMPRESSION
+---------------
+CIRCLE SERVICES:
+- API responses compressed
+- Updates use delta compression
+- Images transcoded for bandwidth
+
+3.4 DOWNLOAD MANAGEMENT
+-----------------------
+SMART DOWNLOADS:
+- Queue downloads for WiFi
+- Resume interrupted downloads
+- Schedule large downloads for off-peak
+
+================================================================================
+4. OFFLINE DATA STORAGE
+================================================================================
+
+4.1 MAPS
+--------
+OFFLINE MAPS:
+- Download regions for offline use
+- Navigation works offline
+- POI search works offline
+
+STORAGE:
+- Efficient vector format
+- ~50MB per metropolitan area
+- User selects what to download
+
+4.2 MUSIC
+---------
+LOCAL FIRST:
+- Music stored locally
+- Streaming optional
+- No mandatory cloud sync
+
+4.3 DOCUMENTS
+-------------
+LOCAL STORAGE:
+- Documents on device
+- Cloud sync optional
+- Works fully offline
+
+================================================================================
+5. LOW-RESOURCE OPTIMIZATION
+================================================================================
+
+5.1 MEMORY TARGETS
+------------------
+IDLE SYSTEM:
+- Target: <1.5GB RAM usage
+- With launcher: <1.7GB
+- Leaves 2GB+ for apps on 4GB device
+
+APP MANAGEMENT:
+- Aggressive background killing
+- Cached processes limited
+- Memory pressure signals to apps
+
+5.2 STORAGE TARGETS
+-------------------
+SYSTEM SIZE:
+- Target: <8GB for full system
+- Updates: Delta only, ~200MB
+
+USER SPACE:
+- 64GB device: 50GB+ for user
+- Aggressive app cache management
+- Clear cache recommendations
+
+5.3 CPU OPTIMIZATION
+--------------------
+BATTERY FOCUS:
+- Efficient scheduling
+- Minimize background wake-ups
+- Doze mode aggressive
+
+THERMAL MANAGEMENT:
+- Throttle before overheating
+- Background task limits when hot
+
+5.4 BACKGROUND LIMITS
+---------------------
+DEFAULT:
+- Background apps limited
+- Sync intervals extended
+- Wake locks monitored
+
+USER OVERRIDE:
+- Mark critical apps
+- Custom background permissions
+
+================================================================================
+6. PERFORMANCE TARGETS
+================================================================================
+
+6.1 ON REFERENCE DEVICE (P30 Lite, 4GB RAM)
+-------------------------------------------
+BOOT:
+- Cold boot to lock: <30 seconds
+- Unlock to usable: <2 seconds
+
+APP LAUNCH:
+- System apps: <1 second
+- Third-party: <2 seconds
+
+RESPONSIVENESS:
+- Touch response: <100ms
+- Scroll smoothness: 60fps target
+
+BATTERY:
+- Screen-on time: >6 hours
+- Idle drain: <2%/hour
+
+6.2 ON LOW-END DEVICES (3GB RAM)
+--------------------------------
+BOOT:
+- Cold boot to lock: <45 seconds
+- Unlock to usable: <3 seconds
+
+APP LAUNCH:
+- System apps: <2 seconds
+- Third-party: <3 seconds
+
+NOTE: 3GB is minimum spec, experience may be degraded
+
+================================================================================
+7. NETWORK RESILIENCE
+================================================================================
+
+7.1 CONNECTIVITY HANDLING
+-------------------------
+GRACEFUL DEGRADATION:
+- Features adapt to connectivity
+- No crashes on network loss
+- Clear offline indicators
+
+RECONNECTION:
+- Automatic reconnection
+- Queue pending operations
+- Sync when back online
+
+7.2 SLOW NETWORK HANDLING
+-------------------------
+ADAPTIVE:
+- Detect slow connections
+- Reduce request size
+- Timeout gracefully
+- Show progress feedback
+
+7.3 OFFLINE INDICATORS
+----------------------
+UI INDICATORS:
+- Clear "No internet" status
+- Per-app offline indicators
+- Queued action indicators
+
+================================================================================
+8. POWER MANAGEMENT
+================================================================================
+
+8.1 BATTERY OPTIMIZATION
+------------------------
+DOZE MODE:
+- Aggressive doze when idle
+- Extended doze quickly
+- Whitelist for critical apps
+
+BACKGROUND LIMITS:
+- Limited background processing
+- Batched network requests
+- Deferred work
+
+8.2 POWER SAVING MODES
+----------------------
+NORMAL:
+- Full functionality
+- Standard background limits
+
+POWER SAVER:
+- Reduced performance
+- Darker screen
+- Limited sync
+- Extended battery
+
+EXTREME SAVER:
+- Essential apps only
+- Minimum brightness
+- Background disabled
+- Many hours of standby
+
+8.3 BATTERY UI
+--------------
+VISIBILITY:
+- Estimated time remaining
+- Usage by app
+- Recommendations for saving
+- Alerts for battery hogs
+
+================================================================================
+9. LOAD SHEDDING AWARENESS
+================================================================================
+
+(South Africa specific but generally applicable)
+
+9.1 LOAD SHEDDING INTEGRATION
+-----------------------------
+OPTIONAL SERVICE:
+- Integrate with loadshedding APIs
+- Show schedule
+- Pre-emptive notifications
+
+9.2 PREPARATION
+---------------
+BEFORE POWER CUT:
+- Notification: "Power outage in 30 minutes"
+- Suggest: Download offline content
+- Suggest: Charge device
+
+DURING POWER CUT:
+- Auto-enable power saver
+- Reduce sync frequency
+- Cache current tasks
+
+================================================================================
+10. SUMMARY
+================================================================================
+
+OFFLINE-FIRST:
+- All core features work offline
+- Sync when connected
+- No required cloud dependency
+
+DATA EFFICIENT:
+- Data saver mode
+- Per-app data control
+- Compression throughout
+
+LOW-RESOURCE:
+- <1.5GB RAM idle
+- <8GB storage for system
+- Works on 4GB RAM devices
+
+POWER EFFICIENT:
+- Aggressive doze
+- Power saver modes
+- Load shedding awareness
+
+PHILOSOPHY:
+Circle OS should work as well on a R1,500 second-hand phone in rural
+KwaZulu-Natal with intermittent power and expensive data as it does on
+the latest flagship in Johannesburg with fiber and stable power.
+
+================================================================================
+END OF CHAPTER 14
+================================================================================

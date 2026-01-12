@@ -1,0 +1,13 @@
+services:
+  convertx:
+    image: ghcr.io/c4illin/convertx:latest
+    container_name: morph_convertx
+    restart: unless-stopped
+    ports:
+      - "5011:3000"
+    networks:
+      - data-warehouse_data_stack
+
+networks:
+  data-warehouse_data_stack:
+    external: true

@@ -1,0 +1,368 @@
+================================================================================
+CIRCLE OS SPECIFICATION
+Chapter 11: First Boot & Onboarding
+================================================================================
+
+Document: 11_onboarding.txt
+Version: 1.0
+Date: December 2025
+Status: Foundation
+
+================================================================================
+1. ONBOARDING PHILOSOPHY
+================================================================================
+
+First impressions matter. The setup wizard must:
+- Feel welcoming, not intimidating
+- Respect user's time
+- Explain privacy choices clearly
+- Never use dark patterns
+- Work for ages 8-80
+
+================================================================================
+2. SETUP WIZARD FLOW
+================================================================================
+
+2.1 WELCOME
+-----------
+[Circle logo animation]
+
+"Welcome to Circle"
+"Your phone. Your rules."
+
+[Get Started]
+
+2.2 LANGUAGE
+------------
+"Choose your language"
+
+[Language list - scrollable]
+- Local language first (based on SIM or region)
+- English always available
+- All languages equally accessible
+
+[Continue]
+
+2.3 ACCESSIBILITY
+-----------------
+"Do you need accessibility features?"
+
+[Large text]
+[Screen reader]
+[Continue without changes]
+
+Note: Can change later in Settings
+
+2.4 WIFI CONNECTION
+-------------------
+"Connect to WiFi"
+
+[Network list]
+
+[Skip] - "You can connect later"
+
+Note: Required for some setup features
+
+2.5 DATE & TIME
+---------------
+"Set date and time"
+
+[Automatic from network] (default)
+[Manual]
+
+Timezone: [Auto-detect or manual]
+
+2.6 PRIVACY INTRODUCTION
+------------------------
+"Circle protects your privacy"
+
+[Visual of privacy features]
+
+"You control what apps can access:
+• Your location
+• Your camera
+• Your contacts
+• Even the internet"
+
+[Learn more] [Continue]
+
+2.7 DATA MIGRATION (if Android detected)
+----------------------------------------
+"We found your existing data"
+
+"Would you like to bring your photos, music, and documents to Circle?"
+
+[Yes, import my data]
+[No, start fresh]
+
+If yes: [Migration wizard - see Chapter 09]
+
+2.8 CIRCLE ACCOUNT (OPTIONAL)
+-----------------------------
+"Circle Account"
+
+"A Circle account lets you:
+• Backup your data (encrypted, private)
+• Find your phone if lost
+• Sync across devices (optional)"
+
+"Your account data is encrypted. Circle cannot see it."
+
+[Create account]
+[Sign in]
+[Skip] - "You can create one later"
+
+Note: Circle works fully without account
+
+2.9 PIN/PASSWORD SETUP
+----------------------
+"Secure your device"
+
+"Choose a PIN or password to protect your data"
+
+[6+ digit PIN]
+[Password]
+
+"Your data is encrypted with this PIN"
+
+[PIN scramble explanation with visual]
+"Your PIN pad will be randomized for security"
+
+☑ Enable PIN scrambling (recommended)
+
+2.10 BIOMETRICS (if available)
+------------------------------
+"Add fingerprint"
+
+"Use your fingerprint for quick unlock"
+"Your fingerprint never leaves this device"
+
+[Set up fingerprint]
+[Skip]
+
+2.11 PRIVACY DEFAULTS
+---------------------
+"Your privacy choices"
+
+"We recommend these settings:"
+
+☑ Require permission for internet access
+☑ Clear clipboard after 1 minute
+☑ Randomize network address (MAC)
+☑ Block known trackers
+
+"You can change these anytime in Settings"
+
+[Use recommended] [Customize]
+
+2.12 AGE MODE
+-------------
+"Who will use this device?"
+
+○ Standard (ages 13+)
+○ Kid Mode (ages 8-12) - simplified, with parental controls
+○ Elder Mode - larger text, simpler interface
+
+[Visual preview of each mode]
+
+2.13 APP INSTALLATION
+---------------------
+"Essential apps"
+
+"Circle includes privacy-respecting apps for:"
+☑ Browser (privacy-focused)
+☑ Camera
+☑ Gallery
+☑ Music
+☑ Files
+☑ Messages
+
+"Need more apps?"
+[Open Circle Store]
+[Finish setup]
+
+2.14 COMPLETION
+---------------
+[Friendly animation]
+
+"You're all set!"
+
+"Your Circle is ready"
+
+[Tips for getting started]
+• Swipe up for app drawer
+• Swipe down for settings
+• Long press for options
+
+[Start using Circle]
+
+================================================================================
+3. POST-SETUP TIPS
+================================================================================
+
+3.1 FIRST-RUN TIPS
+------------------
+After setup, show contextual tips:
+
+HOME SCREEN:
+"Tip: Swipe up to see all your apps"
+[Got it]
+
+FIRST APP INSTALL:
+"Tip: Circle shows you what each app wants access to"
+[Got it]
+
+FIRST PERMISSION REQUEST:
+"Tip: You can always change permissions in Settings > Privacy"
+[Got it]
+
+3.2 TIPS MANAGEMENT
+-------------------
+- Tips show once
+- Can be disabled in Settings
+- Can be re-enabled to see again
+
+================================================================================
+4. EXPRESS SETUP
+================================================================================
+
+For experienced users:
+
+TRIGGER: Tap "Express Setup" on welcome screen
+
+EXPRESS FLOW:
+1. Language
+2. WiFi
+3. PIN
+4. Biometric
+5. Done
+
+DEFAULTS APPLIED:
+- Recommended privacy settings
+- Standard mode
+- No account
+- No data migration
+
+================================================================================
+5. RECOVERY SETUP
+================================================================================
+
+After factory reset or restoration:
+
+OPTIONS:
+• Restore from backup
+• Set up as new
+• Import from Android
+
+RESTORE FLOW:
+1. Select backup location (local/cloud)
+2. Authenticate
+3. Select what to restore
+4. Apply
+5. Brief re-setup (PIN, biometric)
+
+================================================================================
+6. PARENTAL SETUP (KID MODE)
+================================================================================
+
+When Kid Mode selected:
+
+6.1 PARENT PIN
+--------------
+"Set a parent PIN"
+
+"This PIN is required to change settings or add apps"
+
+[Set parent PIN]
+
+6.2 CHILD'S NAME
+----------------
+"What's the child's name?"
+
+[Name input]
+
+Note: Stored locally only
+
+6.3 AGE RANGE
+-------------
+"Age range"
+
+○ 8-10 (most restrictions)
+○ 10-12 (some restrictions)
+
+6.4 CONTENT FILTERING
+---------------------
+"Content settings"
+
+☑ Safe search in browser
+☑ Block explicit content
+☑ App installation requires parent
+☑ Screen time limits
+
+6.5 EMERGENCY CONTACT
+---------------------
+"Emergency contact"
+
+"If child needs help, they can call:"
+
+[Contact selector]
+
+================================================================================
+7. ELDER MODE SETUP
+================================================================================
+
+When Elder Mode selected:
+
+7.1 TEXT SIZE
+-------------
+"Choose comfortable text size"
+
+[Visual slider with preview]
+A → A → A → A
+
+7.2 SIMPLIFIED HOME
+-------------------
+"Simplified home screen"
+
+"Shows only essential apps in large buttons"
+
+[Preview]
+
+7.3 EMERGENCY FEATURES
+----------------------
+"Emergency button"
+
+☑ Show emergency button on home screen
+☑ Emergency contact on lock screen
+
+[Set emergency contact]
+
+================================================================================
+8. SETUP ANALYTICS
+================================================================================
+
+WHAT WE DON'T DO:
+- Track setup completion
+- Record user choices
+- Send any data to servers
+
+WHAT WE COULD DO (opt-in only):
+- Anonymous aggregate statistics
+- Setup failure reporting
+- Only if user explicitly opts in
+- Disabled by default
+
+================================================================================
+9. ACCESSIBILITY THROUGHOUT SETUP
+================================================================================
+
+REQUIREMENTS:
+- All screens work with screen reader
+- All text scalable
+- All colors meet contrast requirements
+- All actions have text alternatives
+- Setup works without touch (physical buttons)
+
+================================================================================
+END OF CHAPTER 11
+================================================================================

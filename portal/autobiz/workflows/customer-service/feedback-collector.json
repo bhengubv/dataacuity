@@ -1,0 +1,255 @@
+{
+  "name": "AutoBiz - Feedback Collector",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autobiz/submit-feedback",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "feedback-webhook",
+      "name": "Submit Feedback",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "feedback-id",
+              "name": "feedbackId",
+              "value": "=FB-{{ $now.format('yyyyMMdd') }}-{{ $randomInt(1000, 9999) }}",
+              "type": "string"
+            },
+            {
+              "id": "submitted-at",
+              "name": "submittedAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "generate-feedback-id",
+      "name": "Generate Feedback ID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Analyze and categorize feedback\nconst feedback = $input.first().json;\nconst rating = parseInt(feedback.rating) || 0;\nconst comment = (feedback.comment || '').toLowerCase();\n\n// Determine sentiment\nlet sentiment = 'neutral';\nif (rating >= 4) {\n  sentiment = 'positive';\n} else if (rating <= 2) {\n  sentiment = 'negative';\n}\n\n// Analyze comment for specific themes\nconst themes = [];\nif (comment.match(/fast|quick|efficient|speedy/)) themes.push('speed');\nif (comment.match(/friendly|helpful|nice|great service/)) themes.push('service');\nif (comment.match(/quality|excellent|good product/)) themes.push('quality');\nif (comment.match(/price|expensive|cheap|value|worth/)) themes.push('pricing');\nif (comment.match(/slow|wait|delay|long time/)) themes.push('speed_issue');\nif (comment.match(/rude|unhelpful|poor service/)) themes.push('service_issue');\nif (comment.match(/broken|defective|poor quality/)) themes.push('quality_issue');\n\n// Calculate NPS category\nlet npsCategory = 'passive';\nif (rating >= 9) npsCategory = 'promoter';\nelse if (rating <= 6) npsCategory = 'detractor';\n\n// Flag for follow-up\nconst requiresFollowUp = sentiment === 'negative' || rating <= 3;\n\nreturn {\n  ...feedback,\n  rating: rating,\n  sentiment: sentiment,\n  themes: themes,\n  npsCategory: npsCategory,\n  requiresFollowUp: requiresFollowUp\n};"
+      },
+      "id": "analyze-feedback",
+      "name": "Analyze Feedback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/feedback",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"feedbackId\": \"{{ $json.feedbackId }}\",\n  \"customerId\": \"{{ $json.customerId || '' }}\",\n  \"customerName\": \"{{ $json.customerName }}\",\n  \"customerEmail\": \"{{ $json.customerEmail }}\",\n  \"rating\": {{ $json.rating }},\n  \"comment\": \"{{ $json.comment }}\",\n  \"sentiment\": \"{{ $json.sentiment }}\",\n  \"themes\": {{ JSON.stringify($json.themes) }},\n  \"npsCategory\": \"{{ $json.npsCategory }}\",\n  \"source\": \"{{ $json.source || 'survey' }}\",\n  \"relatedTo\": \"{{ $json.orderId || $json.ticketId || '' }}\",\n  \"requiresFollowUp\": {{ $json.requiresFollowUp }},\n  \"submittedAt\": \"{{ $json.submittedAt }}\"\n}",
+        "options": {}
+      },
+      "id": "save-feedback",
+      "name": "Save Feedback",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        910,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "needs-followup",
+              "leftValue": "={{ $json.requiresFollowUp }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-followup",
+      "name": "Needs Follow-up?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1130,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $env.OWNER_EMAIL }}",
+        "subject": "=ALERT: Negative Feedback [{{ $json.feedbackId }}] - Rating: {{ $json.rating }}/10",
+        "emailType": "html",
+        "html": "=<h2 style=\"color: #FF3B30;\">Negative Feedback Received</h2>\n<p>A customer has submitted negative feedback that requires follow-up:</p>\n<table style=\"width: 100%; border-collapse: collapse;\">\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Customer:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee;\">{{ $json.customerName }} ({{ $json.customerEmail }})</td></tr>\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Rating:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee; color: #FF3B30; font-weight: bold;\">{{ $json.rating }}/10</td></tr>\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Sentiment:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee; text-transform: capitalize;\">{{ $json.sentiment }}</td></tr>\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Themes:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee;\">{{ $json.themes.join(', ') || 'None identified' }}</td></tr>\n</table>\n<div style=\"margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 8px;\">\n<strong>Comment:</strong><br>\n{{ $json.comment || 'No comment provided' }}\n</div>\n<p style=\"margin-top: 20px;\">\n<a href=\"{{ $env.CRM_URL }}/feedback/{{ $json.feedbackId }}\" style=\"background: #007AFF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;\">View & Follow Up</a>\n</p>",
+        "options": {}
+      },
+      "id": "alert-negative",
+      "name": "Alert Negative Feedback",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1350,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $json.customerEmail }}",
+        "subject": "Thank you for your feedback!",
+        "emailType": "html",
+        "html": "=<p>Hi {{ $json.customerName?.split(' ')[0] || 'there' }},</p>\n{{ $json.sentiment === 'positive' ? '<p>Thank you so much for your wonderful feedback! We\\'re thrilled to hear you had a great experience with us.</p><p>Your kind words mean a lot to our team. If you have a moment, we\\'d love it if you could share your experience on Google or social media.</p>' : '<p>Thank you for taking the time to share your feedback with us. We\\'re sorry your experience didn\\'t meet your expectations.</p><p>Your feedback is important to us, and a member of our team will reach out shortly to discuss how we can make things right.</p>' }}\n<p>Best regards,<br>{{ $env.BUSINESS_NAME }}</p>",
+        "options": {}
+      },
+      "id": "thank-customer",
+      "name": "Thank Customer",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1350,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"feedbackId\": \"{{ $json.feedbackId }}\",\n  \"message\": \"Thank you for your feedback!\"\n}",
+        "options": {}
+      },
+      "id": "feedback-response",
+      "name": "Feedback Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1570,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Submit Feedback": {
+      "main": [
+        [
+          {
+            "node": "Generate Feedback ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Feedback ID": {
+      "main": [
+        [
+          {
+            "node": "Analyze Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Feedback": {
+      "main": [
+        [
+          {
+            "node": "Save Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Feedback": {
+      "main": [
+        [
+          {
+            "node": "Needs Follow-up?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Follow-up?": {
+      "main": [
+        [
+          {
+            "node": "Alert Negative Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Thank Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alert Negative Feedback": {
+      "main": [
+        [
+          {
+            "node": "Feedback Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Thank Customer": {
+      "main": [
+        [
+          {
+            "node": "Feedback Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

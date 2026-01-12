@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Getting Started with Web Studio</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --bg: #0f172a;
+            --bg-card: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .header h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .header p { opacity: 0.9; }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .lesson-nav {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background: var(--bg-card);
+            color: var(--text);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            text-decoration: none;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .nav-btn:hover { background: var(--primary); }
+        .nav-btn.active { background: var(--primary); }
+
+        .step {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .step-number {
+            background: var(--primary);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .step h2 { font-size: 1.5rem; }
+        .step p { color: var(--text-muted); margin-bottom: 1rem; }
+
+        .tip-box {
+            background: rgba(6, 182, 212, 0.1);
+            border-left: 4px solid var(--secondary);
+            padding: 1rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1rem 0;
+        }
+
+        .tip-box strong { color: var(--secondary); }
+
+        .warning-box {
+            background: rgba(245, 158, 11, 0.1);
+            border-left: 4px solid var(--warning);
+            padding: 1rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1rem 0;
+        }
+
+        .warning-box strong { color: var(--warning); }
+
+        .image-placeholder {
+            background: var(--bg);
+            border: 2px dashed rgba(255,255,255,0.2);
+            border-radius: 8px;
+            padding: 3rem;
+            text-align: center;
+            color: var(--text-muted);
+            margin: 1rem 0;
+        }
+
+        .btn {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+
+        .btn:hover { background: var(--primary-dark); }
+        .btn-success { background: var(--success); }
+
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+
+        .checklist li {
+            padding: 0.5rem 0;
+            padding-left: 2rem;
+            position: relative;
+        }
+
+        .checklist li::before {
+            content: "[ ]";
+            position: absolute;
+            left: 0;
+            color: var(--text-muted);
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        footer a { color: var(--secondary); }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>Web Studio: Getting Started</h1>
+        <p>Build beautiful websites without writing code!</p>
+    </header>
+
+    <div class="container">
+        <nav class="lesson-nav">
+            <a href="01-getting-started.html" class="nav-btn active">1. Getting Started</a>
+            <a href="02-adding-content.html" class="nav-btn">2. Adding Content</a>
+            <a href="03-styling-basics.html" class="nav-btn">3. Styling</a>
+            <a href="04-building-pages.html" class="nav-btn">4. Building Pages</a>
+            <a href="../" class="nav-btn">Back to Learn</a>
+        </nav>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">1</div>
+                <h2>What is Web Studio?</h2>
+            </div>
+            <p>
+                Web Studio is like a magic art program for making websites! Instead of painting pictures, you "paint" web pages by dragging and dropping things onto your canvas.
+            </p>
+            <p>
+                Think of it like building with LEGO blocks - you pick the pieces you want and put them where you want them!
+            </p>
+
+            <div class="tip-box">
+                <strong>Fun Fact:</strong> Websites are made of special building blocks called "elements" - things like boxes, text, pictures, and buttons!
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">2</div>
+                <h2>Opening Web Studio</h2>
+            </div>
+            <p>Let's open Web Studio and start exploring!</p>
+
+            <a href="https://sandbox.dataacuity.co.za" target="_blank" class="btn btn-success">Open Web Studio</a>
+
+            <p style="margin-top: 1rem;">When you first open it, you'll see:</p>
+            <ul class="checklist">
+                <li>A big blank area (your "canvas" - where you'll build your page)</li>
+                <li>A panel on the left with components you can add</li>
+                <li>A panel on the right to change how things look</li>
+                <li>Buttons at the top to save, preview, and publish</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">3</div>
+                <h2>The Parts of Web Studio</h2>
+            </div>
+
+            <p><strong>The Canvas (Middle)</strong></p>
+            <p>This is where you build your website! It starts empty, like a blank piece of paper waiting for your creativity.</p>
+
+            <p><strong>Components Panel (Left Side)</strong></p>
+            <p>This is your toolbox! It has all the building blocks you can add to your page:</p>
+            <ul style="margin-left: 1.5rem; color: var(--text-muted);">
+                <li><strong>Box</strong> - A container to group things together</li>
+                <li><strong>Text</strong> - Words and paragraphs</li>
+                <li><strong>Heading</strong> - Big titles for sections</li>
+                <li><strong>Image</strong> - Pictures and photos</li>
+                <li><strong>Button</strong> - Clickable buttons</li>
+                <li><strong>Link</strong> - Text that goes somewhere when clicked</li>
+            </ul>
+
+            <p style="margin-top: 1rem;"><strong>Style Panel (Right Side)</strong></p>
+            <p>This is where you make things pretty! Change colors, sizes, and more.</p>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">4</div>
+                <h2>Your First Project</h2>
+            </div>
+            <p>Let's create your very first project!</p>
+
+            <ol style="margin-left: 1.5rem; color: var(--text-muted);">
+                <li style="margin-bottom: 0.5rem;">When Web Studio opens, you'll see the dashboard</li>
+                <li style="margin-bottom: 0.5rem;">Click "New Project" or the + button</li>
+                <li style="margin-bottom: 0.5rem;">Give your project a fun name (like "My First Website")</li>
+                <li style="margin-bottom: 0.5rem;">Click "Create" and you're ready to build!</li>
+            </ol>
+
+            <div class="tip-box">
+                <strong>Tip:</strong> Your projects are saved automatically, so you won't lose your work!
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">5</div>
+                <h2>Try It: Add Your First Element!</h2>
+            </div>
+            <p>Let's add something to your blank canvas:</p>
+
+            <ol style="margin-left: 1.5rem; color: var(--text-muted);">
+                <li style="margin-bottom: 0.5rem;">Find "Heading" in the Components panel on the left</li>
+                <li style="margin-bottom: 0.5rem;">Click and drag it onto your canvas</li>
+                <li style="margin-bottom: 0.5rem;">You'll see text appear that says "Heading"</li>
+                <li style="margin-bottom: 0.5rem;">Double-click on it to change the text</li>
+                <li style="margin-bottom: 0.5rem;">Type something fun, like "Welcome to My Website!"</li>
+            </ol>
+
+            <div class="warning-box">
+                <strong>Having Trouble?</strong> Make sure you're dragging the element all the way onto the white canvas area. It should "snap" into place!
+            </div>
+
+            <p style="margin-top: 1rem;">
+                Congratulations! You just added your first element to a website! In the next lesson, we'll learn how to add more content and make it look amazing.
+            </p>
+        </div>
+
+        <div style="text-align: center; margin-top: 2rem;">
+            <a href="02-adding-content.html" class="btn">Next Lesson: Adding Content</a>
+        </div>
+    </div>
+
+    <footer>
+        <p>Made with love by <a href="https://dataacuity.co.za">DataAcuity</a></p>
+    </footer>
+</body>
+</html>

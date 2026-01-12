@@ -1,0 +1,296 @@
+version: '3.8'
+
+# Load environment variables from .env file
+# All services will have access to these variables
+
+networks:
+  monitoring:
+    driver: bridge
+  data-warehouse_data_stack:
+    external: true
+
+volumes:
+  prometheus_data:
+  grafana_data:
+  loki_data:
+
+services:
+  # Prometheus - Metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    env_file:
+      - .env
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=${PROMETHEUS_STORAGE_PATH}'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=${PROMETHEUS_RETENTION}'
+      - '--web.enable-lifecycle'
+    ports:
+      - "${PROMETHEUS_PORT}:9090"
+    volumes:
+      - ./prometheus:/etc/prometheus
+      - prometheus_data:/prometheus
+    networks:
+      - monitoring
+      - data-warehouse_data_stack
+    labels:
+      - "com.dataacuity.service=monitoring"
+      - "com.dataacuity.component=prometheus"
+
+  # Grafana - Visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${GRAFANA_PORT}:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GF_SECURITY_ADMIN_USER}
+      - GF_SECURITY_ADMIN_EMAIL=${GF_SECURITY_ADMIN_EMAIL}
+      - GF_USERS_ALLOW_SIGN_UP=${GF_USERS_ALLOW_SIGN_UP}
+      - GF_USERS_DEFAULT_EMAIL=${GF_USERS_DEFAULT_EMAIL}
+      - GF_SERVER_ROOT_URL=${GF_SERVER_ROOT_URL}
+      - GF_INSTALL_PLUGINS=${GF_INSTALL_PLUGINS}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    networks:
+      - monitoring
+      - data-warehouse_data_stack
+    depends_on:
+      - prometheus
+      - loki
+    labels:
+      - "com.dataacuity.service=monitoring"
+      - "com.dataacuity.component=grafana"
+
+  # Loki - Log aggregation
+  loki:
+    image: grafana/loki:latest
+    container_name: loki
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${LOKI_PORT}:3100"
+    command: -config.file=/etc/loki/loki-config.yml
+    volumes:
+      - ./loki:/etc/loki
+      - loki_data:/tmp/loki
+    networks:
+      - monitoring
+      - data-warehouse_data_stack
+    labels:
+      - "com.dataacuity.service=monitoring"
+      - "com.dataacuity.component=loki"
+
+  # Promtail - Log shipper (collects Docker logs)
+  promtail:
+    image: grafana/promtail:latest
+    container_name: promtail
+    restart: unless-stopped
+    env_file:
+      - .env
+    command: -config.file=/etc/promtail/promtail-config.yml
+    volumes:
+      - ./promtail:/etc/promtail
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - monitoring
+      - data-warehouse_data_stack
+    depends_on:
+      - loki
+    labels:
+      - "com.dataacuity.service=monitoring"
+      - "com.dataacuity.component=promtail"
+
+  # Node Exporter - System metrics
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    env_file:
+      - .env
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "${NODE_EXPORTER_PORT}:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    networks:
+      - monitoring
+    labels:
+      - "com.dataacuity.service=monitoring"
+      - "com.dataacuity.component=node-exporter"
+
+  # cAdvisor - Container metrics
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${CADVISOR_PORT}:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk:/dev/disk:ro
+    privileged: true
+    devices:
+      - /dev/kmsg
+    networks:
+      - monitoring
+    labels:
+      - "com.dataacuity.service=monitoring"
+      - "com.dataacuity.component=cadvisor"
+
+  # PostgreSQL Exporter for Markets DB
+  postgres-exporter-markets:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: postgres-exporter-markets
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${POSTGRES_EXPORTER_MARKETS_PORT}:9187"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://openbb:${MARKETS_DB_PASSWORD}@markets_db:5432/openbb_data?sslmode=disable"
+    networks:
+      - monitoring
+      - data-warehouse_data_stack
+    labels:
+      - "com.dataacuity.service=monitoring"
+      - "com.dataacuity.component=postgres-exporter"
+      - "com.dataacuity.database=markets"
+
+  # PostgreSQL Exporter for Data Warehouse
+  postgres-exporter-warehouse:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: postgres-exporter-warehouse
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${POSTGRES_EXPORTER_WAREHOUSE_PORT}:9187"
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:${WAREHOUSE_DB_PASSWORD}@data-warehouse_postgres_1:5432/postgres?sslmode=disable"
+    networks:
+      - monitoring
+      - data-warehouse_data_stack
+    labels:
+      - "com.dataacuity.service=monitoring"
+      - "com.dataacuity.component=postgres-exporter"
+      - "com.dataacuity.database=warehouse"
+
+  # Nginx Exporter - Portal web server metrics
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:latest
+    container_name: nginx-exporter
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${NGINX_EXPORTER_PORT}:9113"
+    command:
+      - '-nginx.scrape-uri=${NGINX_SCRAPE_URI}'
+    networks:
+      - monitoring
+      - data-warehouse_data_stack
+    labels:
+      - "com.dataacuity.service=monitoring"
+      - "com.dataacuity.component=nginx-exporter"
+
+  # Redis Exporter - Markets cache metrics
+  redis-exporter-markets:
+    image: oliver006/redis_exporter:latest
+    container_name: redis-exporter-markets
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${REDIS_EXPORTER_MARKETS_PORT}:9121"
+    environment:
+      REDIS_ADDR: "${REDIS_ADDR_MARKETS}"
+    networks:
+      - monitoring
+      - data-warehouse_data_stack
+    labels:
+      - "com.dataacuity.service=monitoring"
+      - "com.dataacuity.component=redis-exporter"
+      - "com.dataacuity.instance=markets"
+
+  # Redis Exporter - Twenty CRM cache metrics
+  redis-exporter-twenty:
+    image: oliver006/redis_exporter:latest
+    container_name: redis-exporter-twenty
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${REDIS_EXPORTER_TWENTY_PORT}:9121"
+    environment:
+      REDIS_ADDR: "${REDIS_ADDR_TWENTY}"
+    networks:
+      - monitoring
+      - data-warehouse_data_stack
+    labels:
+      - "com.dataacuity.service=monitoring"
+      - "com.dataacuity.component=redis-exporter"
+      - "com.dataacuity.instance=twenty"
+
+  # Redis Exporter - Automatisch workflows cache metrics
+  redis-exporter-automatisch:
+    image: oliver006/redis_exporter:latest
+    container_name: redis-exporter-automatisch
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${REDIS_EXPORTER_AUTOMATISCH_PORT}:9121"
+    environment:
+      REDIS_ADDR: "${REDIS_ADDR_AUTOMATISCH}"
+    networks:
+      - monitoring
+      - data-warehouse_data_stack
+    labels:
+      - "com.dataacuity.service=monitoring"
+      - "com.dataacuity.component=redis-exporter"
+      - "com.dataacuity.instance=automatisch"
+
+  # Alertmanager - Alert routing and notifications
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "${ALERTMANAGER_PORT}:9093"
+    volumes:
+      - ./alertmanager:/etc/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - monitoring
+    depends_on:
+      - prometheus
+    labels:
+      - "com.dataacuity.service=monitoring"
+      - "com.dataacuity.component=alertmanager"

@@ -1,0 +1,78 @@
+# CircleOS .gitignore
+
+# Build outputs
+out/
+build/
+*.apk
+*.aab
+*.dex
+*.class
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Android/AOSP
+local.properties
+*.keystore
+*.jks
+
+# .NET / Data Acuity
+bin/
+obj/
+*.user
+*.suo
+*.userprefs
+*.userosscache
+*.sln.docstates
+packages/
+*.nupkg
+project.lock.json
+.nuget/
+
+# Logs
+*.log
+logs/
+
+# Environment & Secrets
+.env
+.env.*
+*.local
+appsettings.*.json
+!appsettings.json
+!appsettings.Development.json.example
+secrets/
+credentials/
+
+# Test results
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
+
+# Dependencies
+node_modules/
+
+# Archives (keep specs but ignore other zips)
+*.tar.gz
+*.tgz
+
+# Docker
+.docker/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Claude local settings (machine-specific)
+.claude/settings.local.json

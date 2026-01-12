@@ -1,0 +1,204 @@
+{
+  "name": "AutoBiz - Task Dispatcher",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autobiz/dispatch-task",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "task-webhook",
+      "name": "New Task",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "task-id",
+              "name": "taskId",
+              "value": "=TSK-{{ $now.format('yyyyMMdd') }}-{{ $randomInt(1000, 9999) }}",
+              "type": "string"
+            },
+            {
+              "id": "created-at",
+              "name": "createdAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "generate-task-id",
+      "name": "Generate Task ID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Analyze task and assign to appropriate unit/person\nconst task = $input.first().json;\nconst title = (task.title || '').toLowerCase();\nconst description = (task.description || '').toLowerCase();\nconst keywords = title + ' ' + description;\n\nlet unit = task.unit;\nlet priority = task.priority || 'medium';\nlet assignee = task.assignee;\nlet dueDate = task.dueDate;\n\n// Auto-assign to unit based on keywords if not specified\nif (!unit) {\n  if (keywords.match(/invoice|payment|expense|budget|financial|tax|vat/)) {\n    unit = 'finance';\n  } else if (keywords.match(/lead|quote|contract|deal|prospect|sale/)) {\n    unit = 'sales';\n  } else if (keywords.match(/inventory|delivery|schedule|supplier|quality/)) {\n    unit = 'operations';\n  } else if (keywords.match(/campaign|marketing|content|social|email|newsletter/)) {\n    unit = 'marketing';\n  } else if (keywords.match(/complaint|support|ticket|customer|feedback/)) {\n    unit = 'customer_service';\n  } else {\n    unit = 'admin';\n  }\n}\n\n// Auto-set priority based on keywords\nif (keywords.match(/urgent|asap|critical|immediately|emergency/)) {\n  priority = 'urgent';\n} else if (keywords.match(/important|priority|soon/)) {\n  priority = 'high';\n}\n\n// Calculate due date if not specified\nif (!dueDate) {\n  const days = priority === 'urgent' ? 1 : (priority === 'high' ? 3 : 7);\n  dueDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();\n}\n\nreturn {\n  ...task,\n  unit: unit,\n  priority: priority,\n  dueDate: dueDate,\n  status: 'pending'\n};"
+      },
+      "id": "analyze-task",
+      "name": "Analyze & Route Task",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/tasks",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"taskId\": \"{{ $json.taskId }}\",\n  \"title\": \"{{ $json.title }}\",\n  \"description\": \"{{ $json.description }}\",\n  \"unit\": \"{{ $json.unit }}\",\n  \"priority\": \"{{ $json.priority }}\",\n  \"assignee\": \"{{ $json.assignee || '' }}\",\n  \"dueDate\": \"{{ $json.dueDate }}\",\n  \"status\": \"{{ $json.status }}\",\n  \"createdBy\": \"{{ $json.createdBy }}\",\n  \"relatedTo\": \"{{ $json.relatedTo || '' }}\",\n  \"createdAt\": \"{{ $json.createdAt }}\"\n}",
+        "options": {}
+      },
+      "id": "save-task",
+      "name": "Save Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        910,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CRM_API_URL }}/units/{{ $json.unit }}/members",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "get-unit-members",
+      "name": "Get Unit Members",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1130,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $json.assignee?.email || ($input.first().json.members && $input.first().json.members[0]?.email) || $env.OWNER_EMAIL }}",
+        "subject": "=[{{ $json.priority.toUpperCase() }}] New Task: {{ $json.title }}",
+        "emailType": "html",
+        "html": "=<div style=\"{{ $json.priority === 'urgent' ? 'border-left: 4px solid #FF3B30; padding-left: 15px;' : '' }}\">\n<h2>New Task Assigned</h2>\n<table style=\"width: 100%; border-collapse: collapse;\">\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Task ID:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee;\">{{ $json.taskId }}</td></tr>\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Title:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee;\">{{ $json.title }}</td></tr>\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Unit:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee; text-transform: capitalize;\">{{ $json.unit.replace('_', ' ') }}</td></tr>\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Priority:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee; color: {{ $json.priority === 'urgent' ? '#FF3B30' : ($json.priority === 'high' ? '#FF9500' : '#333') }}; text-transform: uppercase; font-weight: bold;\">{{ $json.priority }}</td></tr>\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Due:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee;\">{{ new Date($json.dueDate).toLocaleDateString() }}</td></tr>\n</table>\n{{ $json.description ? '<p style=\"margin-top: 20px;\"><strong>Description:</strong><br>' + $json.description + '</p>' : '' }}\n<p style=\"margin-top: 20px;\">\n<a href=\"{{ $env.CRM_URL }}/tasks/{{ $json.taskId }}\" style=\"background: #007AFF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;\">View Task</a>\n</p>\n</div>",
+        "options": {}
+      },
+      "id": "notify-assignee",
+      "name": "Notify Assignee",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1350,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"taskId\": \"{{ $json.taskId }}\",\n  \"unit\": \"{{ $json.unit }}\",\n  \"priority\": \"{{ $json.priority }}\",\n  \"dueDate\": \"{{ $json.dueDate }}\"\n}",
+        "options": {}
+      },
+      "id": "task-response",
+      "name": "Task Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1570,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "New Task": {
+      "main": [
+        [
+          {
+            "node": "Generate Task ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Task ID": {
+      "main": [
+        [
+          {
+            "node": "Analyze & Route Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze & Route Task": {
+      "main": [
+        [
+          {
+            "node": "Save Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Task": {
+      "main": [
+        [
+          {
+            "node": "Get Unit Members",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Unit Members": {
+      "main": [
+        [
+          {
+            "node": "Notify Assignee",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Assignee": {
+      "main": [
+        [
+          {
+            "node": "Task Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

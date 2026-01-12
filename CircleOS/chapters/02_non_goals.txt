@@ -1,0 +1,279 @@
+================================================================================
+CIRCLE OS SPECIFICATION
+Chapter 02: Non-Goals
+================================================================================
+
+Document: 02_non_goals.txt
+Version: 1.0
+Date: December 2025
+Status: Foundation
+
+================================================================================
+PURPOSE OF THIS DOCUMENT
+================================================================================
+
+Knowing what we will NOT do is as important as knowing what we will.
+This chapter defines explicit boundaries. These are not temporary limitations —
+they are permanent design decisions.
+
+If a feature request conflicts with a non-goal, the answer is NO.
+
+================================================================================
+1. NON-GOALS: PRIVACY & SECURITY
+================================================================================
+
+1.1 WE WILL NOT COMPROMISE PRIVACY FOR CONVENIENCE
+--------------------------------------------------
+- We will not pre-install apps that track users
+- We will not enable analytics or telemetry by default
+- We will not make privacy settings hard to find
+- We will not use dark patterns to encourage data sharing
+- We will not sell, share, or monetize user data — ever
+
+If a feature cannot be built without compromising privacy, we do not build it.
+
+
+1.2 WE WILL NOT COMPROMISE SECURITY FOR APP COMPATIBILITY
+---------------------------------------------------------
+- We will not disable sandboxing to make an app work
+- We will not grant root access to apps that demand it
+- We will not weaken encryption for "enterprise features"
+- We will not backdoor our security for any government
+- We will not create "trusted" app tiers with special privileges
+
+If an app cannot function within our security model, that app does not run.
+The user may choose a different app. We will not weaken the system.
+
+
+1.3 WE WILL NOT PRETEND SECURITY WE CANNOT DELIVER
+--------------------------------------------------
+- We will not claim Tier 1 security on Tier 3 hardware
+- We will not hide limitations in fine print
+- We will not use "secure" as marketing without technical backing
+- We will not imply protection we cannot enforce
+
+Users deserve honest assessments of their security posture.
+
+
+1.4 WE WILL NOT BECOME THE NEW SURVEILLOR
+-----------------------------------------
+- Circle Foundation will not track users
+- Circle Store will not profile purchasing behavior
+- Circle Services will not build advertising profiles
+- We will not know more about users than absolutely necessary
+
+The cure for surveillance capitalism is not different surveillance.
+It is no surveillance.
+
+================================================================================
+2. NON-GOALS: COMPATIBILITY
+================================================================================
+
+2.1 WE WILL NOT SUPPORT EVERY DEVICE
+------------------------------------
+Some devices cannot be supported:
+- Devices with no path to boot Circle OS (fully locked, no exploits)
+- Devices with no available kernel sources
+- Devices with hardware that cannot be driven without blobs we cannot sandbox
+- Devices below minimum specifications
+
+We maintain a clear compatibility list.
+Devices not on the list are not supported. Community ports are welcome but
+carry no guarantees.
+
+
+2.2 WE WILL NOT GUARANTEE EVERY APP WORKS
+-----------------------------------------
+Some apps are fundamentally incompatible:
+- Apps that require Google Play Services with root trust (SafetyNet/Play Integrity)
+- Apps that refuse to run without invasive permissions
+- Apps that detect and block modified OS environments
+- Apps that require hardware attestation we cannot provide
+
+We will document known incompatibilities.
+We will provide workarounds where possible (sandboxed Play Services).
+We will not break our security model to satisfy hostile apps.
+
+
+2.3 WE WILL NOT MAINTAIN ANDROID FEATURE PARITY
+-----------------------------------------------
+Circle OS is not Android with a privacy skin.
+Some Android features will not exist:
+- Google Assistant integration (replaced with privacy-respecting alternatives)
+- Seamless Google account sync (users manage accounts explicitly)
+- Android Auto (unless it can function without Google Services)
+- Features that exist solely to serve advertising
+
+We build what serves users, not what serves Android's ecosystem.
+
+================================================================================
+3. NON-GOALS: HARDWARE
+================================================================================
+
+3.1 WE WILL NOT DESIGN FOR FLAGSHIP SPECS ONLY
+----------------------------------------------
+Circle OS must run well on:
+- 4GB RAM (P30 Lite baseline)
+- 64GB storage
+- Mid-range processors
+- 720p displays
+
+We will not assume flagship hardware.
+Features that require high-end specs must degrade gracefully.
+
+
+3.2 WE WILL NOT REQUIRE CIRCLE HARDWARE
+---------------------------------------
+Circle native hardware is the best experience.
+It is not the only experience.
+
+Every feature must work on ported devices unless:
+- It requires hardware that only Circle devices have (NearLink, module hot-swap)
+- It requires security hardware not present (in which case, clearly documented)
+
+Circle OS on a P30 Lite is still Circle OS.
+
+
+3.3 WE WILL NOT LOCK HARDWARE CHOICES
+-------------------------------------
+Circle native hardware uses:
+- Standard connectors (USB-C)
+- Replaceable modules
+- Open designs (CERN OHL)
+
+We will not:
+- Create proprietary accessories
+- Lock features to Circle-brand peripherals
+- Prevent third-party module manufacturing
+
+Vendor lock-in is not a business model. It is a betrayal.
+
+================================================================================
+4. NON-GOALS: BUSINESS MODEL
+================================================================================
+
+4.1 WE WILL NOT BECOME DEPENDENT ON DATA MONETIZATION
+-----------------------------------------------------
+Revenue must come from:
+- Hardware sales (Circle devices, accessories)
+- Optional services (cloud storage, support contracts)
+- Enterprise licensing (if applicable)
+- Donations and grants
+
+Revenue must never come from:
+- Selling user data
+- Advertising profiles
+- "Anonymous" analytics that aren't
+- Partnerships that require user surveillance
+
+
+4.2 WE WILL NOT ACCEPT CONFLICTED FUNDING
+-----------------------------------------
+The Circle Foundation will not accept funding that:
+- Requires compromises to privacy or security
+- Gives any entity control over technical decisions
+- Creates obligations that conflict with user interests
+- Comes from entities whose business is surveillance
+
+Funding transparency is mandatory. Conflicts of interest are disqualifying.
+
+
+4.3 WE WILL NOT PURSUE GROWTH OVER PRINCIPLES
+---------------------------------------------
+We will not:
+- Soften privacy to gain app developer support
+- Weaken security to pass Google certification
+- Add tracking to "improve user experience"
+- Compromise principles to reach more users
+
+A smaller user base with real privacy beats a larger user base with fake privacy.
+We grow by earning trust, not by abandoning values.
+
+================================================================================
+5. NON-GOALS: SCOPE
+================================================================================
+
+5.1 WE WILL NOT BUILD A DESKTOP OS
+----------------------------------
+Circle OS is a mobile operating system.
+Convergence (phone-as-desktop) is interesting but out of scope.
+We focus on mobile excellence, not mediocre everything.
+
+
+5.2 WE WILL NOT BUILD OUR OWN APP ECOSYSTEM FROM SCRATCH
+--------------------------------------------------------
+Android app compatibility is the strategy.
+We do not need:
+- A new app development framework
+- A new programming language
+- A new app paradigm
+
+Developers build Android apps. Those apps run on Circle OS.
+Circle-native apps (PWAs, system apps) follow standard patterns.
+
+
+5.3 WE WILL NOT COMPETE WITH GRAPHENEOS ON PIXELS
+-------------------------------------------------
+GrapheneOS exists. It is excellent. It runs on Pixels.
+
+If a user has a Pixel and wants maximum security, recommend GrapheneOS.
+Circle OS differentiates through:
+- Broader device support (P30 Lite, etc.)
+- Dual boot coexistence (less commitment required)
+- Age-adaptive modes (Kid, Elder)
+- African market focus (offline-first, stokvel integration)
+- Circle native hardware path
+
+We complement GrapheneOS, not compete.
+
+================================================================================
+6. NON-GOALS: COMMUNITY
+================================================================================
+
+6.1 WE WILL NOT TOLERATE TOXIC CONTRIBUTION
+-------------------------------------------
+Open source does not mean open abuse.
+Contributors must:
+- Respect the code of conduct
+- Accept design decisions (after discussion)
+- Work constructively
+
+We will not accept:
+- Harassment of maintainers
+- Demands without contribution
+- Hostile forks designed to undermine (forks are fine; hostility isn't)
+
+
+6.2 WE WILL NOT LET LOUD VOICES OVERRIDE PRINCIPLES
+---------------------------------------------------
+Feature requests are welcome.
+Demands that violate non-goals are not.
+
+"Many people want this" is not sufficient justification if "this" conflicts
+with privacy, security, or accessibility requirements.
+
+We listen. We do not capitulate.
+
+================================================================================
+7. SUMMARY: THE LINE WE WILL NOT CROSS
+================================================================================
+
+Circle OS will NEVER:
+- Sell, share, or monetize user data
+- Weaken security for compatibility
+- Lie about our limitations
+- Become what we set out to replace
+- Abandon users who trusted us with their privacy
+
+These are not negotiable.
+These are not "for now."
+These are permanent.
+
+If Circle Foundation ever violates these non-goals, the community should fork
+the code (it's open source) and continue without us.
+
+That's not a threat. It's a promise. It's the accountability we accept.
+
+================================================================================
+END OF CHAPTER 02
+================================================================================

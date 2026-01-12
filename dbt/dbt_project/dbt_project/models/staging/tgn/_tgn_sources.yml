@@ -1,0 +1,56 @@
+version: 2
+
+sources:
+  - name: tgn
+    description: "The Geek Network anonymized metrics data"
+    database: datawarehouse
+    schema: tgn
+    tables:
+      - name: events
+        description: "Raw ingested metrics from TGN APIs (partitioned by received_at)"
+        columns:
+          - name: id
+            description: "Unique event UUID"
+          - name: source
+            description: "Source API (bruh, auth, ledger, etc.)"
+          - name: period_type
+            description: "Aggregation period (15min, hourly, daily, etc.)"
+          - name: period_start
+            description: "Period start timestamp"
+          - name: period_end
+            description: "Period end timestamp"
+          - name: metrics
+            description: "JSONB payload with metric key-value pairs"
+          - name: metadata
+            description: "Additional metadata (generator version, etc.)"
+          - name: checksum
+            description: "SHA256 checksum of metrics for integrity"
+          - name: schema_version
+            description: "Schema version for payload format"
+          - name: received_at
+            description: "Timestamp when data was received (partition key)"
+
+      - name: ingest_log
+        description: "Audit log of all ingest operations"
+        columns:
+          - name: id
+            description: "Log entry ID"
+          - name: source
+            description: "Source API"
+          - name: batch_id
+            description: "Client-provided batch identifier"
+          - name: records_count
+            description: "Number of records in batch"
+          - name: client_ip
+            description: "Client IP address"
+          - name: app_id
+            description: "Application ID used for authentication"
+          - name: processing_ms
+            description: "Processing time in milliseconds"
+          - name: status
+            description: "Ingest status (success, partial, failed)"
+          - name: received_at
+            description: "Timestamp of ingest operation"
+
+      - name: partition_registry
+        description: "Registry of table partitions for lifecycle management"

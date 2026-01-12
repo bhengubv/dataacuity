@@ -1,0 +1,475 @@
+================================================================================
+CIRCLE OS SPECIFICATION
+Chapter 07: System Architecture
+================================================================================
+
+Document: 07_system.txt
+Version: 1.0
+Date: December 2025
+Status: Foundation
+
+================================================================================
+1. ARCHITECTURE OVERVIEW
+================================================================================
+
+Circle OS is a Linux-based mobile operating system with Android app
+compatibility. It is NOT Android with a privacy skin — it is a distinct OS
+that happens to run Android apps.
+
+LAYER STACK:
+┌─────────────────────────────────────────┐
+│             APPLICATIONS                 │
+│  (Circle Apps + Android Apps via ART)   │
+├─────────────────────────────────────────┤
+│            CIRCLE UI SHELL              │
+│   (Launcher, SystemUI, Settings)        │
+├─────────────────────────────────────────┤
+│          ANDROID RUNTIME (ART)          │
+│      (For Android app compatibility)    │
+├─────────────────────────────────────────┤
+│          CIRCLE SYSTEM SERVICES         │
+│  (Privacy Manager, Power, Telephony)    │
+├─────────────────────────────────────────┤
+│      HARDWARE ABSTRACTION LAYER         │
+│         (HAL, Treble compatible)        │
+├─────────────────────────────────────────┤
+│              LINUX KERNEL               │
+│    (Hardened, device-specific BSP)      │
+└─────────────────────────────────────────┘
+
+================================================================================
+2. LINUX KERNEL
+================================================================================
+
+2.1 KERNEL VERSION STRATEGY
+---------------------------
+CIRCLE NATIVE: Linux 6.x LTS
+- Full hardening features
+- RISC-V native support
+- Mainline driver availability
+
+PORTED DEVICES: Device-specific
+- P30 Lite: Linux 4.9 (Huawei BSP)
+- Pixel: Linux 5.x or 6.x
+- Generic: Android Common Kernel
+
+POLICY: Use newest kernel device supports
+
+2.2 KERNEL CONFIGURATION
+------------------------
+REQUIRED:
+- CONFIG_SECURITY_SELINUX=y
+- CONFIG_DM_VERITY=y
+- CONFIG_ENCRYPTED_KEYS=y
+- CONFIG_HARDENED_USERCOPY=y
+- CONFIG_FORTIFY_SOURCE=y
+- CONFIG_STACKPROTECTOR_STRONG=y
+
+HARDENING (where supported):
+- CONFIG_CFI_CLANG=y
+- CONFIG_SHADOW_CALL_STACK=y
+- CONFIG_INIT_ON_ALLOC_DEFAULT_ON=y
+- CONFIG_RANDOMIZE_KSTACK_OFFSET=y
+
+DISABLED:
+- CONFIG_KALLSYMS (or restricted)
+- CONFIG_DEBUG_FS (in production)
+- CONFIG_KPROBES
+- CONFIG_MODULE (after init)
+
+2.3 DEVICE TREE
+---------------
+Each device requires:
+- Device tree blob (DTB) or
+- Device tree overlay (DTBO)
+
+CONTENTS:
+- Hardware component descriptions
+- Memory mappings
+- Interrupt configurations
+- Peripheral settings
+
+================================================================================
+3. HARDWARE ABSTRACTION LAYER
+================================================================================
+
+3.1 TREBLE ARCHITECTURE
+-----------------------
+Circle OS uses Android's Treble HAL interface:
+
+BENEFITS:
+- Reuse vendor HAL binaries from stock Android
+- Standardized interface
+- Reduces porting effort
+- Vendor blobs contained in /vendor
+
+HAL CATEGORIES:
+- Audio HAL
+- Camera HAL
+- Display/Composer HAL
+- Sensors HAL
+- Bluetooth HAL
+- WiFi HAL
+- NFC HAL
+- Fingerprint HAL
+- Power HAL
+- Telephony (RIL)
+
+3.2 HIDL / AIDL
+---------------
+Interface definitions:
+
+HIDL (older devices):
+- Hardware Interface Definition Language
+- android.hardware.* interfaces
+- Passthrough or binderized
+
+AIDL (newer devices):
+- Android Interface Definition Language
+- More efficient
+- Preferred for new HALs
+
+3.3 CIRCLE-SPECIFIC HALS
+------------------------
+New HALs for Circle features:
+
+NEARLINK HAL (Circle native):
+- hardware/interfaces/nearlink/
+- Short-range connectivity
+- Replaces/supplements Bluetooth
+
+MODULE MANAGER HAL (Circle native):
+- hardware/interfaces/modules/
+- Hot-swap detection
+- Module identification
+
+================================================================================
+4. CIRCLE SYSTEM SERVICES
+================================================================================
+
+4.1 SERVICE ARCHITECTURE
+------------------------
+System services run in system_server process:
+
+CORE SERVICES:
+┌─────────────────────────────────────────┐
+│            SYSTEM_SERVER                │
+├─────────────────────────────────────────┤
+│ CirclePrivacyManagerService             │
+│ CircleFirewallService                   │
+│ CirclePermissionService                 │
+│ ActivityManagerService                  │
+│ PackageManagerService                   │
+│ WindowManagerService                    │
+│ PowerManagerService                     │
+│ TelephonyRegistry                       │
+│ ConnectivityService                     │
+│ LocationManagerService                  │
+│ ...                                     │
+└─────────────────────────────────────────┘
+
+4.2 CIRCLE PRIVACY MANAGER SERVICE
+----------------------------------
+Central privacy enforcement (see Chapter 04):
+
+RESPONSIBILITIES:
+- Permission policy enforcement
+- Scoped permissions (contacts, storage)
+- Privacy logging
+- Dashboard data provision
+- Network permission enforcement
+
+IPC INTERFACE:
+- Binder service: circle.privacy
+- System apps only (signature protection)
+
+4.3 CIRCLE FIREWALL SERVICE
+---------------------------
+Network access control:
+
+RESPONSIBILITIES:
+- Per-app network rules
+- Domain blocking
+- VPN integration
+- Traffic logging (local)
+
+IMPLEMENTATION:
+- Netfilter/iptables backend
+- Per-UID rules
+- DNS interception for logging
+
+4.4 CIRCLE PERMISSION SERVICE
+-----------------------------
+Extended permission model:
+
+RESPONSIBILITIES:
+- Custom permissions (network, sensors)
+- Scoped permission management
+- Permission auto-revoke
+- Permission usage tracking
+
+INTEGRATION:
+- Hooks into PackageManagerService
+- Custom permission controller UI
+
+4.5 STANDARD ANDROID SERVICES (MODIFIED)
+----------------------------------------
+ACTIVITY MANAGER:
+- Standard AOSP implementation
+- Modified for privacy hooks
+
+PACKAGE MANAGER:
+- Standard AOSP implementation  
+- Extended for privacy labels
+- Circle Store integration
+
+WINDOW MANAGER:
+- Standard AOSP implementation
+- Privacy indicator enforcement (cannot hide)
+
+================================================================================
+5. ANDROID RUNTIME (ART)
+================================================================================
+
+5.1 PURPOSE
+-----------
+ART provides Android app compatibility:
+- Execute Android APKs
+- DEX bytecode interpretation/JIT/AOT
+- Standard Android APIs
+
+5.2 CONFIGURATION
+-----------------
+SECURITY SETTINGS:
+- JIT disabled for sensitive processes (optional)
+- Ahead-of-time compilation preferred
+- Memory hardening enabled
+
+PERFORMANCE:
+- AOT compilation for system apps
+- JIT for user apps (balance)
+- Profile-guided optimization
+
+5.3 RUNTIME HOOKS
+-----------------
+ART modified for Circle privacy:
+
+PERMISSION CHECKS:
+- Runtime permission requests intercepted
+- Routed through CirclePermissionService
+
+API BEHAVIOR:
+- Advertising ID returns zeros
+- Device IDs return fake values
+- Clipboard access monitored
+
+================================================================================
+6. UI SHELL (CIRCLE UI)
+================================================================================
+
+6.1 COMPONENTS
+--------------
+LAUNCHER:
+- Home screen
+- App drawer
+- Widgets
+- Gestures
+
+SYSTEM UI:
+- Status bar
+- Navigation bar
+- Quick settings
+- Notifications
+- Privacy indicators
+
+SETTINGS:
+- System configuration
+- Privacy dashboard
+- Security settings
+- Device management
+
+LOCK SCREEN:
+- Authentication
+- Notifications (privacy-aware)
+- Quick actions
+
+6.2 DESIGN SYSTEM
+-----------------
+Circle UI design language (see UI spec):
+- Warm, approachable colors
+- Rounded, friendly shapes
+- Clear typography
+- Age-adaptive scaling
+
+6.3 IMPLEMENTATION
+------------------
+TECHNOLOGY:
+- Standard Android View system
+- Material Design 3 components
+- Custom Circle components
+- Jetpack Compose where appropriate
+
+THEMING:
+- System-wide theme engine
+- Light/Dark modes
+- Accessibility themes
+
+================================================================================
+7. INIT SYSTEM
+================================================================================
+
+7.1 INIT STAGES
+---------------
+Android init system:
+
+EARLY-INIT:
+- Mount filesystems
+- SELinux setup
+- Property loading
+
+INIT:
+- Service startup
+- Socket creation
+- Property triggers
+
+LATE-INIT:
+- Zygote launch
+- System server
+- User-facing services
+
+7.2 SERVICE DEFINITIONS
+-----------------------
+Format (init.rc):
+
+service circled /system/bin/circled
+    class main
+    user system
+    group system
+    capabilities NET_ADMIN
+    seclabel u:r:circled:s0
+
+7.3 PROPERTY SYSTEM
+-------------------
+System properties:
+
+CIRCLE PROPERTIES:
+- ro.circle.version
+- ro.circle.security_tier
+- ro.circle.device
+- persist.circle.privacy.*
+
+================================================================================
+8. INTER-PROCESS COMMUNICATION
+================================================================================
+
+8.1 BINDER
+----------
+Primary IPC mechanism:
+
+USAGE:
+- System service calls
+- App to system communication
+- Content provider access
+
+SECURITY:
+- SELinux policy per interface
+- UID/PID verification
+- Permission checks
+
+8.2 UNIX SOCKETS
+----------------
+Local communication:
+
+USAGE:
+- Init to daemon communication
+- HAL passthrough
+- Logging
+
+8.3 INTENTS
+-----------
+Android messaging:
+
+MODIFICATIONS:
+- Broadcast restrictions enforced
+- Intent firewall active
+- Sensitive intents logged
+
+================================================================================
+9. FILESYSTEM LAYOUT
+================================================================================
+
+9.1 PARTITION MOUNTS
+--------------------
+/            - rootfs (ramdisk)
+/system      - Circle OS system (ro, dm-verity)
+/vendor      - HAL binaries (ro)
+/data        - User data (rw, encrypted)
+/cache       - Temporary (rw)
+/persist     - Persistent data (ro for apps)
+/firmware    - Modem firmware (ro)
+
+9.2 SYSTEM STRUCTURE
+--------------------
+/system/
+├── app/              # System apps (non-priv)
+├── priv-app/         # Privileged apps
+├── bin/              # System binaries
+├── lib64/            # 64-bit libraries
+├── framework/        # Java framework
+├── etc/              # Configuration
+│   ├── init/         # Init scripts
+│   ├── permissions/  # Permission config
+│   └── selinux/      # SELinux policy
+└── fonts/            # System fonts
+
+9.3 DATA STRUCTURE
+------------------
+/data/
+├── app/              # Installed app APKs
+├── data/             # App private data
+├── system/           # System databases
+├── circle/           # Circle-specific data
+│   ├── privacy/      # Privacy logs
+│   └── config/       # Circle configuration
+├── media/            # Shared media
+└── misc/             # Miscellaneous
+
+================================================================================
+10. SECURITY BOUNDARIES
+================================================================================
+
+10.1 SELINUX DOMAINS
+--------------------
+KEY DOMAINS:
+- kernel (kernel threads)
+- init (init process)
+- zygote (app spawner)
+- system_server (system services)
+- circled (Circle daemon)
+- platform_app (system apps)
+- untrusted_app (user apps)
+- isolated_app (sandbox apps)
+
+CUSTOM DOMAINS:
+- circle_privacy (privacy service)
+- circle_firewall (network control)
+
+10.2 CAPABILITY RESTRICTIONS
+----------------------------
+No app receives:
+- CAP_SYS_ADMIN
+- CAP_NET_ADMIN (except system)
+- CAP_SYS_PTRACE
+
+System services receive minimal capabilities.
+
+10.3 NAMESPACE ISOLATION
+------------------------
+Apps isolated via:
+- Mount namespace
+- Network namespace (where applicable)
+- PID namespace (where applicable)
+
+================================================================================
+END OF CHAPTER 07
+================================================================================

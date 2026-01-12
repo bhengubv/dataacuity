@@ -1,0 +1,214 @@
+{
+  "name": "AutoBiz - Quote Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autobiz/generate-quote",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "quote-webhook",
+      "name": "Quote Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "quote-number",
+              "name": "quoteNumber",
+              "value": "=QT-{{ $now.format('yyyyMMdd') }}-{{ $randomInt(1000, 9999) }}",
+              "type": "string"
+            },
+            {
+              "id": "created-date",
+              "name": "createdDate",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "valid-until",
+              "name": "validUntil",
+              "value": "={{ $now.plus({ days: 30 }).toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "name": "status",
+              "value": "draft",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "generate-quote-number",
+      "name": "Generate Quote Number",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate quote totals\nconst items = $input.first().json.items || [];\n\nlet subtotal = 0;\nconst processedItems = items.map((item, index) => {\n  const qty = parseFloat(item.quantity) || 1;\n  const price = parseFloat(item.unitPrice) || 0;\n  const lineTotal = qty * price;\n  subtotal += lineTotal;\n  \n  return {\n    lineNumber: index + 1,\n    description: item.description || 'Item',\n    quantity: qty,\n    unitPrice: price,\n    lineTotal: lineTotal\n  };\n});\n\nconst taxRate = parseFloat($input.first().json.taxRate) || 15;\nconst taxAmount = subtotal * (taxRate / 100);\nconst total = subtotal + taxAmount;\nconst discountPercent = parseFloat($input.first().json.discount) || 0;\nconst discountAmount = subtotal * (discountPercent / 100);\nconst finalTotal = total - discountAmount;\n\nreturn {\n  ...$input.first().json,\n  items: processedItems,\n  subtotal: subtotal.toFixed(2),\n  taxRate: taxRate,\n  taxAmount: taxAmount.toFixed(2),\n  discountPercent: discountPercent,\n  discountAmount: discountAmount.toFixed(2),\n  total: finalTotal.toFixed(2),\n  currency: $input.first().json.currency || 'ZAR'\n};"
+      },
+      "id": "calculate-totals",
+      "name": "Calculate Totals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate HTML quote template\nconst data = $input.first().json;\n\nconst itemsHtml = data.items.map(item => `\n  <tr>\n    <td>${item.lineNumber}</td>\n    <td>${item.description}</td>\n    <td style=\"text-align: right;\">${item.quantity}</td>\n    <td style=\"text-align: right;\">${data.currency} ${item.unitPrice.toFixed(2)}</td>\n    <td style=\"text-align: right;\">${data.currency} ${item.lineTotal.toFixed(2)}</td>\n  </tr>\n`).join('');\n\nconst html = `\n<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; margin: 40px; color: #333; }\n    .header { display: flex; justify-content: space-between; margin-bottom: 40px; }\n    .logo { font-size: 24px; font-weight: bold; color: #007AFF; }\n    .quote-info { text-align: right; }\n    .quote-number { font-size: 20px; font-weight: bold; }\n    .customer { margin-bottom: 30px; }\n    table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }\n    th { background: #f5f5f5; padding: 12px; text-align: left; border-bottom: 2px solid #ddd; }\n    td { padding: 12px; border-bottom: 1px solid #eee; }\n    .totals { width: 300px; margin-left: auto; }\n    .totals td { padding: 8px 12px; }\n    .totals .total-row { font-weight: bold; font-size: 18px; background: #f5f5f5; }\n    .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 12px; color: #666; }\n    .terms { margin-top: 30px; padding: 20px; background: #f9f9f9; border-radius: 8px; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <div class=\"logo\">${data.businessName || 'Your Company'}</div>\n    <div class=\"quote-info\">\n      <div class=\"quote-number\">${data.quoteNumber}</div>\n      <div>Date: ${new Date(data.createdDate).toLocaleDateString()}</div>\n      <div>Valid Until: ${new Date(data.validUntil).toLocaleDateString()}</div>\n    </div>\n  </div>\n  \n  <div class=\"customer\">\n    <strong>Quote For:</strong><br>\n    ${data.customerName || 'Customer'}<br>\n    ${data.customerEmail || ''}<br>\n    ${data.customerPhone || ''}\n  </div>\n  \n  <table>\n    <thead>\n      <tr>\n        <th>#</th>\n        <th>Description</th>\n        <th style=\"text-align: right;\">Qty</th>\n        <th style=\"text-align: right;\">Unit Price</th>\n        <th style=\"text-align: right;\">Total</th>\n      </tr>\n    </thead>\n    <tbody>\n      ${itemsHtml}\n    </tbody>\n  </table>\n  \n  <table class=\"totals\">\n    <tr><td>Subtotal:</td><td style=\"text-align: right;\">${data.currency} ${data.subtotal}</td></tr>\n    ${data.discountPercent > 0 ? `<tr><td>Discount (${data.discountPercent}%):</td><td style=\"text-align: right;\">-${data.currency} ${data.discountAmount}</td></tr>` : ''}\n    <tr><td>VAT (${data.taxRate}%):</td><td style=\"text-align: right;\">${data.currency} ${data.taxAmount}</td></tr>\n    <tr class=\"total-row\"><td>Total:</td><td style=\"text-align: right;\">${data.currency} ${data.total}</td></tr>\n  </table>\n  \n  <div class=\"terms\">\n    <strong>Terms & Conditions:</strong><br>\n    ${data.terms || '• Quote valid for 30 days\\n• 50% deposit required to commence\\n• Balance due on completion'}\n  </div>\n  \n  <div class=\"footer\">\n    Thank you for your business!\n  </div>\n</body>\n</html>\n`;\n\nreturn {\n  ...data,\n  quoteHtml: html\n};"
+      },
+      "id": "generate-html",
+      "name": "Generate Quote HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        910,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/quotes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"quoteNumber\": \"{{ $json.quoteNumber }}\",\n  \"customerId\": \"{{ $json.customerId }}\",\n  \"customerName\": \"{{ $json.customerName }}\",\n  \"items\": {{ JSON.stringify($json.items) }},\n  \"subtotal\": {{ $json.subtotal }},\n  \"taxAmount\": {{ $json.taxAmount }},\n  \"total\": {{ $json.total }},\n  \"status\": \"{{ $json.status }}\",\n  \"validUntil\": \"{{ $json.validUntil }}\",\n  \"createdAt\": \"{{ $json.createdDate }}\"\n}",
+        "options": {}
+      },
+      "id": "save-quote",
+      "name": "Save Quote to CRM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1130,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $json.customerEmail }}",
+        "subject": "=Your Quote {{ $json.quoteNumber }}",
+        "emailType": "html",
+        "html": "={{ $json.quoteHtml }}",
+        "options": {
+          "attachments": "quote.pdf"
+        }
+      },
+      "id": "send-quote",
+      "name": "Send Quote to Customer",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1350,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"quoteNumber\": \"{{ $json.quoteNumber }}\",\n  \"total\": \"{{ $json.currency }} {{ $json.total }}\",\n  \"validUntil\": \"{{ $json.validUntil }}\"\n}",
+        "options": {}
+      },
+      "id": "quote-response",
+      "name": "Quote Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1570,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Quote Request": {
+      "main": [
+        [
+          {
+            "node": "Generate Quote Number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Quote Number": {
+      "main": [
+        [
+          {
+            "node": "Calculate Totals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Totals": {
+      "main": [
+        [
+          {
+            "node": "Generate Quote HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Quote HTML": {
+      "main": [
+        [
+          {
+            "node": "Save Quote to CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Quote to CRM": {
+      "main": [
+        [
+          {
+            "node": "Send Quote to Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Quote to Customer": {
+      "main": [
+        [
+          {
+            "node": "Quote Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

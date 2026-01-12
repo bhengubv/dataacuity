@@ -1,0 +1,626 @@
+{
+  "realm": "dataacuity",
+  "enabled": true,
+  "displayName": "DataAcuity",
+  "displayNameHtml": "<div style=\"text-align:center;padding:20px\"><span style=\"font-size:3rem\">📊</span><br><strong style=\"font-size:1.5rem\">DataAcuity</strong><br><span style=\"color:#64748b;font-size:0.9rem\">Data Intelligence Platform</span></div>",
+  "loginTheme": "keycloak",
+  "accountTheme": "keycloak.v2",
+  "adminTheme": "keycloak.v2",
+  "emailTheme": "keycloak",
+  "sslRequired": "external",
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "rememberMe": true,
+  "verifyEmail": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "waitIncrementSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+  "failureFactor": 5,
+  "defaultSignatureAlgorithm": "RS256",
+  "accessTokenLifespan": 300,
+  "accessTokenLifespanForImplicitFlow": 900,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "ssoSessionIdleTimeoutRememberMe": 604800,
+  "ssoSessionMaxLifespanRememberMe": 604800,
+  "offlineSessionIdleTimeout": 2592000,
+  "offlineSessionMaxLifespanEnabled": false,
+  "offlineSessionMaxLifespan": 5184000,
+  "accessCodeLifespan": 60,
+  "accessCodeLifespanUserAction": 300,
+  "accessCodeLifespanLogin": 1800,
+  "actionTokenGeneratedByAdminLifespan": 43200,
+  "actionTokenGeneratedByUserLifespan": 300,
+  "passwordPolicy": "length(8) and maxLength(128) and notUsername and notEmail",
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyInitialCounter": 0,
+  "otpPolicyDigits": 6,
+  "otpPolicyLookAheadWindow": 1,
+  "otpPolicyPeriod": 30,
+  "webAuthnPolicyRpEntityName": "DataAcuity",
+  "webAuthnPolicySignatureAlgorithms": ["ES256"],
+  "webAuthnPolicyRpId": "dataacuity.co.za",
+  "webAuthnPolicyAttestationConveyancePreference": "not specified",
+  "webAuthnPolicyAuthenticatorAttachment": "not specified",
+  "webAuthnPolicyRequireResidentKey": "not specified",
+  "webAuthnPolicyUserVerificationRequirement": "preferred",
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Full platform administrator with access to all features"
+      },
+      {
+        "name": "analyst",
+        "description": "Data analyst with access to analytics and reporting tools"
+      },
+      {
+        "name": "developer",
+        "description": "Developer with API and automation access"
+      },
+      {
+        "name": "user",
+        "description": "Standard user with basic platform access"
+      },
+      {
+        "name": "guest",
+        "description": "Limited guest access"
+      }
+    ]
+  },
+  "groups": [
+    {
+      "name": "Administrators",
+      "realmRoles": ["admin", "analyst", "developer", "user"]
+    },
+    {
+      "name": "Analysts",
+      "realmRoles": ["analyst", "user"]
+    },
+    {
+      "name": "Developers",
+      "realmRoles": ["developer", "user"]
+    },
+    {
+      "name": "Users",
+      "realmRoles": ["user"]
+    },
+    {
+      "name": "Guests",
+      "realmRoles": ["guest"]
+    }
+  ],
+  "defaultGroups": ["Users"],
+  "clients": [
+    {
+      "clientId": "dataacuity-portal",
+      "name": "DataAcuity Portal",
+      "description": "Main platform portal - public SPA client",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "protocol": "openid-connect",
+      "rootUrl": "https://dataacuity.co.za",
+      "baseUrl": "/",
+      "redirectUris": [
+        "https://dataacuity.co.za/*",
+        "https://portal.dataacuity.co.za/*",
+        "http://localhost:5006/*",
+        "http://localhost:3000/*"
+      ],
+      "webOrigins": [
+        "https://dataacuity.co.za",
+        "https://portal.dataacuity.co.za",
+        "http://localhost:5006",
+        "http://localhost:3000"
+      ],
+      "defaultClientScopes": [
+        "web-origins",
+        "profile",
+        "roles",
+        "email",
+        "acr"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "https://dataacuity.co.za/*##https://portal.dataacuity.co.za/*"
+      },
+      "protocolMappers": [
+        {
+          "name": "realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "groups",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-group-membership-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "groups",
+            "full.path": "false",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "dataacuity-portal",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "dataacuity-grafana",
+      "name": "Grafana Monitoring",
+      "description": "Metrics visualization dashboard",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": true,
+      "protocol": "openid-connect",
+      "rootUrl": "https://dashboard.dataacuity.co.za",
+      "redirectUris": [
+        "https://dashboard.dataacuity.co.za/login/generic_oauth"
+      ],
+      "webOrigins": ["https://dashboard.dataacuity.co.za"],
+      "defaultClientScopes": ["web-origins", "profile", "roles", "email"]
+    },
+    {
+      "clientId": "dataacuity-superset",
+      "name": "Apache Superset",
+      "description": "Business intelligence dashboard",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": true,
+      "protocol": "openid-connect",
+      "rootUrl": "https://super.dataacuity.co.za",
+      "redirectUris": [
+        "https://super.dataacuity.co.za/oauth-authorized/keycloak"
+      ],
+      "webOrigins": ["https://super.dataacuity.co.za"],
+      "defaultClientScopes": ["web-origins", "profile", "roles", "email"]
+    },
+    {
+      "clientId": "dataacuity-n8n",
+      "name": "N8N Workflows",
+      "description": "Workflow automation",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": true,
+      "protocol": "openid-connect",
+      "rootUrl": "https://n8n.dataacuity.co.za",
+      "redirectUris": [
+        "https://n8n.dataacuity.co.za/*"
+      ],
+      "webOrigins": ["https://n8n.dataacuity.co.za"],
+      "defaultClientScopes": ["web-origins", "profile", "roles", "email"]
+    },
+    {
+      "clientId": "dataacuity-crm",
+      "name": "Twenty CRM",
+      "description": "Customer relationship management",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": true,
+      "protocol": "openid-connect",
+      "rootUrl": "https://crm.dataacuity.co.za",
+      "redirectUris": [
+        "https://crm.dataacuity.co.za/*",
+        "https://twenty.dataacuity.co.za/*"
+      ],
+      "webOrigins": [
+        "https://crm.dataacuity.co.za",
+        "https://twenty.dataacuity.co.za"
+      ],
+      "defaultClientScopes": ["web-origins", "profile", "roles", "email"]
+    },
+    {
+      "clientId": "dataacuity-airbyte",
+      "name": "Airbyte ETL",
+      "description": "Data integration platform",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": true,
+      "protocol": "openid-connect",
+      "rootUrl": "https://airbyte.dataacuity.co.za",
+      "redirectUris": [
+        "https://airbyte.dataacuity.co.za/*"
+      ],
+      "webOrigins": ["https://airbyte.dataacuity.co.za"],
+      "defaultClientScopes": ["web-origins", "profile", "roles", "email"]
+    },
+    {
+      "clientId": "dataacuity-webstudio",
+      "name": "Web Studio",
+      "description": "Visual website builder",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${WEBSTUDIO_CLIENT_SECRET}",
+      "standardFlowEnabled": true,
+      "protocol": "openid-connect",
+      "rootUrl": "https://dataacuity.co.za/studio",
+      "redirectUris": [
+        "https://dataacuity.co.za/studio/*",
+        "https://dataacuity.co.za/studio/auth/oidc/callback"
+      ],
+      "webOrigins": ["https://dataacuity.co.za"],
+      "defaultClientScopes": ["web-origins", "profile", "roles", "email"]
+    },
+    {
+      "clientId": "dataacuity-api-gateway",
+      "name": "API Gateway",
+      "description": "Central API gateway - validates tokens and routes requests",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${API_GATEWAY_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "protocol": "openid-connect",
+      "rootUrl": "https://api.dataacuity.co.za",
+      "redirectUris": ["https://api.dataacuity.co.za/*"],
+      "webOrigins": ["https://api.dataacuity.co.za"],
+      "defaultClientScopes": ["web-origins", "profile", "roles", "email"],
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "dataacuity-api-gateway",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "source-app",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "source_app",
+            "claim.value": "api-gateway",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "dataacuity-maps-api",
+      "name": "Maps API",
+      "description": "Geospatial services - places, routing, geocoding",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${MAPS_API_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "protocol": "openid-connect",
+      "rootUrl": "https://maps.dataacuity.co.za",
+      "redirectUris": ["https://maps.dataacuity.co.za/*"],
+      "webOrigins": ["https://maps.dataacuity.co.za"],
+      "defaultClientScopes": ["web-origins", "profile", "roles", "email"],
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "dataacuity-maps-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "dataacuity-transit-api",
+      "name": "Transit API",
+      "description": "Public transport GTFS services",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${TRANSIT_API_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "protocol": "openid-connect",
+      "rootUrl": "https://transit.dataacuity.co.za",
+      "redirectUris": ["https://transit.dataacuity.co.za/*"],
+      "webOrigins": ["https://transit.dataacuity.co.za"],
+      "defaultClientScopes": ["web-origins", "profile", "roles", "email"],
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "dataacuity-transit-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "dataacuity-tagme-api",
+      "name": "TagMe API",
+      "description": "High-throughput location ingestion service",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${TAGME_API_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "protocol": "openid-connect",
+      "rootUrl": "https://tagme.dataacuity.co.za",
+      "redirectUris": ["https://tagme.dataacuity.co.za/*"],
+      "webOrigins": ["https://tagme.dataacuity.co.za"],
+      "defaultClientScopes": ["web-origins", "profile", "roles", "email"],
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "dataacuity-tagme-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "dataacuity-markets-api",
+      "name": "Markets API",
+      "description": "Financial markets data services",
+      "enabled": true,
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "${MARKETS_API_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "protocol": "openid-connect",
+      "rootUrl": "https://api.markets.dataacuity.co.za",
+      "redirectUris": ["https://api.markets.dataacuity.co.za/*"],
+      "webOrigins": ["https://api.markets.dataacuity.co.za"],
+      "defaultClientScopes": ["web-origins", "profile", "roles", "email"],
+      "protocolMappers": [
+        {
+          "name": "audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "dataacuity-markets-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "identityProviders": [
+    {
+      "alias": "google",
+      "displayName": "Sign in with Google",
+      "providerId": "google",
+      "enabled": true,
+      "updateProfileFirstLoginMode": "on",
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "authenticateByDefault": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "hideOnLoginPage": "false",
+        "syncMode": "IMPORT",
+        "clientId": "${GOOGLE_CLIENT_ID}",
+        "clientSecret": "${GOOGLE_CLIENT_SECRET}",
+        "defaultScope": "openid email profile",
+        "guiOrder": "1"
+      }
+    },
+    {
+      "alias": "microsoft",
+      "displayName": "Sign in with Microsoft",
+      "providerId": "microsoft",
+      "enabled": true,
+      "updateProfileFirstLoginMode": "on",
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "authenticateByDefault": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "hideOnLoginPage": "false",
+        "syncMode": "IMPORT",
+        "clientId": "${MICROSOFT_CLIENT_ID}",
+        "clientSecret": "${MICROSOFT_CLIENT_SECRET}",
+        "defaultScope": "openid email profile",
+        "guiOrder": "2"
+      }
+    },
+    {
+      "alias": "github",
+      "displayName": "Sign in with GitHub",
+      "providerId": "github",
+      "enabled": true,
+      "updateProfileFirstLoginMode": "on",
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "authenticateByDefault": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "hideOnLoginPage": "false",
+        "syncMode": "IMPORT",
+        "clientId": "${GITHUB_CLIENT_ID}",
+        "clientSecret": "${GITHUB_CLIENT_SECRET}",
+        "defaultScope": "user:email read:user",
+        "guiOrder": "3"
+      }
+    },
+    {
+      "alias": "linkedin-openid-connect",
+      "displayName": "Sign in with LinkedIn",
+      "providerId": "linkedin-openid-connect",
+      "enabled": true,
+      "updateProfileFirstLoginMode": "on",
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "authenticateByDefault": false,
+      "linkOnly": false,
+      "firstBrokerLoginFlowAlias": "first broker login",
+      "config": {
+        "hideOnLoginPage": "false",
+        "syncMode": "IMPORT",
+        "clientId": "${LINKEDIN_CLIENT_ID}",
+        "clientSecret": "${LINKEDIN_CLIENT_SECRET}",
+        "defaultScope": "openid profile email",
+        "guiOrder": "4"
+      }
+    }
+  ],
+  "identityProviderMappers": [
+    {
+      "name": "google-email",
+      "identityProviderAlias": "google",
+      "identityProviderMapper": "hardcoded-attribute-idp-mapper",
+      "config": {
+        "syncMode": "INHERIT",
+        "attribute": "emailVerified",
+        "attribute.value": "true"
+      }
+    },
+    {
+      "name": "microsoft-email",
+      "identityProviderAlias": "microsoft",
+      "identityProviderMapper": "hardcoded-attribute-idp-mapper",
+      "config": {
+        "syncMode": "INHERIT",
+        "attribute": "emailVerified",
+        "attribute.value": "true"
+      }
+    },
+    {
+      "name": "github-email",
+      "identityProviderAlias": "github",
+      "identityProviderMapper": "hardcoded-attribute-idp-mapper",
+      "config": {
+        "syncMode": "INHERIT",
+        "attribute": "emailVerified",
+        "attribute.value": "true"
+      }
+    }
+  ],
+  "browserSecurityHeaders": {
+    "contentSecurityPolicyReportOnly": "",
+    "xContentTypeOptions": "nosniff",
+    "xRobotsTag": "none",
+    "xFrameOptions": "SAMEORIGIN",
+    "contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self' https://dataacuity.co.za https://*.dataacuity.co.za; object-src 'none';",
+    "xXSSProtection": "1; mode=block",
+    "strictTransportSecurity": "max-age=31536000; includeSubDomains"
+  },
+  "smtpServer": {
+    "replyToDisplayName": "DataAcuity Support",
+    "starttls": "true",
+    "auth": "true",
+    "port": "587",
+    "host": "${SMTP_HOST}",
+    "replyTo": "${SMTP_FROM}",
+    "from": "${SMTP_FROM}",
+    "fromDisplayName": "DataAcuity",
+    "ssl": "false",
+    "user": "${SMTP_USER}",
+    "password": "${SMTP_PASSWORD}"
+  },
+  "eventsEnabled": true,
+  "eventsListeners": ["jboss-logging"],
+  "enabledEventTypes": [
+    "LOGIN",
+    "LOGIN_ERROR",
+    "LOGOUT",
+    "LOGOUT_ERROR",
+    "REGISTER",
+    "REGISTER_ERROR",
+    "CODE_TO_TOKEN",
+    "CODE_TO_TOKEN_ERROR",
+    "CLIENT_LOGIN",
+    "CLIENT_LOGIN_ERROR",
+    "FEDERATED_IDENTITY_LINK",
+    "FEDERATED_IDENTITY_LINK_ERROR",
+    "UPDATE_EMAIL",
+    "UPDATE_PROFILE",
+    "RESET_PASSWORD",
+    "RESET_PASSWORD_ERROR",
+    "SEND_RESET_PASSWORD",
+    "SEND_VERIFY_EMAIL",
+    "VERIFY_EMAIL",
+    "VERIFY_EMAIL_ERROR"
+  ],
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": true,
+  "internationalizationEnabled": true,
+  "supportedLocales": ["en", "de", "es", "fr", "pt-BR"],
+  "defaultLocale": "en",
+  "attributes": {
+    "frontendUrl": "https://auth.dataacuity.co.za",
+    "acr.loa.map": "{\"silver\":\"1\",\"gold\":\"2\"}"
+  }
+}

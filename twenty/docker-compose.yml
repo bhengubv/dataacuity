@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  twenty-db:
+    image: postgres:14
+    container_name: twenty_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: twenty
+      POSTGRES_USER: twenty
+      POSTGRES_PASSWORD: ${TWENTY_DB_PASSWORD}
+    volumes:
+      - twenty_db:/var/lib/postgresql/data
+    networks:
+      - data-warehouse_data_stack
+
+  twenty-redis:
+    image: redis:7-alpine
+    container_name: twenty_redis
+    restart: unless-stopped
+    networks:
+      - data-warehouse_data_stack
+
+  twenty:
+    image: twentycrm/twenty:latest
+    container_name: twenty_crm
+    restart: unless-stopped
+    ports:
+      - "5005:3000"
+    environment:
+      PG_DATABASE_URL: postgres://twenty:${TWENTY_DB_PASSWORD}@twenty-db:5432/twenty
+      REDIS_URL: redis://twenty-redis:6379
+      FRONT_BASE_URL: https://twenty.dataacuity.co.za
+      SERVER_URL: https://twenty.dataacuity.co.za
+      APP_SECRET: ${APP_SECRET}
+      ACCESS_TOKEN_SECRET: ${ACCESS_TOKEN_SECRET}
+      LOGIN_TOKEN_SECRET: ${LOGIN_TOKEN_SECRET}
+      REFRESH_TOKEN_SECRET: ${REFRESH_TOKEN_SECRET}
+      FILE_TOKEN_SECRET: ${FILE_TOKEN_SECRET}
+    depends_on:
+      - twenty-db
+      - twenty-redis
+    volumes:
+      - twenty_storage:/app/storage
+    networks:
+      - data-warehouse_data_stack
+
+volumes:
+  twenty_db:
+  twenty_storage:
+
+networks:
+  data-warehouse_data_stack:
+    external: true

@@ -1,0 +1,259 @@
+{
+  "name": "AutoBiz - Lead Nurture",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "nurture-schedule",
+      "name": "Check Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CRM_API_URL }}/leads?status=nurture&nextTouchDue={{ $now.toISO() }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-leads",
+      "name": "Fetch Leads Due",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-leads",
+              "leftValue": "={{ $json.leads?.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "has-leads",
+      "name": "Has Leads?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "leads",
+        "options": {}
+      },
+      "id": "split-leads",
+      "name": "Split Leads",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        910,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Determine nurture stage and select appropriate content\nconst lead = $input.first().json;\nconst stage = lead.nurtureStage || 1;\nconst source = lead.source || 'website';\nconst interest = lead.interest || 'general';\n\n// Nurture sequences\nconst sequences = {\n  1: {\n    subject: `Hi {{first_name}}, here's something helpful`,\n    body: `<p>Hi {{first_name}},</p>\n<p>Thanks for your interest in our services. I wanted to share a quick tip that might help you...</p>\n<p>[Helpful content based on their interest]</p>\n<p>Have any questions? Just reply to this email.</p>`,\n    daysUntilNext: 3\n  },\n  2: {\n    subject: `{{first_name}}, thought you might like this`,\n    body: `<p>Hi {{first_name}},</p>\n<p>Following up on my last email - here's a case study that shows how we helped a similar business...</p>\n<p>[Case study content]</p>\n<p>Would love to hear your thoughts.</p>`,\n    daysUntilNext: 4\n  },\n  3: {\n    subject: `Quick question, {{first_name}}`,\n    body: `<p>Hi {{first_name}},</p>\n<p>I've been sharing some resources with you over the past week. I'm curious:</p>\n<ul>\n<li>What's your biggest challenge right now?</li>\n<li>Is there anything specific you'd like help with?</li>\n</ul>\n<p>Just hit reply - I read every response personally.</p>`,\n    daysUntilNext: 5\n  },\n  4: {\n    subject: `Special offer for you, {{first_name}}`,\n    body: `<p>Hi {{first_name}},</p>\n<p>I wanted to reach out with a special offer just for you:</p>\n<p><strong>[Limited time offer or incentive]</strong></p>\n<p>This is only available for the next 48 hours. Let me know if you'd like to take advantage of it.</p>`,\n    daysUntilNext: 7\n  },\n  5: {\n    subject: `Last chance, {{first_name}}`,\n    body: `<p>Hi {{first_name}},</p>\n<p>I've reached out a few times now without hearing back. I understand you're busy!</p>\n<p>If our services aren't a fit right now, no problem at all. But if timing was just bad, I'd love to reconnect when it makes sense.</p>\n<p>Either way, I'll stop emailing unless you reply. Wishing you all the best!</p>`,\n    daysUntilNext: null,\n    finalStage: true\n  }\n};\n\nconst sequence = sequences[stage] || sequences[1];\nconst firstName = lead.firstName || lead.name?.split(' ')[0] || 'there';\n\n// Personalize content\nlet subject = sequence.subject.replace(/{{first_name}}/g, firstName);\nlet body = sequence.body.replace(/{{first_name}}/g, firstName);\n\nconst nextTouchDate = sequence.daysUntilNext \n  ? new Date(Date.now() + sequence.daysUntilNext * 24 * 60 * 60 * 1000).toISOString()\n  : null;\n\nreturn {\n  ...lead,\n  nurtureStage: stage,\n  emailSubject: subject,\n  emailBody: body,\n  nextStage: sequence.finalStage ? null : stage + 1,\n  nextTouchDate: nextTouchDate,\n  isFinalStage: sequence.finalStage || false\n};"
+      },
+      "id": "select-content",
+      "name": "Select Nurture Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1130,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "={{ $json.emailSubject }}",
+        "emailType": "html",
+        "html": "={{ $json.emailBody }}\n<br>\n<p>Best,<br>{{ $env.OWNER_NAME }}<br>{{ $env.BUSINESS_NAME }}</p>\n<p style=\"font-size: 12px; color: #888; margin-top: 30px;\"><a href=\"{{ $env.APP_URL }}/unsubscribe?email={{ encodeURIComponent($json.email) }}\">Unsubscribe</a></p>",
+        "options": {}
+      },
+      "id": "send-nurture",
+      "name": "Send Nurture Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1350,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.CRM_API_URL }}/leads/{{ $json.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"nurtureStage\": {{ $json.nextStage || 'null' }},\n  \"nextTouchDate\": {{ $json.nextTouchDate ? '\"' + $json.nextTouchDate + '\"' : 'null' }},\n  \"lastNurtureAt\": \"{{ $now.toISO() }}\",\n  \"status\": \"{{ $json.isFinalStage ? 'cold' : 'nurture' }}\"\n}",
+        "options": {}
+      },
+      "id": "update-lead",
+      "name": "Update Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1570,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/leads/{{ $json.id }}/activities",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"nurture_email\",\n  \"stage\": {{ $json.nurtureStage }},\n  \"subject\": \"{{ $json.emailSubject }}\",\n  \"sentAt\": \"{{ $now.toISO() }}\"\n}",
+        "options": {}
+      },
+      "id": "log-activity",
+      "name": "Log Activity",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1790,
+        200
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "no-leads",
+      "name": "No Leads Due",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        910,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Check Every 6 Hours": {
+      "main": [
+        [
+          {
+            "node": "Fetch Leads Due",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Leads Due": {
+      "main": [
+        [
+          {
+            "node": "Has Leads?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Leads?": {
+      "main": [
+        [
+          {
+            "node": "Split Leads",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Leads Due",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Leads": {
+      "main": [
+        [
+          {
+            "node": "Select Nurture Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Select Nurture Content": {
+      "main": [
+        [
+          {
+            "node": "Send Nurture Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Nurture Email": {
+      "main": [
+        [
+          {
+            "node": "Update Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Lead": {
+      "main": [
+        [
+          {
+            "node": "Log Activity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,34 @@
+# Data Acuity External API Gateway
+# Handles client integrations with OAuth2, API keys, rate limiting
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy shared modules
+COPY shared/ /app/shared/
+
+# Copy external gateway
+COPY external/ /app/external/
+
+# Set Python path
+ENV PYTHONPATH=/app
+
+# Expose port
+EXPOSE 8081
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8081/health || exit 1
+
+# Run the external gateway
+CMD ["uvicorn", "external.main:app", "--host", "0.0.0.0", "--port", "8081"]

@@ -1,0 +1,647 @@
+================================================================================
+CHAPTER 19: CIRCLE FIREWALL AND TRAFFIC LOBBY
+================================================================================
+"Every packet must justify its existence."
+
+The Circle Firewall provides per-app network control with an innovative
+"Traffic Lobby" that quarantines suspicious connections for inspection.
+
+================================================================================
+19.1 ARCHITECTURE OVERVIEW
+================================================================================
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        APPLICATION                              │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   CIRCLE FIREWALL SERVICE                       │
+│                                                                 │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
+│  │   POLICY    │  │   TRAFFIC   │  │   THREAT    │             │
+│  │   ENGINE    │  │   LOBBY     │  │   SCANNER   │             │
+│  └─────────────┘  └─────────────┘  └─────────────┘             │
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                    VPN SERVICE                          │   │
+│  │                 (local interception)                    │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                        NETWORK                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+================================================================================
+19.2 POLICY ENGINE
+================================================================================
+
+PER-APP RULES:
+```java
+class AppNetworkPolicy {
+    String packageName;
+    boolean networkAllowed;           // Master switch
+    boolean wifiAllowed;
+    boolean mobileAllowed;
+    boolean vpnAllowed;
+    boolean meshAllowed;
+    List<String> allowedDomains;      // Whitelist (empty = all)
+    List<String> blockedDomains;      // Blacklist
+    List<Integer> allowedPorts;       // Port restrictions
+    TrafficLobbyMode lobbyMode;       // PARANOID, BALANCED, RELAXED
+    long dataQuotaBytes;              // Optional data limit
+    long dataUsedBytes;
+}
+
+enum TrafficLobbyMode {
+    PARANOID,    // All first-time connections go to lobby
+    BALANCED,    // Suspicious connections go to lobby (default)
+    RELAXED      // Only known-bad blocked, no lobby
+}
+```
+
+DEFAULT POLICIES:
+```
+NEW APPS:
+- networkAllowed = false (must request permission)
+- lobbyMode = BALANCED
+- dataQuota = unlimited
+
+SYSTEM APPS:
+- networkAllowed = true (but still logged)
+- lobbyMode = RELAXED
+- Specific whitelist per system app
+
+MESH APPS:
+- meshAllowed = true (if Circle Messages, etc.)
+- networkAllowed = can be false (mesh-only mode)
+```
+
+================================================================================
+19.3 TRAFFIC LOBBY SYSTEM
+================================================================================
+
+CONCEPT:
+```
+Instead of binary ALLOW/BLOCK:
+  ALLOW → Let through immediately
+  LOBBY → Hold for inspection, then decide
+  BLOCK → Drop immediately
+
+The "lobby" is a holding area where suspicious traffic waits
+while we scan it, check threat intel, and optionally ask the user.
+```
+
+LOBBY TRIGGERS:
+```java
+class LobbyTrigger {
+    // Domain-based
+    boolean unknownDomain;           // First time connecting
+    boolean recentDomain;            // Domain registered < 30 days
+    boolean suspiciousTLD;           // .xyz, .top, .tk, etc.
+
+    // IP-based
+    boolean directIPConnection;      // No DNS, direct IP
+    boolean knownBadIPRange;         // Threat intel match
+    boolean unusualGeoIP;            // Unexpected country
+
+    // Behavior-based
+    boolean beaconPattern;           // Regular interval connections
+    boolean largeUpload;             // Potential exfiltration
+    boolean oddHourActivity;         // 3am background connections
+    boolean newAppProbation;         // First 24h after install
+
+    // Protocol-based
+    boolean unusualPort;             // Not 80/443
+    boolean nonStandardProtocol;     // Not HTTP/HTTPS
+    boolean excessiveDNS;            // DGA pattern
+}
+```
+
+LOBBY WORKFLOW:
+```
+1. Connection initiated by app
+2. Firewall evaluates against policy
+3. If ALLOW: pass through
+4. If BLOCK: drop, notify app
+5. If LOBBY:
+   a. Connection held (not dropped, not passed)
+   b. Metadata extracted (domain, IP, port, cert)
+   c. Threat scanner runs:
+      - YARA rules (local)
+      - Threat intel lookup (local DB)
+      - Optional cloud scan (if user enabled)
+   d. Decision made:
+      - CLEAN → Release, allow through
+      - SUSPICIOUS → Hold, notify user
+      - MALICIOUS → Block, alert user, log
+6. User can override: "Allow anyway" or "Block always"
+```
+
+LOBBY DATA STRUCTURE:
+```java
+class LobbyEntry {
+    String entryId;
+    long timestamp;
+    String appPackage;
+    String destDomain;
+    String destIP;
+    int destPort;
+    String protocol;
+
+    LobbyReason reason;              // Why it was lobbied
+    LobbyStatus status;              // SCANNING, HELD, RELEASED, BLOCKED
+    ScanResult scanResult;
+
+    // Connection state (held while in lobby)
+    Socket heldConnection;           // Or null if we dropped it
+    long timeoutMs;                  // Max hold time (30s default)
+}
+
+enum LobbyReason {
+    UNKNOWN_DOMAIN,
+    DIRECT_IP,
+    BEACON_PATTERN,
+    LARGE_UPLOAD,
+    ODD_HOUR,
+    NEW_APP,
+    THREAT_INTEL_MATCH,
+    USER_PARANOID_MODE
+}
+
+enum LobbyStatus {
+    SCANNING,        // Being analyzed
+    HELD_FOR_USER,   // Waiting for user decision
+    RELEASED,        // Allowed through
+    BLOCKED,         // Dropped
+    TIMED_OUT        // Held too long, dropped
+}
+```
+
+================================================================================
+19.4 THREAT SCANNER
+================================================================================
+
+LOCAL SCANNING:
+```
+YARA RULES:
+- Located: /system/circle/threat-rules/
+- Updated via OTA
+- Cover: known C2 patterns, malware signatures, trackers
+
+Example rule:
+  rule pegasus_beacon {
+      meta:
+          description = "Pegasus-like beacon pattern"
+          severity = "critical"
+      strings:
+          $interval = { 00 00 00 3C }  // 60-second intervals
+          $ua = "Mozilla/5.0" nocase
+      condition:
+          $interval and not $ua  // Beacon without real browser UA
+  }
+
+THREAT INTEL DB:
+- SQLite database
+- Updated daily (background sync)
+- Sources:
+  - Abuse.ch (malware URLs, IPs)
+  - PhishTank (phishing domains)
+  - Circle community (crowdsourced)
+  - Disconnect.me (tracker list)
+  - Exodus Privacy (tracker signatures)
+```
+
+DATABASE SCHEMA:
+```sql
+-- threat_intel.db
+
+CREATE TABLE malicious_domains (
+    domain TEXT PRIMARY KEY,
+    threat_type TEXT,      -- malware, phishing, c2, tracker
+    severity TEXT,         -- low, medium, high, critical
+    source TEXT,           -- abusech, phishtank, community
+    first_seen INTEGER,
+    last_updated INTEGER,
+    confidence INTEGER     -- 0-100
+);
+
+CREATE TABLE malicious_ips (
+    ip TEXT PRIMARY KEY,
+    cidr INTEGER,          -- Subnet mask if range
+    threat_type TEXT,
+    severity TEXT,
+    source TEXT,
+    first_seen INTEGER,
+    last_updated INTEGER,
+    asn INTEGER,
+    country TEXT
+);
+
+CREATE TABLE malicious_hashes (
+    hash TEXT PRIMARY KEY,
+    hash_type TEXT,        -- md5, sha1, sha256
+    filename TEXT,
+    threat_type TEXT,
+    malware_family TEXT,
+    source TEXT,
+    first_seen INTEGER
+);
+
+CREATE INDEX idx_domains_type ON malicious_domains(threat_type);
+CREATE INDEX idx_ips_type ON malicious_ips(threat_type);
+```
+
+SCAN RESULT:
+```java
+class ScanResult {
+    boolean isMalicious;
+    String threatType;       // null if clean
+    String severity;         // low, medium, high, critical
+    String source;           // Which scanner/rule matched
+    String details;          // Human-readable explanation
+    List<String> matchedRules;
+    float confidenceScore;   // 0.0-1.0
+}
+```
+
+================================================================================
+19.5 USER NOTIFICATION
+================================================================================
+
+LOBBY ALERT (non-blocking):
+```
+┌─────────────────────────────────────────┐
+│ ⚠️ CONNECTION HELD FOR INSPECTION       │
+├─────────────────────────────────────────┤
+│                                         │
+│ App: ShadyApp                           │
+│ Destination: unknown-server.ru          │
+│ Reason: First connection to this domain │
+│ Status: Scanning...                     │
+│                                         │
+│         [Allow Once] [Block]            │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+THREAT ALERT (blocking):
+```
+┌─────────────────────────────────────────┐
+│ 🚨 MALICIOUS CONNECTION BLOCKED         │
+├─────────────────────────────────────────┤
+│                                         │
+│ App: InnocentLookingApp                 │
+│ Tried to connect to: evil-c2.com        │
+│                                         │
+│ THREAT DETECTED:                        │
+│ • Known command & control server        │
+│ • Associated with Pegasus spyware       │
+│ • Severity: CRITICAL                    │
+│                                         │
+│ This connection was automatically       │
+│ blocked to protect your device.         │
+│                                         │
+│    [View Details] [Report App]          │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+QUIET MODE:
+- User can enable "Don't notify for balanced mode"
+- Only critical alerts shown
+- All decisions logged in Privacy Dashboard
+
+================================================================================
+19.6 VPN-BASED INTERCEPTION
+================================================================================
+
+WHY VPN:
+```
+Android's VPN API allows:
+- Intercept ALL traffic from device
+- Inspect packets before they leave
+- Modify or block traffic
+- No root required
+- Works on all apps
+
+We use LOCAL VPN (no external server):
+- Traffic goes: App → VPN Service → Firewall → Network
+- All processing on-device
+- No data leaves except to intended destination
+```
+
+IMPLEMENTATION:
+```java
+class CircleVpnService extends VpnService {
+    private ParcelFileDescriptor vpnInterface;
+    private ExecutorService packetProcessor;
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Builder builder = new Builder();
+        builder.setSession("Circle Firewall")
+               .addAddress("10.0.0.1", 24)          // VPN interface IP
+               .addRoute("0.0.0.0", 0)              // Route all traffic
+               .addDnsServer("10.0.0.2")            // Local DNS interceptor
+               .setBlocking(true);
+
+        // Exclude Circle OS system services from VPN
+        builder.addDisallowedApplication("com.circleos.system");
+
+        vpnInterface = builder.establish();
+        startPacketProcessing();
+        return START_STICKY;
+    }
+
+    private void startPacketProcessing() {
+        FileInputStream in = new FileInputStream(
+            vpnInterface.getFileDescriptor());
+        FileOutputStream out = new FileOutputStream(
+            vpnInterface.getFileDescriptor());
+
+        packetProcessor.submit(() -> {
+            byte[] packet = new byte[32767];
+            while (running) {
+                int length = in.read(packet);
+                if (length > 0) {
+                    processPacket(packet, length, out);
+                }
+            }
+        });
+    }
+
+    private void processPacket(byte[] packet, int length,
+                               FileOutputStream out) {
+        IPPacket parsed = parsePacket(packet, length);
+        FirewallDecision decision = firewall.evaluate(parsed);
+
+        switch (decision.action) {
+            case ALLOW:
+                forwardToNetwork(parsed);
+                break;
+            case BLOCK:
+                dropPacket(parsed);
+                logBlocked(parsed, decision.reason);
+                break;
+            case LOBBY:
+                sendToLobby(parsed, decision.triggers);
+                break;
+        }
+    }
+}
+```
+
+DNS INTERCEPTION:
+```java
+class CircleDnsInterceptor {
+    // Intercept DNS queries to:
+    // 1. Log which domains apps are requesting
+    // 2. Block known-bad domains before connection
+    // 3. Apply DNS-over-HTTPS for privacy
+
+    DnsResponse interceptQuery(DnsQuery query) {
+        String domain = query.getDomain();
+
+        // Check blocklist
+        if (threatIntel.isMalicious(domain)) {
+            logBlocked(query, "malicious_domain");
+            return DnsResponse.nxdomain();  // Domain doesn't exist
+        }
+
+        // Check per-app domain whitelist
+        if (!policy.isDomainAllowed(query.getAppUid(), domain)) {
+            logBlocked(query, "not_whitelisted");
+            return DnsResponse.nxdomain();
+        }
+
+        // Forward to upstream (with DoH if enabled)
+        return forwardQuery(query);
+    }
+}
+```
+
+================================================================================
+19.7 CONNECTION LOGGING
+================================================================================
+
+Every connection logged (locally, encrypted):
+
+```sql
+-- connection_log.db (encrypted with device key)
+
+CREATE TABLE connections (
+    id INTEGER PRIMARY KEY,
+    timestamp INTEGER NOT NULL,
+    app_uid INTEGER NOT NULL,
+    app_package TEXT NOT NULL,
+    protocol TEXT,                -- tcp, udp, icmp
+    dest_ip TEXT,
+    dest_port INTEGER,
+    dest_domain TEXT,             -- From DNS or SNI
+    bytes_sent INTEGER,
+    bytes_received INTEGER,
+    duration_ms INTEGER,
+    decision TEXT,                -- allow, block, lobby
+    lobby_result TEXT,            -- If lobbied: released, blocked
+    threat_match TEXT,            -- If blocked: which rule
+    tls_version TEXT,
+    tls_cipher TEXT,
+    cert_issuer TEXT,
+    cert_subject TEXT,
+    ja3_fingerprint TEXT
+);
+
+CREATE INDEX idx_conn_timestamp ON connections(timestamp);
+CREATE INDEX idx_conn_app ON connections(app_package);
+CREATE INDEX idx_conn_domain ON connections(dest_domain);
+CREATE INDEX idx_conn_decision ON connections(decision);
+```
+
+RETENTION:
+- Default: 30 days
+- User configurable: 7 days to 1 year
+- Auto-purge old entries
+- Export available (JSON/CSV)
+
+================================================================================
+19.8 PRIVACY DASHBOARD INTEGRATION
+================================================================================
+
+FIREWALL TAB:
+```
+┌─────────────────────────────────────────┐
+│ 🛡️ CIRCLE FIREWALL                     │
+├─────────────────────────────────────────┤
+│                                         │
+│ TODAY'S ACTIVITY                        │
+│ ─────────────────                       │
+│ Connections allowed:     1,247          │
+│ Connections blocked:     34             │
+│ Connections lobbied:     12             │
+│ Threats detected:        2              │
+│                                         │
+│ TOP BLOCKED                             │
+│ ─────────────                           │
+│ 🚫 facebook.com (tracking)    → 847     │
+│ 🚫 google-analytics.com       → 234     │
+│ 🚫 doubleclick.net            → 156     │
+│                                         │
+│ RECENT ALERTS                           │
+│ ─────────────                           │
+│ ⚠️ ShadyApp tried unknown domain        │
+│ 🚨 MalwareApp → C2 blocked              │
+│                                         │
+│ [View Full Log] [Configure Rules]       │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+PER-APP VIEW:
+```
+┌─────────────────────────────────────────┐
+│ 📱 WhatsApp - Network Activity          │
+├─────────────────────────────────────────┤
+│                                         │
+│ DOMAINS CONTACTED (last 24h)            │
+│ ─────────────────────────────           │
+│ ✓ web.whatsapp.com          → 1,204     │
+│ ✓ media.whatsapp.com        → 347       │
+│ ✓ mmg.whatsapp.net          → 89        │
+│ ⚠️ graph.facebook.com       → 23        │
+│                                         │
+│ DATA USAGE                              │
+│ ─────────                               │
+│ Sent: 45 MB    Received: 234 MB         │
+│                                         │
+│ POLICY                                  │
+│ ──────                                  │
+│ Network: ✓ Allowed                      │
+│ Lobby mode: Balanced                    │
+│ Blocked domains: graph.facebook.com     │
+│                                         │
+│ [Edit Rules] [Block App] [View Log]     │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+================================================================================
+19.9 FILE STRUCTURE
+================================================================================
+
+```
+frameworks/base/services/core/java/com/circleos/server/firewall/
+├── CircleFirewallService.java      # Main service
+├── PolicyEngine.java               # Per-app policies
+├── TrafficLobby.java               # Lobby implementation
+├── ThreatScanner.java              # YARA + threat intel
+├── ConnectionLogger.java           # Logging
+├── VpnInterceptor.java             # VPN-based interception
+├── DnsInterceptor.java             # DNS filtering
+├── PacketParser.java               # IP/TCP/UDP parsing
+└── db/
+    ├── PolicyDatabase.java         # Policy storage
+    ├── ThreatIntelDatabase.java    # Threat intel
+    └── ConnectionLogDatabase.java  # Connection logs
+
+system/circle/
+├── threat-rules/
+│   ├── malware.yar                 # Malware YARA rules
+│   ├── trackers.yar                # Tracker patterns
+│   ├── c2.yar                      # C2 beacon patterns
+│   └── README.md
+└── threat-intel/
+    └── threat_intel.db             # Pre-populated threat DB
+
+packages/apps/CircleSettings/
+└── src/com/circleos/settings/
+    └── firewall/
+        ├── FirewallSettingsFragment.kt
+        ├── AppNetworkPolicyFragment.kt
+        └── ConnectionLogFragment.kt
+```
+
+================================================================================
+19.10 API
+================================================================================
+
+BINDER INTERFACE:
+```java
+// ICircleFirewallService.aidl
+interface ICircleFirewallService {
+    // Policy management
+    AppNetworkPolicy getPolicy(String packageName);
+    void setPolicy(String packageName, in AppNetworkPolicy policy);
+    void resetPolicy(String packageName);
+
+    // Domain rules
+    void blockDomain(String domain, boolean permanent);
+    void allowDomain(String domain);
+    List<String> getBlockedDomains();
+
+    // Lobby
+    List<LobbyEntry> getPendingLobbyEntries();
+    void resolveLobbyEntry(String entryId, boolean allow);
+
+    // Logs
+    List<ConnectionLog> getConnectionLog(long since, int limit);
+    List<ConnectionLog> getConnectionLogForApp(String pkg, long since);
+
+    // Stats
+    FirewallStats getStats(long since);
+
+    // Control
+    void setEnabled(boolean enabled);
+    boolean isEnabled();
+}
+```
+
+CONTENT PROVIDER:
+```
+content://circle.firewall/policies         → Per-app policies
+content://circle.firewall/connections      → Connection log
+content://circle.firewall/blocked_domains  → Domain blocklist
+content://circle.firewall/lobby            → Current lobby entries
+content://circle.firewall/stats            → Aggregate stats
+```
+
+================================================================================
+19.11 TESTING
+================================================================================
+
+UNIT TESTS:
+```
+firewall/test/
+├── PolicyEngineTest.kt          # Policy evaluation
+├── TrafficLobbyTest.kt          # Lobby logic
+├── ThreatScannerTest.kt         # YARA + threat intel
+├── DnsInterceptorTest.kt        # DNS filtering
+└── PacketParserTest.kt          # Packet parsing
+```
+
+INTEGRATION TESTS:
+```
+- App with no network permission → all connections blocked
+- App requests tracker domain → blocked by default
+- First-time domain in balanced mode → goes to lobby
+- Known C2 domain → blocked immediately
+- User whitelists domain → allowed through
+```
+
+MANUAL TESTS:
+```
+- Install test app that contacts known C2
+- Verify lobby notification appears
+- Verify blocking works
+- Verify logs show correct data
+- Verify Privacy Dashboard reflects activity
+```
+
+================================================================================
+END OF CHAPTER 19
+================================================================================

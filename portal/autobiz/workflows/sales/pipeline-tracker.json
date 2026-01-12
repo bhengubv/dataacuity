@@ -1,0 +1,298 @@
+{
+  "name": "AutoBiz - Pipeline Tracker",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Hourly Check",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CRM_API_URL }}/deals?status=active",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-deals",
+      "name": "Fetch Active Deals",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Analyze each deal and flag those needing attention\nconst deals = $input.first().json.deals || [];\nconst now = new Date();\nconst alerts = [];\n\nfor (const deal of deals) {\n  const lastActivity = new Date(deal.lastActivityDate);\n  const daysSinceActivity = Math.floor((now - lastActivity) / (1000 * 60 * 60 * 24));\n  const dealAge = Math.floor((now - new Date(deal.createdAt)) / (1000 * 60 * 60 * 24));\n  \n  const alert = {\n    dealId: deal.id,\n    dealName: deal.name,\n    customerName: deal.customerName,\n    value: deal.value,\n    stage: deal.stage,\n    owner: deal.owner,\n    daysSinceActivity: daysSinceActivity,\n    dealAge: dealAge,\n    flags: []\n  };\n  \n  // Stale deal - no activity in 3+ days\n  if (daysSinceActivity >= 3) {\n    alert.flags.push({\n      type: 'stale',\n      severity: daysSinceActivity >= 7 ? 'high' : 'medium',\n      message: `No activity for ${daysSinceActivity} days`\n    });\n  }\n  \n  // Stuck in stage too long\n  const stageDays = {\n    'qualification': 7,\n    'proposal': 14,\n    'negotiation': 21\n  };\n  \n  if (stageDays[deal.stage] && dealAge > stageDays[deal.stage]) {\n    alert.flags.push({\n      type: 'stuck',\n      severity: 'medium',\n      message: `In ${deal.stage} stage for ${dealAge} days`\n    });\n  }\n  \n  // High value deals need extra attention\n  if (deal.value >= 50000 && daysSinceActivity >= 2) {\n    alert.flags.push({\n      type: 'high-value',\n      severity: 'high',\n      message: `High value deal (R${deal.value.toLocaleString()}) needs attention`\n    });\n  }\n  \n  if (alert.flags.length > 0) {\n    alerts.push(alert);\n  }\n}\n\nreturn { alerts, totalDeals: deals.length, alertCount: alerts.length };"
+      },
+      "id": "analyze-pipeline",
+      "name": "Analyze Pipeline",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-alerts",
+              "leftValue": "={{ $json.alertCount }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-alerts",
+      "name": "Has Alerts?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        910,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "alerts",
+        "options": {}
+      },
+      "id": "split-alerts",
+      "name": "Split Alerts",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1130,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "high-severity",
+              "leftValue": "={{ $json.flags[0].severity }}",
+              "rightValue": "high",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "check-severity",
+      "name": "High Priority?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1350,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $json.owner?.email || $env.OWNER_EMAIL }}",
+        "subject": "=URGENT: Deal \"{{ $json.dealName }}\" needs immediate attention",
+        "emailType": "html",
+        "html": "=<h2 style=\"color: #FF3B30;\">Urgent Pipeline Alert</h2>\n<p>The following deal requires your immediate attention:</p>\n<table style=\"width: 100%; border-collapse: collapse;\">\n<tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>Deal:</strong></td><td style=\"padding: 8px; border-bottom: 1px solid #eee;\">{{ $json.dealName }}</td></tr>\n<tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>Customer:</strong></td><td style=\"padding: 8px; border-bottom: 1px solid #eee;\">{{ $json.customerName }}</td></tr>\n<tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>Value:</strong></td><td style=\"padding: 8px; border-bottom: 1px solid #eee;\">R{{ $json.value?.toLocaleString() }}</td></tr>\n<tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>Stage:</strong></td><td style=\"padding: 8px; border-bottom: 1px solid #eee;\">{{ $json.stage }}</td></tr>\n<tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>Days Since Activity:</strong></td><td style=\"padding: 8px; border-bottom: 1px solid #eee;\">{{ $json.daysSinceActivity }}</td></tr>\n</table>\n<h3>Issues:</h3>\n<ul>\n{{ $json.flags.map(f => '<li>' + f.message + '</li>').join('') }}\n</ul>\n<p><a href=\"{{ $env.CRM_URL }}/deals/{{ $json.dealId }}\" style=\"background: #007AFF; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;\">View Deal</a></p>",
+        "options": {}
+      },
+      "id": "urgent-notification",
+      "name": "Send Urgent Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1570,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/deals/{{ $json.dealId }}/tasks",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"title\": \"Follow up on {{ $json.dealName }}\",\n  \"description\": \"{{ $json.flags.map(f => f.message).join('. ') }}\",\n  \"dueDate\": \"{{ $now.plus({ hours: 4 }).toISO() }}\",\n  \"priority\": \"high\",\n  \"assignedTo\": \"{{ $json.owner?.id }}\"\n}",
+        "options": {}
+      },
+      "id": "create-urgent-task",
+      "name": "Create Urgent Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1790,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/deals/{{ $json.dealId }}/tasks",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"title\": \"Review {{ $json.dealName }}\",\n  \"description\": \"{{ $json.flags.map(f => f.message).join('. ') }}\",\n  \"dueDate\": \"{{ $now.plus({ days: 1 }).toISO() }}\",\n  \"priority\": \"medium\",\n  \"assignedTo\": \"{{ $json.owner?.id }}\"\n}",
+        "options": {}
+      },
+      "id": "create-task",
+      "name": "Create Follow-up Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1570,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "no-action",
+      "name": "No Action Needed",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1130,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Hourly Check": {
+      "main": [
+        [
+          {
+            "node": "Fetch Active Deals",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Active Deals": {
+      "main": [
+        [
+          {
+            "node": "Analyze Pipeline",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Pipeline": {
+      "main": [
+        [
+          {
+            "node": "Has Alerts?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Alerts?": {
+      "main": [
+        [
+          {
+            "node": "Split Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Action Needed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Alerts": {
+      "main": [
+        [
+          {
+            "node": "High Priority?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "High Priority?": {
+      "main": [
+        [
+          {
+            "node": "Send Urgent Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create Follow-up Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Urgent Alert": {
+      "main": [
+        [
+          {
+            "node": "Create Urgent Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

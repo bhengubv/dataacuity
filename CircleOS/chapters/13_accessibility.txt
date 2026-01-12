@@ -1,0 +1,343 @@
+================================================================================
+CIRCLE OS SPECIFICATION
+Chapter 13: Accessibility
+================================================================================
+
+Document: 13_accessibility.txt
+Version: 1.0
+Date: December 2025
+Status: Foundation
+
+================================================================================
+1. COMMITMENT
+================================================================================
+
+Circle OS is for everyone.
+
+Accessibility is not an afterthought or a checklist item.
+It is a core requirement. If a feature is not accessible, it is not complete.
+
+"Ages 8 to 80, regardless of ability"
+
+================================================================================
+2. VISUAL ACCESSIBILITY
+================================================================================
+
+2.1 SCREEN READER
+-----------------
+SERVICE: Circle TalkBack (based on Android TalkBack)
+
+FEATURES:
+- Full screen reading
+- Gesture navigation
+- Braille display support
+- Speech output (multiple engines)
+- Sound and vibration feedback
+
+COVERAGE:
+- All system UI
+- All Circle apps
+- Third-party apps via standard APIs
+
+2.2 MAGNIFICATION
+-----------------
+FEATURES:
+- Triple-tap to zoom
+- Pinch to zoom in magnified view
+- Pan while magnified
+- Persistent magnification option
+- Magnification shortcut (volume keys)
+
+RANGE:
+- 2x to 8x magnification
+
+2.3 TEXT SCALING
+----------------
+LEVELS:
+- Small (0.85x)
+- Default (1.0x)
+- Large (1.15x)
+- Larger (1.3x)
+- Largest (1.5x)
+- Extra Large (2.0x) [Elder Mode default]
+
+IMPLEMENTATION:
+- System-wide sp scaling
+- Apps must use sp for text
+- Verification in CI/CD
+
+2.4 DISPLAY ADJUSTMENTS
+-----------------------
+COLOR CORRECTION:
+- Deuteranomaly (red-green)
+- Protanomaly (red-green)
+- Tritanomaly (blue-yellow)
+- Full grayscale
+
+COLOR INVERSION:
+- Dark text on light background
+- Applies system-wide
+
+HIGH CONTRAST:
+- Increases contrast ratios
+- Clearer boundaries
+- Bold text option
+
+2.5 DARK THEME
+--------------
+SUPPORT:
+- System-wide dark theme
+- Scheduled dark theme (sunset/sunrise)
+- App override capability
+- True black for OLED saving
+
+================================================================================
+3. HEARING ACCESSIBILITY
+================================================================================
+
+3.1 VISUAL NOTIFICATIONS
+------------------------
+FLASH ALERTS:
+- Flash screen for notifications
+- Flash camera LED (optional)
+- Configurable per notification type
+
+3.2 CAPTIONS
+------------
+LIVE CAPTION:
+- Real-time captions for media
+- On-device processing (privacy)
+- Works offline
+- Multiple languages
+
+CAPTION PREFERENCES:
+- Text size
+- Caption style
+- Background opacity
+- Position
+
+3.3 HEARING AIDS
+----------------
+BLUETOOTH HEARING AIDS:
+- Direct audio streaming
+- Hearing aid preset support
+- Low-latency audio
+
+TELECOIL:
+- Hearing aid compatibility (HAC)
+- Where hardware supports
+
+3.4 MONO AUDIO
+--------------
+FEATURE:
+- Mix stereo to mono
+- For single-sided hearing loss
+- System-wide effect
+
+================================================================================
+4. MOTOR ACCESSIBILITY
+================================================================================
+
+4.1 TOUCH ACCOMMODATION
+-----------------------
+HOLD DURATION:
+- Adjust how long touch must be held
+- Prevents accidental taps
+
+TOUCH TOLERANCE:
+- Ignore repeated touches
+- Configurable timeout
+
+GESTURE ASSISTANCE:
+- Alternative gestures for complex actions
+- Voice control for gestures
+
+4.2 SWITCH ACCESS
+-----------------
+EXTERNAL SWITCHES:
+- Single switch scanning
+- Two-switch navigation
+- Customizable switch actions
+- USB and Bluetooth switches
+
+SCANNING:
+- Row/column scanning
+- Linear scanning
+- Group scanning
+- Adjustable speed
+
+4.3 VOICE ACCESS
+----------------
+CONTROL:
+- Navigate by voice
+- "Open Settings"
+- "Tap Send"
+- Grid overlay for precise taps
+- Numbers on screen elements
+
+DICTATION:
+- Voice typing
+- Works offline
+- Multiple languages
+
+4.4 ONE-HANDED MODE
+-------------------
+FEATURE:
+- Shrink screen to reach top
+- Swipe gesture to activate
+- Left or right position
+
+================================================================================
+5. COGNITIVE ACCESSIBILITY
+================================================================================
+
+5.1 SIMPLIFIED UI
+-----------------
+See Chapter 12: Elder Mode
+
+ADDITIONAL:
+- Reduced animations option
+- Reduced transparency
+- Focus mode (fewer distractions)
+
+5.2 READING ASSISTANCE
+----------------------
+TEXT TO SPEECH:
+- Read selected text
+- Read screen content
+- Adjustable speed and pitch
+
+5.3 TIME EXTENSIONS
+-------------------
+FEATURES:
+- Extend timeout dialogs
+- Persistent notifications
+- No auto-dismissing content
+
+================================================================================
+6. ACCESSIBILITY SHORTCUTS
+================================================================================
+
+6.1 QUICK ACCESS
+----------------
+VOLUME KEYS:
+- Hold both volume keys = accessibility menu
+- Configurable action
+
+POWER BUTTON:
+- Triple press = configurable accessibility action
+
+FLOATING BUTTON:
+- Optional accessibility shortcut button
+- Customizable actions
+
+6.2 ACCESSIBILITY MENU
+----------------------
+QUICK ACTIONS:
+- Screenshot
+- Lock screen
+- Volume control
+- Recent apps
+- Brightness
+- TalkBack toggle
+
+================================================================================
+7. SETUP AND CONFIGURATION
+================================================================================
+
+7.1 FIRST BOOT
+--------------
+EARLY ACCESSIBILITY:
+- Accessibility prompt before language selection
+- Voice instructions available
+- Large touch targets from start
+
+7.2 GUIDED SETUP
+----------------
+ACCESSIBILITY WIZARD:
+- Step-by-step configuration
+- Preview each setting
+- Easy enable/disable
+
+================================================================================
+8. DEVELOPER REQUIREMENTS
+================================================================================
+
+8.1 MANDATORY FOR CIRCLE APPS
+-----------------------------
+- ContentDescription on all images
+- Minimum touch target 48dp (72dp for Elder)
+- Logical focus order
+- Screen reader testing
+- Color contrast ratios (WCAG AA minimum)
+
+8.2 TESTING REQUIREMENTS
+------------------------
+CI/CD CHECKS:
+- Accessibility scanner
+- ContentDescription coverage
+- Touch target size verification
+- Contrast ratio verification
+
+MANUAL TESTING:
+- TalkBack navigation
+- Switch access
+- Elder Mode verification
+
+8.3 THIRD-PARTY APPS
+--------------------
+CIRCLE STORE:
+- Accessibility score visible
+- Basic accessibility required for featuring
+- Detailed accessibility info in listing
+
+================================================================================
+9. STANDARDS COMPLIANCE
+================================================================================
+
+TARGET: WCAG 2.1 AA
+
+COVERAGE:
+- All system UI
+- All Circle apps
+- Documentation and support materials
+
+VERIFICATION:
+- Automated testing
+- Manual audit
+- User testing with disabled users
+
+================================================================================
+10. SUMMARY
+================================================================================
+
+VISUAL:
+- Screen reader (TalkBack)
+- Magnification
+- Text scaling (up to 2x)
+- Color correction
+- High contrast
+
+HEARING:
+- Live captions
+- Flash alerts
+- Hearing aid support
+- Mono audio
+
+MOTOR:
+- Switch access
+- Voice control
+- Touch accommodation
+- One-handed mode
+
+COGNITIVE:
+- Simplified UI (Elder Mode)
+- Reading assistance
+- Extended timeouts
+
+PRINCIPLE:
+If it's not accessible, it's not done.
+
+================================================================================
+END OF CHAPTER 13
+================================================================================

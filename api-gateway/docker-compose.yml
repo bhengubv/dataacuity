@@ -1,0 +1,213 @@
+version: "3.8"
+
+# =============================================================================
+# Data Acuity API Gateway Infrastructure
+# =============================================================================
+# This compose file defines the API Gateway infrastructure:
+# - External Gateway: For client integrations (OAuth2, API keys, rate limiting)
+# - Internal Gateway: For service-to-service communication
+# - Documentation Portal: Aggregated OpenAPI documentation
+# - Supporting services: PostgreSQL, Redis
+# =============================================================================
+
+services:
+  # ===========================================================================
+  # EXTERNAL API GATEWAY
+  # ===========================================================================
+  # Handles all external client integrations with full security
+  api-gateway-external:
+    build:
+      context: .
+      dockerfile: Dockerfile.external
+    container_name: api-gateway-external
+    restart: unless-stopped
+    environment:
+      - GATEWAY_ENVIRONMENT=${ENVIRONMENT:-production}
+      - GATEWAY_DEBUG=${DEBUG:-false}
+      - GATEWAY_DOMAIN=${DOMAIN:-dataacuity.co.za}
+      - GATEWAY_DATABASE_URL=postgresql+asyncpg://gateway:${GATEWAY_DB_PASSWORD_ENCODED:-gateway_secret}@gateway-db:5432/api_gateway
+      # DWH password from .env - URL encoding: @ → %40, $ → %24
+      - GATEWAY_DWH_DATABASE_URL=postgresql+asyncpg://${DWH_USER:-dwh_user}:${DWH_PASSWORD_ENCODED:-}@data_warehouse:5432/datawarehouse
+      - GATEWAY_REDIS_URL=redis://gateway-redis:6379/0
+      - GATEWAY_KEYCLOAK_URL=${KEYCLOAK_URL:-http://keycloak:8080}
+      - GATEWAY_KEYCLOAK_REALM=${KEYCLOAK_REALM:-dataacuity}
+      - GATEWAY_KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID:-api-gateway}
+      - GATEWAY_KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET:-}
+      - GATEWAY_LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - GATEWAY_CORS_ORIGINS=${CORS_ORIGINS:-["https://dataacuity.co.za","https://markets.dataacuity.co.za"]}
+    ports:
+      - "8084:8081"
+    networks:
+      - dataacuity_network
+      - data-warehouse_data_stack
+    depends_on:
+      gateway-db:
+        condition: service_healthy
+      gateway-redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.external-api.rule=Host(`api.${DOMAIN:-dataacuity.co.za}`)"
+      - "traefik.http.routers.external-api.entrypoints=websecure"
+      - "traefik.http.routers.external-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.external-gateway.loadbalancer.server.port=8081"
+
+  # ===========================================================================
+  # INTERNAL API GATEWAY
+  # ===========================================================================
+  # Handles service-to-service communication within the platform
+  api-gateway-internal:
+    build:
+      context: .
+      dockerfile: Dockerfile.internal
+    container_name: api-gateway-internal
+    restart: unless-stopped
+    environment:
+      - GATEWAY_ENVIRONMENT=${ENVIRONMENT:-production}
+      - GATEWAY_DEBUG=${DEBUG:-false}
+      - GATEWAY_DATABASE_URL=postgresql+asyncpg://gateway:${GATEWAY_DB_PASSWORD_ENCODED:-gateway_secret}@gateway-db:5432/api_gateway
+      - GATEWAY_SERVICE_MESH_ENABLED=${SERVICE_MESH_ENABLED:-true}
+      - GATEWAY_LOG_LEVEL=${LOG_LEVEL:-INFO}
+    ports:
+      - "8083:8080"
+    networks:
+      - dataacuity_network
+    depends_on:
+      gateway-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.internal-api.rule=Host(`internal-api.dataacuity.local`)"
+      - "traefik.http.routers.internal-api.entrypoints=web"
+      - "traefik.http.services.internal-gateway.loadbalancer.server.port=8080"
+
+  # ===========================================================================
+  # API DOCUMENTATION PORTAL
+  # ===========================================================================
+  # Aggregated OpenAPI documentation for all services
+  api-docs:
+    build:
+      context: .
+      dockerfile: Dockerfile.docs
+    container_name: api-docs
+    restart: unless-stopped
+    environment:
+      - GATEWAY_ENVIRONMENT=${ENVIRONMENT:-production}
+      - GATEWAY_DOMAIN=${DOMAIN:-dataacuity.co.za}
+      - GATEWAY_LOG_LEVEL=${LOG_LEVEL:-INFO}
+    ports:
+      - "8082:8082"
+    networks:
+      - dataacuity_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api-docs.rule=Host(`docs.${DOMAIN:-dataacuity.co.za}`)"
+      - "traefik.http.routers.api-docs.entrypoints=websecure"
+      - "traefik.http.routers.api-docs.tls.certresolver=letsencrypt"
+      - "traefik.http.services.docs-portal.loadbalancer.server.port=8082"
+
+  # ===========================================================================
+  # GATEWAY DATABASE (PostgreSQL)
+  # ===========================================================================
+  # Stores API keys, usage analytics, quotas
+  gateway-db:
+    image: postgres:15-alpine
+    container_name: gateway-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=gateway
+      - POSTGRES_PASSWORD=${GATEWAY_DB_PASSWORD:-gateway_secret}
+      - POSTGRES_DB=api_gateway
+    volumes:
+      - gateway_db_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - dataacuity_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gateway -d api_gateway"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ===========================================================================
+  # GATEWAY REDIS (Rate Limiting & Caching)
+  # ===========================================================================
+  # Used for rate limiting, quota tracking, and caching
+  gateway-redis:
+    image: redis:7-alpine
+    container_name: gateway-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - gateway_redis_data:/data
+    networks:
+      - dataacuity_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  # ===========================================================================
+  # API ANALYTICS (Optional - Grafana Dashboard)
+  # ===========================================================================
+  # Visualize API usage metrics
+  api-analytics:
+    image: grafana/grafana:latest
+    container_name: api-analytics
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=https://api-analytics.${DOMAIN:-dataacuity.co.za}
+    volumes:
+      - api_analytics_data:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    networks:
+      - dataacuity_network
+    depends_on:
+      - gateway-db
+    profiles:
+      - monitoring
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.api-analytics.rule=Host(`api-analytics.${DOMAIN:-dataacuity.co.za}`)"
+      - "traefik.http.routers.api-analytics.entrypoints=websecure"
+      - "traefik.http.routers.api-analytics.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.api-analytics.middlewares=admin-chain@file"
+
+networks:
+  dataacuity_network:
+    external: true
+  data-warehouse_data_stack:
+    external: true
+
+volumes:
+  gateway_db_data:
+    name: gateway_db_data
+  gateway_redis_data:
+    name: gateway_redis_data
+  api_analytics_data:
+    name: api_analytics_data

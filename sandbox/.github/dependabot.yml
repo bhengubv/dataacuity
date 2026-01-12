@@ -1,0 +1,87 @@
+# Dependabot configuration for automated dependency updates
+# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+
+version: 2
+updates:
+  # Dev containers
+  - package-ecosystem: "devcontainers"
+    directory: "/"
+    schedule:
+      interval: weekly
+
+  # NPM/PNPM - Root package
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    # Group security updates for faster patching
+    groups:
+      react-security:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "react-router"
+          - "react-router-dom"
+          - "@react-router/*"
+          - "react-server-dom-*"
+          - "next"
+          - "@next/*"
+        update-types:
+          - "patch"
+          - "minor"
+      security-critical:
+        patterns:
+          - "*"
+        update-types:
+          - "patch"
+        applies-to: security-updates
+    # Prioritize security updates
+    labels:
+      - "dependencies"
+      - "security"
+    # Auto-merge patch updates for React ecosystem
+    allow:
+      - dependency-type: "direct"
+      - dependency-type: "indirect"
+
+  # Apps/Builder
+  - package-ecosystem: "npm"
+    directory: "/apps/builder"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 5
+    groups:
+      react-ecosystem:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "react-router*"
+          - "@react-router/*"
+    labels:
+      - "dependencies"
+      - "builder"
+
+  # React Router templates
+  - package-ecosystem: "npm"
+    directory: "/fixtures/react-router-docker"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 3
+    groups:
+      react-router:
+        patterns:
+          - "react*"
+          - "@react-router/*"
+    labels:
+      - "dependencies"
+      - "fixtures"
+
+  # Docker images
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: weekly
+    labels:
+      - "dependencies"
+      - "docker"

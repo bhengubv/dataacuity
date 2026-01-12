@@ -1,0 +1,726 @@
+================================================================================
+CHAPTER 21: THREAT TELEMETRY AND COMMUNITY DEFENSE
+================================================================================
+"Every attack on one Circle user makes the whole network smarter."
+
+This chapter defines how Circle OS devices optionally share anonymized
+threat intelligence to protect the entire community.
+
+================================================================================
+21.1 THE OPT-IN MODEL
+================================================================================
+
+CORE PRINCIPLE:
+```
+- Sharing is OPTIONAL
+- Sharing is ANONYMOUS
+- User controls WHAT is shared
+- User can STOP at any time
+- We share ATTACKS, not VICTIMS
+```
+
+CONSENT FLOW:
+```
+┌─────────────────────────────────────────┐
+│ 🛡️ CIRCLE COMMUNITY DEFENSE            │
+├─────────────────────────────────────────┤
+│                                         │
+│ Help protect the Circle community.      │
+│                                         │
+│ When threats are detected on your       │
+│ device, you can anonymously share:      │
+│                                         │
+│ • Attacker server addresses             │
+│ • Malware signatures                    │
+│ • Attack patterns                       │
+│                                         │
+│ This helps us:                          │
+│ • Warn other Circle users               │
+│ • Map threat infrastructure             │
+│ • Expose malicious actors               │
+│                                         │
+│ WE NEVER COLLECT:                       │
+│ ✗ Your name or identity                 │
+│ ✗ Your location (beyond country)        │
+│ ✗ Your contacts or messages             │
+│ ✗ Your device ID                        │
+│ ✗ Any personal content                  │
+│                                         │
+│ ┌─────────────────────────────────────┐ │
+│ │ ○ Yes, protect the community       │ │
+│ │   (recommended)                     │ │
+│ │                                     │ │
+│ │ ○ No, keep threat data private     │ │
+│ └─────────────────────────────────────┘ │
+│                                         │
+│ You can change this anytime in:         │
+│ Settings → Privacy → Community Defense  │
+│                                         │
+│              [Continue]                 │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+================================================================================
+21.2 WHAT WE COLLECT (OPT-IN)
+================================================================================
+
+THREAT INDICATORS (always anonymized):
+```java
+class ThreatReport {
+    // Network indicators
+    String destIP;                   // C2 IP address
+    String destDomain;               // C2 domain
+    int destPort;                    // Port used
+    String protocol;                 // HTTP, DNS, binary
+    String tlsFingerprint;           // JA3/JA3S hash
+    String certHash;                 // SSL cert fingerprint
+
+    // Malware indicators
+    String malwareHash;              // SHA256 of APK/binary
+    String packageName;              // App package name
+    List<String> yaraMatches;        // Which rules matched
+    String behaviorSignature;        // Behavioral fingerprint
+
+    // Attack metadata
+    String attackType;               // spyware, ransomware, tracker
+    String severity;                 // low, medium, high, critical
+    long timestamp;                  // Fuzzed to day only
+    String countryCode;              // Victim country (2-letter)
+
+    // Traffic samples (sanitized)
+    byte[] beaconSample;             // C2 beacon pattern
+    byte[] responseSample;           // C2 response pattern
+}
+```
+
+WHAT WE NEVER COLLECT:
+```
+❌ Device identifiers (IMEI, serial, Android ID)
+❌ User accounts or credentials
+❌ Contact lists or names
+❌ Message content
+❌ Photos or files
+❌ Precise location (GPS)
+❌ Browsing history
+❌ Installed apps list
+❌ Usage patterns
+❌ Any PII
+```
+
+ANONYMIZATION PIPELINE:
+```java
+class ThreatAnonymizer {
+
+    ThreatReport anonymize(RawThreatData raw) {
+        ThreatReport report = new ThreatReport();
+
+        // Keep threat indicators (the attack)
+        report.destIP = raw.destIP;               // Keep full IP
+        report.destDomain = raw.destDomain;       // Keep full domain
+        report.malwareHash = raw.malwareHash;     // Keep hash
+
+        // Fuzz timestamps
+        report.timestamp = fuzzToDay(raw.timestamp);
+
+        // Generalize location
+        report.countryCode = raw.countryCode;     // Country only
+
+        // Remove all device identifiers
+        // (Not even included in raw data sent)
+
+        // Sanitize traffic samples
+        report.beaconSample = sanitizeTraffic(raw.beaconSample);
+
+        return report;
+    }
+
+    long fuzzToDay(long timestamp) {
+        // Round to start of day (UTC)
+        return timestamp - (timestamp % 86400000);
+    }
+
+    byte[] sanitizeTraffic(byte[] raw) {
+        // Remove any embedded identifiers
+        // Keep protocol structure only
+        return ProtocolSanitizer.sanitize(raw);
+    }
+}
+```
+
+================================================================================
+21.3 SUBMISSION PROTOCOL
+================================================================================
+
+API ENDPOINT:
+```
+POST https://api.dataacuity.co.za/v1/threat/submit
+Content-Type: application/json
+X-Circle-Version: 1.0.0
+X-Report-Type: threat_intel
+
+{
+    "schema_version": "1.0",
+    "report_type": "threat_intel",
+    "timestamp": "2026-01-10T00:00:00Z",  // Fuzzed to day
+    "country": "ZA",
+
+    "indicators": {
+        "network": [
+            {
+                "type": "ip",
+                "value": "185.234.xxx.xxx",
+                "port": 443,
+                "protocol": "https",
+                "ja3": "abc123...",
+                "cert_hash": "sha256:def456..."
+            },
+            {
+                "type": "domain",
+                "value": "evil-c2.com"
+            }
+        ],
+        "file": [
+            {
+                "type": "apk",
+                "sha256": "abcdef123456...",
+                "package": "com.fake.systemupdate",
+                "size": 4521984
+            }
+        ],
+        "behavior": [
+            {
+                "type": "beacon",
+                "interval_ms": 60000,
+                "pattern": "base64:..."
+            }
+        ]
+    },
+
+    "classification": {
+        "threat_type": "spyware",
+        "severity": "critical",
+        "confidence": 0.95,
+        "yara_matches": ["pegasus_beacon", "android_spyware"]
+    },
+
+    "samples": {
+        "beacon_request": "base64:...",   // Sanitized
+        "beacon_response": "base64:..."   // Sanitized
+    }
+}
+```
+
+RESPONSE:
+```json
+{
+    "status": "accepted",
+    "report_id": "rpt_abc123",         // For reference only
+    "known_threat": true,               // Already in database
+    "campaign": "DESERT_SHADOW",        // If attributed
+    "community_protected": 47832        // Users now protected
+}
+```
+
+TRANSPORT SECURITY:
+```
+- TLS 1.3 only
+- Certificate pinning to Data Acuity cert
+- No cookies, no session tracking
+- No user identifiers in headers
+- Request cannot be linked to device
+```
+
+================================================================================
+21.4 RECEIVING THREAT FEEDS
+================================================================================
+
+All Circle OS devices receive threat intelligence (regardless of sharing):
+
+FEED ENDPOINT:
+```
+GET https://api.dataacuity.co.za/v1/threat/feed
+X-Circle-Version: 1.0.0
+If-Modified-Since: <last_update>
+```
+
+RESPONSE:
+```json
+{
+    "version": "2026-01-10-001",
+    "generated": "2026-01-10T12:00:00Z",
+
+    "indicators": {
+        "domains": [
+            {
+                "value": "evil-c2.com",
+                "threat_type": "c2",
+                "severity": "critical",
+                "first_seen": "2026-01-05",
+                "campaign": "DESERT_SHADOW"
+            }
+        ],
+        "ips": [
+            {
+                "value": "185.234.xxx.xxx",
+                "cidr": 32,
+                "threat_type": "c2",
+                "severity": "critical"
+            }
+        ],
+        "hashes": [
+            {
+                "type": "sha256",
+                "value": "abcdef123456...",
+                "threat_type": "spyware",
+                "family": "pegasus_variant"
+            }
+        ]
+    },
+
+    "campaigns": [
+        {
+            "id": "DESERT_SHADOW",
+            "actor_type": "state",
+            "targets": ["journalists", "activists"],
+            "regions": ["ZA", "KE", "NG"],
+            "severity": "critical",
+            "iocs_count": 47
+        }
+    ]
+}
+```
+
+FEED UPDATE SCHEDULE:
+```
+- Critical threats: Push notification (immediate)
+- High severity: Every hour
+- Medium/Low: Every 6 hours
+- Full sync: Daily
+
+Local database updated automatically.
+No user action required.
+```
+
+================================================================================
+21.5 THREAT DATABASE (LOCAL)
+================================================================================
+
+SCHEMA:
+```sql
+-- /data/circle/threat_intel/threat.db (encrypted)
+
+CREATE TABLE threat_domains (
+    domain TEXT PRIMARY KEY,
+    threat_type TEXT NOT NULL,      -- c2, phishing, malware, tracker
+    severity TEXT NOT NULL,         -- low, medium, high, critical
+    campaign_id TEXT,
+    first_seen INTEGER,
+    last_updated INTEGER,
+    source TEXT                     -- community, abusech, manual
+);
+
+CREATE TABLE threat_ips (
+    ip TEXT NOT NULL,
+    cidr INTEGER DEFAULT 32,
+    threat_type TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    campaign_id TEXT,
+    asn INTEGER,
+    country TEXT,
+    first_seen INTEGER,
+    last_updated INTEGER,
+    PRIMARY KEY (ip, cidr)
+);
+
+CREATE TABLE threat_hashes (
+    hash TEXT PRIMARY KEY,
+    hash_type TEXT NOT NULL,        -- md5, sha1, sha256
+    threat_type TEXT NOT NULL,
+    malware_family TEXT,
+    severity TEXT NOT NULL,
+    first_seen INTEGER
+);
+
+CREATE TABLE campaigns (
+    id TEXT PRIMARY KEY,
+    name TEXT,
+    actor_type TEXT,                -- state, criminal, unknown
+    description TEXT,
+    targets TEXT,                   -- JSON array
+    regions TEXT,                   -- JSON array
+    first_seen INTEGER,
+    last_active INTEGER,
+    iocs_count INTEGER
+);
+
+-- Indexes for fast lookup
+CREATE INDEX idx_domains_type ON threat_domains(threat_type);
+CREATE INDEX idx_ips_type ON threat_ips(threat_type);
+CREATE INDEX idx_hashes_family ON threat_hashes(malware_family);
+```
+
+DATABASE SIZE:
+```
+Expected size: ~50MB for comprehensive coverage
+Storage: /data/circle/threat_intel/
+Update: Differential (only changes)
+Retention: Rotate old entries after 1 year
+```
+
+================================================================================
+21.6 CANARY TOKEN SYSTEM
+================================================================================
+
+Canary tokens are unique identifiers placed in honeypot data that "phone home"
+when accessed, revealing that data was exfiltrated and who accessed it.
+
+CANARY TYPES:
+```java
+enum CanaryType {
+    EMAIL,       // Unique email address
+    PHONE,       // Unique phone number
+    DOCUMENT,    // PDF/doc with web beacon
+    URL,         // Unique URL that logs access
+    DNS          // Unique hostname that logs resolution
+}
+
+class CanaryToken {
+    String id;
+    CanaryType type;
+    String value;              // The actual canary
+    String deviceHash;         // Hashed device ID (for correlation)
+    long created;
+    boolean triggered;
+    TriggerInfo lastTrigger;
+}
+
+class TriggerInfo {
+    long timestamp;
+    String sourceIP;           // Who accessed it
+    String userAgent;          // Browser/app
+    String referrer;           // How they got there
+    Map<String, String> headers;
+}
+```
+
+CANARY GENERATION:
+```java
+class CanaryGenerator {
+
+    // Email canary
+    CanaryToken generateEmailCanary() {
+        String unique = generateUniqueId();  // e.g., "x7k2m9"
+        String email = unique + "@canary.circelos.org";
+
+        // Register with mail server to track delivery attempts
+        registerEmailCanary(email, deviceHash);
+
+        return new CanaryToken(EMAIL, email);
+    }
+
+    // Document canary (PDF with hidden beacon)
+    CanaryToken generateDocumentCanary(String filename) {
+        String trackingId = generateUniqueId();
+        String beaconUrl = "https://canary.circelos.org/t/" + trackingId + "/o.gif";
+
+        // Create PDF with hidden image beacon
+        byte[] pdf = PdfGenerator.createWithBeacon(filename, beaconUrl);
+
+        return new CanaryToken(DOCUMENT, filename, pdf, trackingId);
+    }
+
+    // DNS canary (unique subdomain)
+    CanaryToken generateDnsCanary() {
+        String unique = generateUniqueId();
+        String hostname = unique + ".dns.canary.circelos.org";
+
+        // DNS server logs all resolution attempts
+
+        return new CanaryToken(DNS, hostname);
+    }
+}
+```
+
+CANARY TRACKING SERVER:
+```
+Located at: canary.circelos.org
+
+When canary triggered:
+1. Log: timestamp, source IP, headers
+2. Lookup: which device created this canary
+3. Alert: Send push notification to device
+4. Store: Evidence for user review
+```
+
+USER NOTIFICATION:
+```
+┌─────────────────────────────────────────┐
+│ 🚨 CANARY TRIGGERED                     │
+├─────────────────────────────────────────┤
+│                                         │
+│ Your data was accessed!                 │
+│                                         │
+│ Canary: alert-x7k2m@canary.circelos.org │
+│ Type: Email address from honeypot       │
+│                                         │
+│ TRIGGER DETAILS:                        │
+│ Time: 2026-01-10 14:32 UTC              │
+│ Source IP: 41.xxx.xxx.xxx               │
+│ Location: Johannesburg, South Africa    │
+│ User agent: Chrome/Windows              │
+│                                         │
+│ This email was in your honeypot data    │
+│ and was never shared with anyone real.  │
+│ Someone who stole your data tried to    │
+│ contact this address.                   │
+│                                         │
+│ [View Full Details] [Add to Report]     │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+================================================================================
+21.7 COMMUNITY STATISTICS
+================================================================================
+
+PUBLIC DASHBOARD (dataacuity.co.za):
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ CIRCLE COMMUNITY DEFENSE - LIVE DASHBOARD                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│ NETWORK STATUS                          Updated: 5 minutes ago  │
+│ ──────────────                                                  │
+│ Contributing devices:    47,832                                 │
+│ Countries covered:       34                                     │
+│ Threats blocked today:   12,847                                 │
+│                                                                 │
+│ THREAT OVERVIEW (Last 30 days)                                  │
+│ ──────────────────────────────                                  │
+│ Total threats detected:  142,847                                │
+│ Unique malware samples:  1,247                                  │
+│ C2 servers identified:   3,421                                  │
+│ Active campaigns:        12                                     │
+│                                                                 │
+│ TOP THREATS                                                     │
+│ ───────────                                                     │
+│ 1. DESERT_SHADOW (state actor) - 847 detections                 │
+│ 2. CHROME_FOX (banking trojan) - 523 detections                 │
+│ 3. AD_SWARM (aggressive adware) - 12,847 detections             │
+│                                                                 │
+│ GEOGRAPHIC DISTRIBUTION                                         │
+│ ──────────────────────────                                      │
+│ 🇿🇦 South Africa:  34%                                          │
+│ 🇰🇪 Kenya:         18%                                          │
+│ 🇳🇬 Nigeria:       15%                                          │
+│ 🇬🇭 Ghana:          8%                                          │
+│ Other:            25%                                           │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+TRANSPARENCY REPORT (Quarterly):
+```
+Published at: dataacuity.co.za/transparency
+
+Contents:
+- Total threats detected
+- Breakdown by type
+- Attribution summaries
+- Government requests received (if any)
+- Data handling practices
+- Privacy audit results
+```
+
+================================================================================
+21.8 INTEGRATION WITH FIREWALL
+================================================================================
+
+AUTOMATIC BLOCKING:
+```java
+class ThreatIntelIntegration {
+
+    // Called by CircleFirewallService for every connection
+    ThreatMatch checkConnection(String domain, String ip) {
+        // Check domain
+        ThreatDomain td = threatDb.getDomain(domain);
+        if (td != null) {
+            return new ThreatMatch(td.threatType, td.severity, td.campaign);
+        }
+
+        // Check IP
+        ThreatIP ti = threatDb.getIP(ip);
+        if (ti != null) {
+            return new ThreatMatch(ti.threatType, ti.severity, ti.campaign);
+        }
+
+        return ThreatMatch.NONE;
+    }
+
+    // Called when APK is installed
+    ThreatMatch checkApk(String sha256) {
+        ThreatHash th = threatDb.getHash(sha256);
+        if (th != null) {
+            return new ThreatMatch(th.threatType, th.severity, th.family);
+        }
+        return ThreatMatch.NONE;
+    }
+}
+```
+
+FIREWALL ACTIONS:
+```
+CRITICAL threat match:
+  → Block immediately
+  → Alert user
+  → Offer to send to Malware Jail
+
+HIGH threat match:
+  → Block
+  → Silent notification
+  → Log
+
+MEDIUM threat match:
+  → Send to Traffic Lobby
+  → User decides
+
+LOW threat match:
+  → Allow (trackers, etc.)
+  → Log for Privacy Dashboard
+```
+
+================================================================================
+21.9 PRIVACY GUARANTEES
+================================================================================
+
+TECHNICAL GUARANTEES:
+```
+1. NO DEVICE FINGERPRINTING
+   - No unique identifiers sent
+   - No hardware IDs
+   - No persistent cookies
+
+2. NO CORRELATION
+   - Each report independent
+   - No session linking
+   - IP not logged server-side
+
+3. NO CONTENT
+   - Traffic samples sanitized
+   - No user data in reports
+   - Protocol structure only
+
+4. DIFFERENTIAL PRIVACY
+   - Add noise to statistics
+   - k-anonymity for queries
+   - Cannot identify individuals
+
+5. TRANSPARENCY
+   - Open source client code
+   - Published API spec
+   - Regular audits
+```
+
+LEGAL FRAMEWORK:
+```
+- POPIA compliant (South Africa)
+- GDPR compliant (for EU users)
+- No data sold to third parties
+- No government data sharing (without warrant)
+- Annual transparency report
+- User can request data deletion
+```
+
+================================================================================
+21.10 FILE STRUCTURE
+================================================================================
+
+```
+frameworks/base/services/core/java/com/circleos/server/threatintel/
+├── ThreatIntelService.java          # Main service
+├── ThreatDatabase.java              # Local threat DB
+├── ThreatFeedSync.java              # Feed updates
+├── ThreatReporter.java              # Submit reports
+├── ThreatAnonymizer.java            # Anonymization
+├── CanaryManager.java               # Canary tokens
+├── FirewallIntegration.java         # Connect to firewall
+└── db/
+    └── ThreatDatabaseHelper.java
+
+system/circle/
+└── threat-intel/
+    ├── seed_data.db                 # Pre-populated threats
+    └── README.md
+
+packages/apps/CircleSettings/
+└── src/com/circleos/settings/
+    └── communitydefense/
+        ├── CommunityDefenseFragment.kt
+        ├── ThreatStatsFragment.kt
+        └── CanaryFragment.kt
+```
+
+================================================================================
+21.11 API REFERENCE
+================================================================================
+
+BINDER INTERFACE:
+```java
+// IThreatIntelService.aidl
+interface IThreatIntelService {
+    // Threat checks
+    ThreatMatch checkDomain(String domain);
+    ThreatMatch checkIP(String ip);
+    ThreatMatch checkHash(String sha256);
+
+    // Feed management
+    void syncFeed();
+    long getLastSyncTime();
+    int getThreatCount();
+
+    // Reporting
+    void reportThreat(in ThreatReport report);
+    boolean isSharingEnabled();
+    void setSharingEnabled(boolean enabled);
+
+    // Canaries
+    CanaryToken createCanary(CanaryType type);
+    List<CanaryToken> getCanaries();
+    List<TriggerInfo> getCanaryTriggers(String canaryId);
+
+    // Stats
+    ThreatStats getStats();
+}
+```
+
+================================================================================
+21.12 DATA ACUITY BACKEND REQUIREMENTS
+================================================================================
+
+For Data Acuity to receive and process this telemetry:
+
+REQUIRED ENDPOINTS:
+```
+POST /v1/threat/submit       # Receive threat reports
+GET  /v1/threat/feed         # Serve threat feed
+POST /v1/canary/register     # Register canary tokens
+POST /v1/canary/trigger      # Record canary triggers
+GET  /v1/stats/public        # Public statistics
+```
+
+REQUIRED INFRASTRUCTURE:
+```
+- PostgreSQL database (threat intelligence)
+- Redis cache (rate limiting, dedup)
+- DNS server (for DNS canaries)
+- Mail server (for email canaries)
+- Web server (for document beacon tracking)
+- API gateway (authentication, rate limiting)
+```
+
+See Chapter 22 for full Data Acuity specification.
+
+================================================================================
+END OF CHAPTER 21
+================================================================================

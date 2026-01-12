@@ -1,12 +1,12 @@
-datawarehouse:
+dbt_project:
   target: dev
   outputs:
     dev:
       type: postgres
-      host: data_warehouse
-      port: 5432
-      user: dwh_user
-      password: "D@taW@rehou5e2025!S3cuRe"
-      dbname: datawarehouse
-      schema: public
+      host: "{{ env_var('DBT_DWH_HOST', 'data_warehouse') }}"
+      port: "{{ env_var('DBT_DWH_PORT', '5432') | int }}"
+      user: "{{ env_var('DBT_DWH_USER', 'dwh_user') }}"
+      password: "{{ env_var('DBT_DWH_PASSWORD') }}"
+      dbname: "{{ env_var('DBT_DWH_DATABASE', 'datawarehouse') }}"
+      schema: "{{ env_var('DBT_DWH_SCHEMA', 'dbt_dev') }}"
       threads: 4

@@ -1,0 +1,227 @@
+{
+  "name": "AutoBiz - Tax Preparation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 1 3,6,9,12 *"
+            }
+          ]
+        }
+      },
+      "id": "quarterly-schedule",
+      "name": "Quarterly Tax Prep",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate VAT period (previous quarter)\nconst now = new Date();\nconst currentQuarter = Math.floor(now.getMonth() / 3);\nconst previousQuarter = currentQuarter === 0 ? 3 : currentQuarter - 1;\nconst year = currentQuarter === 0 ? now.getFullYear() - 1 : now.getFullYear();\n\nconst quarterStart = new Date(year, previousQuarter * 3, 1);\nconst quarterEnd = new Date(year, previousQuarter * 3 + 3, 0);\n\nconst quarterNames = ['Q1 (Jan-Mar)', 'Q2 (Apr-Jun)', 'Q3 (Jul-Sep)', 'Q4 (Oct-Dec)'];\n\nreturn {\n  periodStart: quarterStart.toISOString(),\n  periodEnd: quarterEnd.toISOString(),\n  periodName: `${quarterNames[previousQuarter]} ${year}`,\n  quarter: previousQuarter + 1,\n  year: year,\n  dueDate: new Date(year, previousQuarter * 3 + 4, 25).toISOString() // 25th of month after quarter\n};"
+      },
+      "id": "set-vat-period",
+      "name": "Set VAT Period",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CRM_API_URL }}/invoices?from={{ $json.periodStart }}&to={{ $json.periodEnd }}&status=paid",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-sales",
+      "name": "Fetch Sales",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        690,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CRM_API_URL }}/expenses?from={{ $json.periodStart }}&to={{ $json.periodEnd }}&status=approved",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-purchases",
+      "name": "Fetch Purchases",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        690,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "id": "merge-tax-data",
+      "name": "Merge Data",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        910,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate VAT201 submission data\nconst items = $input.all();\nconst salesData = items.find(i => i.json.invoices)?.json || { invoices: [] };\nconst purchaseData = items.find(i => i.json.expenses)?.json || { expenses: [] };\nconst period = $('Set VAT Period').first().json;\n\nconst invoices = salesData.invoices || [];\nconst expenses = purchaseData.expenses || [];\n\n// Output VAT (from sales)\nlet standardRatedSales = 0;\nlet zeroRatedSales = 0;\nlet exemptSales = 0;\nlet outputVat = 0;\n\nfor (const inv of invoices) {\n  const amount = parseFloat(inv.total) || 0;\n  const vat = parseFloat(inv.taxAmount) || 0;\n  const rate = parseFloat(inv.taxRate) || 15;\n  \n  if (rate === 0) {\n    zeroRatedSales += amount;\n  } else if (inv.vatExempt) {\n    exemptSales += amount;\n  } else {\n    standardRatedSales += amount - vat; // Net of VAT\n    outputVat += vat;\n  }\n}\n\n// Input VAT (from purchases)\nlet standardRatedPurchases = 0;\nlet capitalGoods = 0;\nlet inputVat = 0;\n\nfor (const exp of expenses) {\n  const amount = parseFloat(exp.amount) || 0;\n  const vat = parseFloat(exp.vatAmount) || 0;\n  \n  if (vat > 0) {\n    if (exp.isCapitalGood) {\n      capitalGoods += amount - vat;\n    } else {\n      standardRatedPurchases += amount - vat;\n    }\n    inputVat += vat;\n  }\n}\n\n// Net VAT position\nconst netVat = outputVat - inputVat;\nconst isPayable = netVat > 0;\n\n// Generate VAT201 summary\nconst formatCurrency = (val) => 'R' + val.toFixed(2).replace(/\\B(?=(\\d{3})+(?!\\d))/g, ',');\n\nconst html = `\n<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; margin: 40px; color: #333; }\n    .header { background: #1a365d; color: white; padding: 20px; margin: -40px -40px 30px -40px; }\n    h1 { margin: 0; }\n    .period { opacity: 0.8; margin-top: 5px; }\n    .section { margin-bottom: 30px; }\n    h2 { color: #1a365d; border-bottom: 2px solid #1a365d; padding-bottom: 10px; }\n    table { width: 100%; border-collapse: collapse; }\n    th { background: #f5f5f5; padding: 12px; text-align: left; }\n    td { padding: 12px; border-bottom: 1px solid #eee; }\n    .amount { text-align: right; font-family: monospace; }\n    .total-row { font-weight: bold; background: #f9f9f9; }\n    .vat-summary { background: ${isPayable ? '#FFEBEE' : '#E8F5E9'}; padding: 30px; border-radius: 10px; text-align: center; margin-top: 30px; }\n    .vat-amount { font-size: 36px; font-weight: bold; color: ${isPayable ? '#c62828' : '#2e7d32'}; }\n    .vat-label { font-size: 14px; color: #666; margin-top: 5px; }\n    .due-date { margin-top: 20px; padding: 15px; background: #FFF3E0; border-radius: 8px; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h1>VAT201 Preparation</h1>\n    <div class=\"period\">${period.periodName}</div>\n  </div>\n  \n  <div class=\"section\">\n    <h2>Output Tax (Sales)</h2>\n    <table>\n      <tr><th>Description</th><th class=\"amount\">Excl. VAT</th><th class=\"amount\">VAT</th></tr>\n      <tr><td>Standard rated supplies (15%)</td><td class=\"amount\">${formatCurrency(standardRatedSales)}</td><td class=\"amount\">${formatCurrency(outputVat)}</td></tr>\n      <tr><td>Zero rated supplies (0%)</td><td class=\"amount\">${formatCurrency(zeroRatedSales)}</td><td class=\"amount\">R0.00</td></tr>\n      <tr><td>Exempt supplies</td><td class=\"amount\">${formatCurrency(exemptSales)}</td><td class=\"amount\">-</td></tr>\n      <tr class=\"total-row\"><td>Total Output VAT</td><td class=\"amount\"></td><td class=\"amount\">${formatCurrency(outputVat)}</td></tr>\n    </table>\n  </div>\n  \n  <div class=\"section\">\n    <h2>Input Tax (Purchases)</h2>\n    <table>\n      <tr><th>Description</th><th class=\"amount\">Excl. VAT</th><th class=\"amount\">VAT</th></tr>\n      <tr><td>Standard rated purchases</td><td class=\"amount\">${formatCurrency(standardRatedPurchases)}</td><td class=\"amount\">${formatCurrency(inputVat * (standardRatedPurchases / (standardRatedPurchases + capitalGoods || 1)))}</td></tr>\n      <tr><td>Capital goods</td><td class=\"amount\">${formatCurrency(capitalGoods)}</td><td class=\"amount\">${formatCurrency(inputVat * (capitalGoods / (standardRatedPurchases + capitalGoods || 1)))}</td></tr>\n      <tr class=\"total-row\"><td>Total Input VAT</td><td class=\"amount\"></td><td class=\"amount\">${formatCurrency(inputVat)}</td></tr>\n    </table>\n  </div>\n  \n  <div class=\"vat-summary\">\n    <div class=\"vat-amount\">${formatCurrency(Math.abs(netVat))}</div>\n    <div class=\"vat-label\">${isPayable ? 'VAT PAYABLE TO SARS' : 'VAT REFUND DUE'}</div>\n  </div>\n  \n  <div class=\"due-date\">\n    <strong>Due Date:</strong> ${new Date(period.dueDate).toLocaleDateString()}<br>\n    <small>Submit VAT201 and make payment (if applicable) by this date to avoid penalties.</small>\n  </div>\n</body>\n</html>\n`;\n\nreturn {\n  ...period,\n  output: {\n    standardRatedSales: standardRatedSales,\n    zeroRatedSales: zeroRatedSales,\n    exemptSales: exemptSales,\n    outputVat: outputVat,\n    invoiceCount: invoices.length\n  },\n  input: {\n    standardRatedPurchases: standardRatedPurchases,\n    capitalGoods: capitalGoods,\n    inputVat: inputVat,\n    expenseCount: expenses.length\n  },\n  netVat: netVat,\n  isPayable: isPayable,\n  reportHtml: html\n};"
+      },
+      "id": "calculate-vat",
+      "name": "Calculate VAT",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1130,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/tax-reports",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"type\": \"VAT201\",\n  \"period\": \"{{ $json.periodName }}\",\n  \"periodStart\": \"{{ $json.periodStart }}\",\n  \"periodEnd\": \"{{ $json.periodEnd }}\",\n  \"dueDate\": \"{{ $json.dueDate }}\",\n  \"output\": {{ JSON.stringify($json.output) }},\n  \"input\": {{ JSON.stringify($json.input) }},\n  \"netVat\": {{ $json.netVat }},\n  \"isPayable\": {{ $json.isPayable }}\n}",
+        "options": {}
+      },
+      "id": "save-tax-report",
+      "name": "Save Tax Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1350,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $env.OWNER_EMAIL }}",
+        "subject": "=VAT201 Ready: {{ $json.periodName }} - {{ $json.isPayable ? 'PAYABLE' : 'REFUND' }} R{{ Math.abs($json.netVat).toFixed(2) }}",
+        "emailType": "html",
+        "html": "={{ $json.reportHtml }}\n<p style=\"margin-top: 30px;\"><a href=\"{{ $env.CRM_URL }}/tax/vat201\" style=\"background: #1a365d; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px;\">Review & Submit to SARS</a></p>",
+        "options": {}
+      },
+      "id": "send-tax-report",
+      "name": "Send Tax Report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1570,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Quarterly Tax Prep": {
+      "main": [
+        [
+          {
+            "node": "Set VAT Period",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set VAT Period": {
+      "main": [
+        [
+          {
+            "node": "Fetch Sales",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch Purchases",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Sales": {
+      "main": [
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Purchases": {
+      "main": [
+        [
+          {
+            "node": "Merge Data",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Data": {
+      "main": [
+        [
+          {
+            "node": "Calculate VAT",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate VAT": {
+      "main": [
+        [
+          {
+            "node": "Save Tax Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Tax Report": {
+      "main": [
+        [
+          {
+            "node": "Send Tax Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

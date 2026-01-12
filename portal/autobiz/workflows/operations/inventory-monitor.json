@@ -1,0 +1,227 @@
+{
+  "name": "AutoBiz - Inventory Monitor",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 4
+            }
+          ]
+        }
+      },
+      "id": "schedule",
+      "name": "Check Every 4 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.INVENTORY_API_URL }}/items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-inventory",
+      "name": "Fetch Inventory",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Analyze inventory levels and identify issues\nconst items = $input.first().json.items || [];\nconst alerts = [];\nconst reorderList = [];\n\nfor (const item of items) {\n  const currentStock = parseInt(item.quantity) || 0;\n  const minStock = parseInt(item.minQuantity) || 10;\n  const maxStock = parseInt(item.maxQuantity) || 100;\n  const reorderPoint = parseInt(item.reorderPoint) || minStock * 1.5;\n  const averageUsage = parseFloat(item.avgDailyUsage) || 1;\n  const leadTime = parseInt(item.leadTimeDays) || 7;\n  \n  // Calculate days until stockout\n  const daysUntilStockout = averageUsage > 0 ? Math.floor(currentStock / averageUsage) : 999;\n  \n  // Stock percentage\n  const stockPercent = Math.round((currentStock / maxStock) * 100);\n  \n  const itemAlert = {\n    itemId: item.id,\n    sku: item.sku,\n    name: item.name,\n    currentStock: currentStock,\n    minStock: minStock,\n    reorderPoint: reorderPoint,\n    stockPercent: stockPercent,\n    daysUntilStockout: daysUntilStockout,\n    supplier: item.supplier,\n    unitCost: item.unitCost,\n    alerts: []\n  };\n  \n  // Critical: Out of stock\n  if (currentStock === 0) {\n    itemAlert.alerts.push({ type: 'out_of_stock', severity: 'critical', message: 'OUT OF STOCK' });\n  }\n  // Low stock: Below minimum\n  else if (currentStock < minStock) {\n    itemAlert.alerts.push({ type: 'low_stock', severity: 'high', message: `Below minimum (${currentStock}/${minStock})` });\n  }\n  // Reorder needed\n  else if (currentStock <= reorderPoint) {\n    itemAlert.alerts.push({ type: 'reorder', severity: 'medium', message: `Reorder point reached (${currentStock}/${reorderPoint})` });\n    \n    // Calculate optimal reorder quantity\n    const optimalQty = Math.ceil((maxStock - currentStock) / 10) * 10; // Round up to nearest 10\n    reorderList.push({\n      ...itemAlert,\n      suggestedQuantity: optimalQty,\n      estimatedCost: (optimalQty * (item.unitCost || 0)).toFixed(2)\n    });\n  }\n  \n  // Stockout warning (within lead time)\n  if (daysUntilStockout <= leadTime && currentStock > 0) {\n    itemAlert.alerts.push({ \n      type: 'stockout_warning', \n      severity: 'high', \n      message: `Will run out in ${daysUntilStockout} days (lead time: ${leadTime} days)` \n    });\n  }\n  \n  if (itemAlert.alerts.length > 0) {\n    alerts.push(itemAlert);\n  }\n}\n\n// Sort by severity\nconst severityOrder = { critical: 0, high: 1, medium: 2, low: 3 };\nalerts.sort((a, b) => {\n  const aSev = Math.min(...a.alerts.map(al => severityOrder[al.severity] || 3));\n  const bSev = Math.min(...b.alerts.map(al => severityOrder[al.severity] || 3));\n  return aSev - bSev;\n});\n\nreturn { \n  alerts, \n  reorderList,\n  totalItems: items.length,\n  alertCount: alerts.length,\n  criticalCount: alerts.filter(a => a.alerts.some(al => al.severity === 'critical')).length,\n  reorderCount: reorderList.length\n};"
+      },
+      "id": "analyze-inventory",
+      "name": "Analyze Inventory",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-alerts",
+              "leftValue": "={{ $json.alertCount }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "has-alerts",
+      "name": "Has Alerts?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        910,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate inventory report HTML\nconst data = $input.first().json;\n\nconst criticalItems = data.alerts.filter(a => a.alerts.some(al => al.severity === 'critical'));\nconst highItems = data.alerts.filter(a => a.alerts.some(al => al.severity === 'high') && !a.alerts.some(al => al.severity === 'critical'));\nconst mediumItems = data.alerts.filter(a => !a.alerts.some(al => ['critical', 'high'].includes(al.severity)));\n\nconst generateTable = (items, title, color) => {\n  if (items.length === 0) return '';\n  return `\n    <h3 style=\"color: ${color};\">${title} (${items.length})</h3>\n    <table style=\"width: 100%; border-collapse: collapse; margin-bottom: 20px;\">\n      <tr style=\"background: #f5f5f5;\">\n        <th style=\"padding: 8px; text-align: left;\">SKU</th>\n        <th style=\"padding: 8px; text-align: left;\">Item</th>\n        <th style=\"padding: 8px; text-align: right;\">Stock</th>\n        <th style=\"padding: 8px; text-align: left;\">Issue</th>\n      </tr>\n      ${items.map(item => `\n        <tr style=\"border-bottom: 1px solid #eee;\">\n          <td style=\"padding: 8px;\">${item.sku}</td>\n          <td style=\"padding: 8px;\">${item.name}</td>\n          <td style=\"padding: 8px; text-align: right;\">${item.currentStock}</td>\n          <td style=\"padding: 8px;\">${item.alerts.map(a => a.message).join(', ')}</td>\n        </tr>\n      `).join('')}\n    </table>\n  `;\n};\n\nconst html = `\n  <h2>Inventory Alert Report</h2>\n  <p>Generated: ${new Date().toLocaleString()}</p>\n  <p><strong>Summary:</strong> ${data.alertCount} items need attention out of ${data.totalItems} total items.</p>\n  \n  ${generateTable(criticalItems, 'Critical - Out of Stock', '#FF3B30')}\n  ${generateTable(highItems, 'High Priority - Low Stock', '#FF9500')}\n  ${generateTable(mediumItems, 'Medium - Reorder Needed', '#007AFF')}\n  \n  ${data.reorderList.length > 0 ? `\n    <h3>Suggested Reorders</h3>\n    <table style=\"width: 100%; border-collapse: collapse;\">\n      <tr style=\"background: #f5f5f5;\">\n        <th style=\"padding: 8px; text-align: left;\">Item</th>\n        <th style=\"padding: 8px; text-align: left;\">Supplier</th>\n        <th style=\"padding: 8px; text-align: right;\">Qty</th>\n        <th style=\"padding: 8px; text-align: right;\">Est. Cost</th>\n      </tr>\n      ${data.reorderList.map(item => `\n        <tr style=\"border-bottom: 1px solid #eee;\">\n          <td style=\"padding: 8px;\">${item.name}</td>\n          <td style=\"padding: 8px;\">${item.supplier || 'N/A'}</td>\n          <td style=\"padding: 8px; text-align: right;\">${item.suggestedQuantity}</td>\n          <td style=\"padding: 8px; text-align: right;\">R${item.estimatedCost}</td>\n        </tr>\n      `).join('')}\n    </table>\n  ` : ''}\n`;\n\nreturn { ...data, reportHtml: html };"
+      },
+      "id": "generate-report",
+      "name": "Generate Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1130,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $env.OWNER_EMAIL }}",
+        "subject": "=Inventory Alert: {{ $json.criticalCount > 0 ? $json.criticalCount + ' CRITICAL, ' : '' }}{{ $json.alertCount }} items need attention",
+        "emailType": "html",
+        "html": "={{ $json.reportHtml }}",
+        "options": {}
+      },
+      "id": "send-alert",
+      "name": "Send Alert Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1350,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/inventory/alerts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"alertDate\": \"{{ $now.toISO() }}\",\n  \"totalAlerts\": {{ $json.alertCount }},\n  \"criticalCount\": {{ $json.criticalCount }},\n  \"reorderCount\": {{ $json.reorderCount }},\n  \"alerts\": {{ JSON.stringify($json.alerts) }}\n}",
+        "options": {}
+      },
+      "id": "log-alerts",
+      "name": "Log Alerts",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1570,
+        200
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "no-alerts",
+      "name": "No Alerts",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1130,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Check Every 4 Hours": {
+      "main": [
+        [
+          {
+            "node": "Fetch Inventory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Inventory": {
+      "main": [
+        [
+          {
+            "node": "Analyze Inventory",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Inventory": {
+      "main": [
+        [
+          {
+            "node": "Has Alerts?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Alerts?": {
+      "main": [
+        [
+          {
+            "node": "Generate Report",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Report": {
+      "main": [
+        [
+          {
+            "node": "Send Alert Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Alert Email": {
+      "main": [
+        [
+          {
+            "node": "Log Alerts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

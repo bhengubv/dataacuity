@@ -1,0 +1,67 @@
+# Data Acuity Developer Studio - Full IDE
+# Based on Code-Server with React Native / Expo toolchain
+
+FROM codercom/code-server:latest
+
+USER root
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    git \
+    build-essential \
+    python3 \
+    openjdk-17-jdk \
+    android-sdk \
+    watchman \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js 20 LTS
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs
+
+# Install global npm packages
+RUN npm install -g \
+    expo-cli \
+    eas-cli \
+    @expo/ngrok \
+    typescript \
+    yarn
+
+# Set up Android SDK environment
+ENV ANDROID_HOME=/opt/android-sdk
+ENV PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+
+# Create workspace directory
+RUN mkdir -p /home/coder/workspace
+WORKDIR /home/coder/workspace
+
+# Pre-create Data Acuity SDK package
+RUN mkdir -p /home/coder/.local/share/dataacuity-sdk
+COPY sdk/ /home/coder/.local/share/dataacuity-sdk/
+
+# Install VS Code extensions for React Native development
+RUN code-server --install-extension dsznajder.es7-react-js-snippets \
+    && code-server --install-extension dbaeumer.vscode-eslint \
+    && code-server --install-extension esbenp.prettier-vscode \
+    && code-server --install-extension msjsdiag.vscode-react-native \
+    && code-server --install-extension bradlc.vscode-tailwindcss
+
+# Configure code-server settings
+RUN mkdir -p /home/coder/.local/share/code-server/User
+COPY settings.json /home/coder/.local/share/code-server/User/settings.json
+
+# Switch back to coder user
+USER coder
+
+# Set environment variables
+ENV EXPO_DEVTOOLS_LISTEN_ADDRESS=0.0.0.0
+ENV REACT_NATIVE_PACKAGER_HOSTNAME=0.0.0.0
+
+EXPOSE 8080
+EXPOSE 19000
+EXPOSE 19001
+EXPOSE 19002
+
+# Start code-server
+ENTRYPOINT ["/usr/bin/entrypoint.sh", "--bind-addr", "0.0.0.0:8080", "--auth", "none", "/home/coder/workspace"]

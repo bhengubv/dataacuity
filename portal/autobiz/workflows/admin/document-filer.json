@@ -1,0 +1,138 @@
+{
+  "name": "AutoBiz - Document Filer",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autobiz/file-document",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "doc-webhook",
+      "name": "Document Upload",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Auto-categorize and file document\nconst doc = $input.first().json;\nconst filename = (doc.filename || '').toLowerCase();\nconst content = (doc.content || '').toLowerCase();\n\n// Auto-detect document type\nlet docType = doc.type;\nlet category = doc.category;\nlet subCategory = '';\nlet tags = doc.tags || [];\n\nif (!docType) {\n  if (filename.includes('invoice') || content.includes('invoice')) {\n    docType = 'invoice';\n    category = 'finance';\n    subCategory = 'invoices';\n  } else if (filename.includes('quote') || content.includes('quotation')) {\n    docType = 'quote';\n    category = 'sales';\n    subCategory = 'quotes';\n  } else if (filename.includes('contract') || content.includes('agreement')) {\n    docType = 'contract';\n    category = 'legal';\n    subCategory = 'contracts';\n  } else if (filename.includes('receipt') || content.includes('receipt')) {\n    docType = 'receipt';\n    category = 'finance';\n    subCategory = 'expenses';\n  } else if (filename.includes('report')) {\n    docType = 'report';\n    category = 'operations';\n    subCategory = 'reports';\n  } else {\n    docType = 'general';\n    category = 'general';\n    subCategory = 'misc';\n  }\n}\n\n// Generate document ID and path\nconst docId = `DOC-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;\nconst year = new Date().getFullYear();\nconst month = String(new Date().getMonth() + 1).padStart(2, '0');\nconst filePath = `/${category}/${subCategory}/${year}/${month}/${docId}-${doc.filename}`;\n\n// Extract metadata\nlet extractedData = {};\nif (docType === 'invoice') {\n  const amountMatch = content.match(/total[:\\s]*r?([\\d,]+\\.?\\d*)/i);\n  if (amountMatch) extractedData.amount = parseFloat(amountMatch[1].replace(',', ''));\n  \n  const dateMatch = content.match(/(\\d{1,2}[\\/\\-]\\d{1,2}[\\/\\-]\\d{2,4})/);\n  if (dateMatch) extractedData.documentDate = dateMatch[1];\n}\n\nreturn {\n  ...doc,\n  docId: docId,\n  docType: docType,\n  category: category,\n  subCategory: subCategory,\n  filePath: filePath,\n  tags: [...new Set([...tags, docType, category])],\n  extractedData: extractedData,\n  filedAt: new Date().toISOString(),\n  status: 'filed'\n};"
+      },
+      "id": "categorize-doc",
+      "name": "Categorize Document",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.STORAGE_API_URL }}/upload",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"path\": \"{{ $json.filePath }}\",\n  \"content\": \"{{ $json.fileContent }}\",\n  \"contentType\": \"{{ $json.contentType }}\"\n}",
+        "options": {}
+      },
+      "id": "upload-file",
+      "name": "Upload to Storage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/documents",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"docId\": \"{{ $json.docId }}\",\n  \"filename\": \"{{ $json.filename }}\",\n  \"docType\": \"{{ $json.docType }}\",\n  \"category\": \"{{ $json.category }}\",\n  \"subCategory\": \"{{ $json.subCategory }}\",\n  \"filePath\": \"{{ $json.filePath }}\",\n  \"tags\": {{ JSON.stringify($json.tags) }},\n  \"extractedData\": {{ JSON.stringify($json.extractedData) }},\n  \"uploadedBy\": \"{{ $json.uploadedBy }}\",\n  \"relatedTo\": \"{{ $json.relatedTo || '' }}\",\n  \"filedAt\": \"{{ $json.filedAt }}\"\n}",
+        "options": {}
+      },
+      "id": "index-doc",
+      "name": "Index Document",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        910,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"docId\": \"{{ $json.docId }}\",\n  \"filePath\": \"{{ $json.filePath }}\",\n  \"docType\": \"{{ $json.docType }}\",\n  \"category\": \"{{ $json.category }}\"\n}",
+        "options": {}
+      },
+      "id": "doc-response",
+      "name": "Document Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1130,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Document Upload": {
+      "main": [
+        [
+          {
+            "node": "Categorize Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Categorize Document": {
+      "main": [
+        [
+          {
+            "node": "Upload to Storage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to Storage": {
+      "main": [
+        [
+          {
+            "node": "Index Document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Index Document": {
+      "main": [
+        [
+          {
+            "node": "Document Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

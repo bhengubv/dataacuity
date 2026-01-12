@@ -1,0 +1,172 @@
+{
+  "name": "AutoBiz - Communications Hub",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autobiz/incoming-message",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "message-webhook",
+      "name": "Incoming Message",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Route message to appropriate channel/handler\nconst msg = $input.first().json;\nconst source = msg.source || 'email'; // email, whatsapp, sms, chat, form\nconst subject = (msg.subject || '').toLowerCase();\nconst body = (msg.body || '').toLowerCase();\nconst content = subject + ' ' + body;\n\n// Generate message ID\nconst msgId = `MSG-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;\n\n// Classify message type\nlet messageType = 'inquiry';\nlet priority = 'normal';\nlet targetUnit = 'admin';\nlet autoReply = null;\n\n// Classify based on content\nif (content.match(/complaint|unhappy|disappointed|angry|terrible|refund/)) {\n  messageType = 'complaint';\n  priority = 'high';\n  targetUnit = 'customer_service';\n} else if (content.match(/quote|quotation|pricing|cost|how much/)) {\n  messageType = 'quote_request';\n  targetUnit = 'sales';\n} else if (content.match(/invoice|payment|account|statement|bill/)) {\n  messageType = 'billing';\n  targetUnit = 'finance';\n} else if (content.match(/order|delivery|shipping|track|where is/)) {\n  messageType = 'order_inquiry';\n  targetUnit = 'operations';\n} else if (content.match(/support|help|issue|problem|not working|broken/)) {\n  messageType = 'support';\n  targetUnit = 'customer_service';\n} else if (content.match(/subscribe|newsletter|marketing/)) {\n  messageType = 'marketing';\n  targetUnit = 'marketing';\n}\n\n// Check for VIP/existing customer\nconst isExistingCustomer = msg.customerId ? true : false;\nif (isExistingCustomer) priority = priority === 'normal' ? 'medium' : priority;\n\n// Generate auto-reply template\nconst autoReplies = {\n  quote_request: 'Thank you for your interest! One of our sales representatives will prepare a quote and get back to you within 24 hours.',\n  complaint: 'We\\'re sorry to hear you\\'re not satisfied. Your complaint has been escalated and someone will contact you within 4 hours.',\n  support: 'We\\'ve received your support request and are working on it. You\\'ll hear from us shortly.',\n  default: 'Thank you for contacting us. We\\'ve received your message and will respond soon.'\n};\n\nautoReply = autoReplies[messageType] || autoReplies.default;\n\nreturn {\n  ...msg,\n  msgId: msgId,\n  messageType: messageType,\n  priority: priority,\n  targetUnit: targetUnit,\n  source: source,\n  autoReply: autoReply,\n  isExistingCustomer: isExistingCustomer,\n  receivedAt: new Date().toISOString(),\n  status: 'new'\n};"
+      },
+      "id": "classify-message",
+      "name": "Classify Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"msgId\": \"{{ $json.msgId }}\",\n  \"source\": \"{{ $json.source }}\",\n  \"from\": \"{{ $json.from }}\",\n  \"fromName\": \"{{ $json.fromName }}\",\n  \"subject\": \"{{ $json.subject }}\",\n  \"body\": \"{{ $json.body }}\",\n  \"messageType\": \"{{ $json.messageType }}\",\n  \"priority\": \"{{ $json.priority }}\",\n  \"targetUnit\": \"{{ $json.targetUnit }}\",\n  \"customerId\": \"{{ $json.customerId || '' }}\",\n  \"status\": \"{{ $json.status }}\",\n  \"receivedAt\": \"{{ $json.receivedAt }}\"\n}",
+        "options": {}
+      },
+      "id": "log-message",
+      "name": "Log Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $json.from }}",
+        "subject": "=Re: {{ $json.subject || 'Your message to ' + $env.BUSINESS_NAME }}",
+        "emailType": "html",
+        "html": "=<p>Hi {{ $json.fromName?.split(' ')[0] || 'there' }},</p>\n<p>{{ $json.autoReply }}</p>\n<p>Your reference number is: <strong>{{ $json.msgId }}</strong></p>\n<p>Best regards,<br>{{ $env.BUSINESS_NAME }}</p>\n<hr style=\"margin: 30px 0; border: none; border-top: 1px solid #eee;\">\n<p style=\"font-size: 12px; color: #888;\">This is an automated response. Please do not reply to this email.</p>",
+        "options": {}
+      },
+      "id": "send-auto-reply",
+      "name": "Send Auto-Reply",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        910,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $env.OWNER_EMAIL }}",
+        "subject": "=[{{ $json.priority.toUpperCase() }}] {{ $json.messageType.replace('_', ' ').toUpperCase() }}: {{ $json.subject || 'New message' }}",
+        "emailType": "html",
+        "html": "=<div style=\"{{ $json.priority === 'high' ? 'border-left: 4px solid #FF3B30; padding-left: 15px;' : '' }}\">\n<h2>New {{ $json.messageType.replace('_', ' ') }}</h2>\n<table style=\"width: 100%; border-collapse: collapse;\">\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee; width: 30%;\"><strong>Reference:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee;\">{{ $json.msgId }}</td></tr>\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>From:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee;\">{{ $json.fromName }} ({{ $json.from }})</td></tr>\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Source:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee; text-transform: capitalize;\">{{ $json.source }}</td></tr>\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Priority:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee; font-weight: bold; color: {{ $json.priority === 'high' ? '#FF3B30' : '#333' }}; text-transform: uppercase;\">{{ $json.priority }}</td></tr>\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Routed to:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee; text-transform: capitalize;\">{{ $json.targetUnit.replace('_', ' ') }}</td></tr>\n{{ $json.isExistingCustomer ? '<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Customer:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee;\">Existing customer</td></tr>' : '' }}\n</table>\n{{ $json.subject ? '<p style=\"margin-top: 20px;\"><strong>Subject:</strong> ' + $json.subject + '</p>' : '' }}\n<div style=\"margin-top: 20px; padding: 15px; background: #f9f9f9; border-radius: 8px;\">\n<strong>Message:</strong><br>\n{{ $json.body }}\n</div>\n<p style=\"margin-top: 20px;\">\n<a href=\"{{ $env.CRM_URL }}/messages/{{ $json.msgId }}\" style=\"background: #007AFF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;\">View & Respond</a>\n</p>\n</div>",
+        "options": {}
+      },
+      "id": "notify-team",
+      "name": "Notify Team",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        910,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"msgId\": \"{{ $json.msgId }}\",\n  \"messageType\": \"{{ $json.messageType }}\",\n  \"routedTo\": \"{{ $json.targetUnit }}\"\n}",
+        "options": {}
+      },
+      "id": "comms-response",
+      "name": "Comms Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1130,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Incoming Message": {
+      "main": [
+        [
+          {
+            "node": "Classify Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Message": {
+      "main": [
+        [
+          {
+            "node": "Log Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Message": {
+      "main": [
+        [
+          {
+            "node": "Send Auto-Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify Team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Auto-Reply": {
+      "main": [
+        [
+          {
+            "node": "Comms Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Team": {
+      "main": [
+        [
+          {
+            "node": "Comms Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

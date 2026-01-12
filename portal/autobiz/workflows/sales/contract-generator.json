@@ -1,0 +1,216 @@
+{
+  "name": "AutoBiz - Contract Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autobiz/generate-contract",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "contract-webhook",
+      "name": "Contract Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "contract-number",
+              "name": "contractNumber",
+              "value": "=CTR-{{ $now.format('yyyyMMdd') }}-{{ $randomInt(1000, 9999) }}",
+              "type": "string"
+            },
+            {
+              "id": "created-date",
+              "name": "createdDate",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "start-date",
+              "name": "startDate",
+              "value": "={{ $json.startDate || $now.plus({ days: 7 }).toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "name": "status",
+              "value": "draft",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "generate-contract-number",
+      "name": "Generate Contract Number",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CRM_API_URL }}/quotes/{{ $json.quoteId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-quote",
+      "name": "Fetch Quote Details",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge contract and quote data, generate contract HTML\nconst contract = $('Generate Contract Number').first().json;\nconst quote = $input.first().json;\n\nconst mergedData = {\n  ...contract,\n  ...quote,\n  contractNumber: contract.contractNumber,\n  quoteNumber: quote.quoteNumber\n};\n\n// Contract duration\nconst duration = mergedData.durationMonths || 12;\nconst startDate = new Date(mergedData.startDate);\nconst endDate = new Date(startDate);\nendDate.setMonth(endDate.getMonth() + duration);\n\n// Payment terms\nconst paymentTerms = mergedData.paymentTerms || {\n  deposit: 50,\n  milestone: 25,\n  final: 25\n};\n\nconst totalAmount = parseFloat(mergedData.total) || 0;\nconst depositAmount = (totalAmount * paymentTerms.deposit / 100).toFixed(2);\n\nconst html = `\n<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: 'Georgia', serif; margin: 50px; color: #333; line-height: 1.6; }\n    .header { text-align: center; border-bottom: 2px solid #007AFF; padding-bottom: 20px; margin-bottom: 30px; }\n    .header h1 { color: #007AFF; margin-bottom: 5px; }\n    .header .contract-num { color: #666; }\n    .parties { display: flex; justify-content: space-between; margin-bottom: 30px; }\n    .party { width: 45%; }\n    .party h3 { color: #007AFF; margin-bottom: 10px; }\n    .section { margin-bottom: 25px; }\n    .section h2 { color: #333; font-size: 18px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }\n    .terms-list { padding-left: 20px; }\n    .terms-list li { margin-bottom: 10px; }\n    .financial-table { width: 100%; border-collapse: collapse; margin: 15px 0; }\n    .financial-table th, .financial-table td { padding: 10px; border: 1px solid #ddd; text-align: left; }\n    .financial-table th { background: #f5f5f5; }\n    .signature-section { margin-top: 50px; display: flex; justify-content: space-between; }\n    .signature-box { width: 45%; }\n    .signature-line { border-bottom: 1px solid #333; height: 40px; margin-bottom: 5px; }\n    .signature-label { font-size: 12px; color: #666; }\n    .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #666; }\n  </style>\n</head>\n<body>\n  <div class=\"header\">\n    <h1>SERVICE AGREEMENT</h1>\n    <div class=\"contract-num\">Contract No: ${mergedData.contractNumber}</div>\n  </div>\n  \n  <div class=\"parties\">\n    <div class=\"party\">\n      <h3>SERVICE PROVIDER</h3>\n      <strong>${mergedData.businessName || 'Your Company'}</strong><br>\n      ${mergedData.businessAddress || ''}<br>\n      ${mergedData.businessEmail || ''}\n    </div>\n    <div class=\"party\">\n      <h3>CLIENT</h3>\n      <strong>${mergedData.customerName}</strong><br>\n      ${mergedData.customerAddress || ''}<br>\n      ${mergedData.customerEmail || ''}\n    </div>\n  </div>\n  \n  <div class=\"section\">\n    <h2>1. SCOPE OF SERVICES</h2>\n    <p>The Service Provider agrees to provide the following services to the Client:</p>\n    <table class=\"financial-table\">\n      <thead><tr><th>Description</th><th>Qty</th><th>Amount</th></tr></thead>\n      <tbody>\n        ${mergedData.items?.map(item => \n          \\`<tr><td>\\${item.description}</td><td>\\${item.quantity}</td><td>R\\${item.lineTotal?.toFixed(2)}</td></tr>\\`\n        ).join('') || '<tr><td colspan=\"3\">As per quote</td></tr>'}\n      </tbody>\n    </table>\n  </div>\n  \n  <div class=\"section\">\n    <h2>2. CONTRACT PERIOD</h2>\n    <p><strong>Start Date:</strong> ${startDate.toLocaleDateString()}</p>\n    <p><strong>End Date:</strong> ${endDate.toLocaleDateString()}</p>\n    <p><strong>Duration:</strong> ${duration} months</p>\n  </div>\n  \n  <div class=\"section\">\n    <h2>3. PAYMENT TERMS</h2>\n    <p><strong>Total Contract Value:</strong> R${totalAmount.toFixed(2)}</p>\n    <ul class=\"terms-list\">\n      <li><strong>Deposit (${paymentTerms.deposit}%):</strong> R${depositAmount} due upon signing</li>\n      <li><strong>Milestone Payment (${paymentTerms.milestone}%):</strong> Due upon 50% completion</li>\n      <li><strong>Final Payment (${paymentTerms.final}%):</strong> Due upon completion</li>\n    </ul>\n  </div>\n  \n  <div class=\"section\">\n    <h2>4. TERMS & CONDITIONS</h2>\n    <ul class=\"terms-list\">\n      <li>All payments are due within 7 days of invoice date</li>\n      <li>Late payments will incur a 2% monthly interest charge</li>\n      <li>Either party may terminate with 30 days written notice</li>\n      <li>All work remains property of Service Provider until payment in full</li>\n      <li>This agreement is governed by South African law</li>\n    </ul>\n  </div>\n  \n  <div class=\"signature-section\">\n    <div class=\"signature-box\">\n      <div class=\"signature-line\"></div>\n      <div class=\"signature-label\">Service Provider Signature & Date</div>\n    </div>\n    <div class=\"signature-box\">\n      <div class=\"signature-line\"></div>\n      <div class=\"signature-label\">Client Signature & Date</div>\n    </div>\n  </div>\n  \n  <div class=\"footer\">\n    <p>This contract was generated on ${new Date().toLocaleDateString()}</p>\n    <p>Reference: ${mergedData.contractNumber} | Quote: ${mergedData.quoteNumber}</p>\n  </div>\n</body>\n</html>\n`;\n\nreturn {\n  ...mergedData,\n  endDate: endDate.toISOString(),\n  duration: duration,\n  depositAmount: depositAmount,\n  paymentTerms: paymentTerms,\n  contractHtml: html\n};"
+      },
+      "id": "generate-contract",
+      "name": "Generate Contract",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        910,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/contracts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contractNumber\": \"{{ $json.contractNumber }}\",\n  \"quoteId\": \"{{ $json.quoteId }}\",\n  \"customerId\": \"{{ $json.customerId }}\",\n  \"customerName\": \"{{ $json.customerName }}\",\n  \"totalValue\": {{ $json.total }},\n  \"startDate\": \"{{ $json.startDate }}\",\n  \"endDate\": \"{{ $json.endDate }}\",\n  \"duration\": {{ $json.duration }},\n  \"status\": \"{{ $json.status }}\",\n  \"createdAt\": \"{{ $json.createdDate }}\"\n}",
+        "options": {}
+      },
+      "id": "save-contract",
+      "name": "Save Contract to CRM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1130,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $json.customerEmail }}",
+        "subject": "=Your Contract {{ $json.contractNumber }} - Ready for Signature",
+        "emailType": "html",
+        "html": "=<h2>Hi {{ $json.customerName.split(' ')[0] }},</h2>\n<p>Great news! Your contract is ready for review and signature.</p>\n<p><strong>Contract Details:</strong></p>\n<ul>\n<li>Contract Number: {{ $json.contractNumber }}</li>\n<li>Total Value: R{{ $json.total }}</li>\n<li>Start Date: {{ new Date($json.startDate).toLocaleDateString() }}</li>\n<li>Duration: {{ $json.duration }} months</li>\n</ul>\n<p>Please review the attached contract and let us know if you have any questions.</p>\n<p>To proceed, please sign and return the contract, along with the deposit of R{{ $json.depositAmount }}.</p>\n<p>Looking forward to working with you!</p>\n<br>\n<p>Best regards,<br>{{ $env.OWNER_NAME }}<br>{{ $env.BUSINESS_NAME }}</p>",
+        "options": {}
+      },
+      "id": "send-contract",
+      "name": "Send Contract to Client",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1350,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"contractNumber\": \"{{ $json.contractNumber }}\",\n  \"totalValue\": \"R{{ $json.total }}\",\n  \"depositRequired\": \"R{{ $json.depositAmount }}\",\n  \"startDate\": \"{{ $json.startDate }}\",\n  \"endDate\": \"{{ $json.endDate }}\"\n}",
+        "options": {}
+      },
+      "id": "contract-response",
+      "name": "Contract Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1570,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Contract Request": {
+      "main": [
+        [
+          {
+            "node": "Generate Contract Number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Contract Number": {
+      "main": [
+        [
+          {
+            "node": "Fetch Quote Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Quote Details": {
+      "main": [
+        [
+          {
+            "node": "Generate Contract",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Contract": {
+      "main": [
+        [
+          {
+            "node": "Save Contract to CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Contract to CRM": {
+      "main": [
+        [
+          {
+            "node": "Send Contract to Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Contract to Client": {
+      "main": [
+        [
+          {
+            "node": "Contract Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

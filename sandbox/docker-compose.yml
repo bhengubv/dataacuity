@@ -1,0 +1,51 @@
+services:
+  webstudio:
+    build: .
+    container_name: sandbox_webstudio
+    restart: unless-stopped
+    ports:
+      - "5012:3000"
+    environment:
+      - HOST=0.0.0.0
+      - PORT=3000
+      # Database connection to existing PostgreSQL
+      - DATABASE_URL=postgresql://${DWH_USER:-dwh_user}:${DWH_PASSWORD}@data_warehouse:5432/webstudio
+      - DIRECT_URL=postgresql://${DWH_USER:-dwh_user}:${DWH_PASSWORD}@data_warehouse:5432/webstudio
+      # Builder origin for CORS and auth (subdomain is canonical)
+      - BUILDER_ORIGIN=${BUILDER_ORIGIN:-https://sandbox.dataacuity.co.za}
+      - BUILD_ORIGIN=${BUILD_ORIGIN:-https://sandbox.dataacuity.co.za}
+      # OIDC/Keycloak Authentication
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID:-dataacuity-webstudio}
+      - OIDC_CLIENT_SECRET=${OIDC_CLIENT_SECRET}
+      - OIDC_ISSUER=${OIDC_ISSUER:-https://auth.dataacuity.co.za/realms/dataacuity}
+      # All features enabled
+      - FEATURES=*
+      - USER_PLAN=pro
+      # Auth secret for sessions
+      - AUTH_SECRET=${AUTH_SECRET}
+      # Asset limits
+      - MAX_ASSETS_PER_PROJECT=100
+    networks:
+      - data-warehouse_data_stack
+    # Run migrations then start server
+    command: sh -c "cd /app && pnpm --filter=@webstudio-is/prisma-client migrations migrate --cwd /app/apps/builder && cd /app/apps/builder && pnpm start"
+
+  # ===========================================================================
+  # DEVELOPER IDE
+  # ===========================================================================
+  # Browser-based IDE for building React Native apps
+  # Accessible at sandbox.dataacuity.co.za/studio/ide
+  developer-ide:
+    image: nginx:alpine
+    container_name: sandbox_developer_ide
+    restart: unless-stopped
+    ports:
+      - "5013:80"
+    volumes:
+      - /home/geektrading/developer-studio/poc:/usr/share/nginx/html:ro
+    networks:
+      - data-warehouse_data_stack
+
+networks:
+  data-warehouse_data_stack:
+    external: true

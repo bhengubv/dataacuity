@@ -1,0 +1,370 @@
+================================================================================
+CIRCLE OS SPECIFICATION
+Chapter 09: Data Continuity
+================================================================================
+
+Document: 09_data_continuity.txt
+Version: 1.0
+Date: December 2025
+Status: Foundation
+
+================================================================================
+1. PHILOSOPHY
+================================================================================
+
+User data belongs to users.
+
+Switching to Circle OS must not mean losing years of photos, contacts, and
+memories. Dual boot enables data sharing. Migration tools enable portability.
+
+================================================================================
+2. SHARED STORAGE MODEL
+================================================================================
+
+2.1 ARCHITECTURE
+----------------
+Dual boot shares userdata partition:
+
+/data/
+├── android/          # Android-exclusive
+├── circle/           # Circle-exclusive
+└── shared/           # Both can access
+    ├── DCIM/         # Photos/Videos
+    ├── Pictures/     # Screenshots, downloads
+    ├── Music/        
+    ├── Documents/    
+    ├── Download/     
+    └── Media/        
+
+2.2 ACCESS RULES
+----------------
+CIRCLE OS CAN:
+- Read shared/* (user's photos, music, docs)
+- Write to shared/* (new files visible from Android)
+- Read android/media/0/ (public media on Android)
+
+CIRCLE OS CANNOT:
+- Read android/data/* (app private data)
+- Modify Android system files
+
+ANDROID CAN:
+- Read shared/* 
+- Read circle/media/ (if we expose it)
+
+ANDROID CANNOT:
+- Read circle/data/* (Circle app data)
+
+2.3 IMPLEMENTATION
+------------------
+Mount configuration:
+
+# Circle's view of shared storage
+/dev/block/.../userdata  /data       ext4  ...
+/data/shared             /sdcard     bindfs  ...
+
+# Permission mapping via bindfs
+user=media_rw, group=media_rw
+perms for shared/*: 0775
+
+================================================================================
+3. USER DATA TYPES
+================================================================================
+
+3.1 PHOTOS & VIDEOS
+-------------------
+LOCATION: /shared/DCIM/, /shared/Pictures/
+
+ACCESS: Immediately available in Circle
+
+MANAGEMENT:
+- Circle Gallery app sees all photos
+- New photos saved to /shared/DCIM/CircleCamera/
+- Android also sees Circle photos
+
+3.2 MUSIC
+---------
+LOCATION: /shared/Music/
+
+ACCESS: Immediately available
+
+MANAGEMENT:
+- Circle Music app indexes automatically
+- Playlists stored in Circle (not shared)
+
+3.3 DOCUMENTS
+-------------
+LOCATION: /shared/Documents/, /shared/Download/
+
+ACCESS: Immediately available
+
+MANAGEMENT:
+- Circle Files app shows all documents
+- PDF, Office, text files accessible
+
+3.4 CONTACTS
+------------
+STORAGE: Not shared automatically
+
+MIGRATION:
+1. Export from Android: Settings > Export contacts (.vcf)
+2. Save to /shared/Download/
+3. Import in Circle: Contacts > Import
+
+FUTURE: Migration wizard automates this
+
+3.5 MESSAGES (SMS)
+------------------
+STORAGE: Not shared (different databases)
+
+MIGRATION:
+1. Use SMS backup app on Android
+2. Export to XML
+3. Import in Circle Messages app
+
+LIMITATION:
+- Message threading may differ
+- Some metadata may be lost
+
+3.6 CALL HISTORY
+----------------
+STORAGE: Not shared
+
+MIGRATION:
+- Similar to SMS
+- Lower priority for most users
+
+================================================================================
+4. APP DATA
+================================================================================
+
+4.1 PRIVATE APP DATA
+--------------------
+Android app data in /data/data/ is NOT accessible from Circle.
+
+REASON:
+- Privacy protection
+- Different encryption contexts
+- App sandbox integrity
+
+RESULT:
+- Apps start fresh in Circle
+- Users must re-login
+- App settings reset
+
+4.2 SPECIFIC APP MIGRATION
+--------------------------
+WHATSAPP:
+- Official: Backup to Google Drive, restore in Circle WhatsApp
+- Alternative: Local backup (/shared/WhatsApp/Databases/)
+- Caveat: Local backup may not restore on different install
+
+SIGNAL:
+- Transfer via linked device feature
+- Or fresh start (recommended for security)
+
+TELEGRAM:
+- Cloud sync handles everything
+- No migration needed
+
+BANKING APPS:
+- Must re-enroll device
+- No data migration possible
+- This is actually good security
+
+================================================================================
+5. MIGRATION WIZARD
+================================================================================
+
+5.1 FIRST BOOT DETECTION
+------------------------
+Circle OS detects:
+- Is this a fresh install on formatted device?
+- Is this dual boot with Android present?
+- Is this migration from Android-only?
+
+If Android detected, offer migration wizard.
+
+5.2 WIZARD FLOW
+---------------
+STEP 1: WELCOME
+"We detected Android on this device. Would you like to import your data?"
+[Import Data] [Start Fresh]
+
+STEP 2: DATA SELECTION
+☑ Photos and Videos (12,345 items)
+☑ Music (2,456 songs)
+☑ Documents (789 files)
+☑ Contacts (456 contacts)
+☐ SMS Messages (requires backup file)
+[Continue]
+
+STEP 3: CONTACTS SOURCE
+"Where are your contacts stored?"
+○ Phone storage
+○ Google account (will need to export first)
+○ VCF file (select file)
+[Continue]
+
+STEP 4: PROGRESS
+"Importing your data..."
+[Progress bar]
+- Photos: ✓ Complete
+- Music: ✓ Complete
+- Documents: ✓ Complete
+- Contacts: Importing...
+
+STEP 5: COMPLETE
+"Your data is ready!"
+"Note: Apps will need to be reinstalled and will start fresh."
+[Continue to Circle]
+
+5.3 POST-MIGRATION
+------------------
+After migration:
+- Gallery shows photos
+- Files shows documents
+- Contacts shows imported contacts
+- Apps need fresh install
+
+================================================================================
+6. BACKUP & RESTORE
+================================================================================
+
+6.1 CIRCLE BACKUP
+-----------------
+Local backup of Circle data:
+
+INCLUDED:
+- Contacts
+- Messages (Circle apps)
+- Call logs
+- System settings
+- App list (not app data)
+- WiFi networks
+- Privacy settings
+
+NOT INCLUDED:
+- App private data (apps must support backup API)
+- Photos (already in shared storage)
+- Music (already in shared storage)
+
+FORMAT:
+- Encrypted archive
+- User sets backup password
+- Stored locally or external storage
+
+6.2 RESTORE
+-----------
+From backup file:
+
+1. Select backup file
+2. Enter password
+3. Select what to restore
+4. Apply restoration
+5. Reinstall apps (prompted)
+
+6.3 CLOUD BACKUP (OPTIONAL)
+---------------------------
+If user enables Circle Cloud (optional service):
+
+ENCRYPTED:
+- End-to-end encrypted
+- Circle cannot read contents
+- User holds keys
+
+CONTENTS:
+- Same as local backup
+- Synced incrementally
+
+PHILOSOPHY:
+- Optional, not default
+- Privacy preserved via E2E
+- No lock-in (can export anytime)
+
+================================================================================
+7. DATA EXPORT
+================================================================================
+
+7.1 FULL EXPORT
+---------------
+User can export all their data:
+
+AVAILABLE:
+- Contacts (VCF)
+- Messages (XML/JSON)
+- Call logs (CSV)
+- Photos (original files)
+- Documents (original files)
+- Privacy logs (JSON)
+- Settings (JSON)
+
+FORMAT:
+- Standard, open formats
+- Self-contained archive
+- No proprietary encoding
+
+7.2 PER-APP EXPORT
+------------------
+Apps should support:
+- Auto-backup API
+- Manual export function
+- Data portability
+
+Circle Store:
+- Rates apps on data portability
+- Labels apps that don't support export
+
+================================================================================
+8. DATA DELETION
+================================================================================
+
+8.1 APP DATA DELETION
+---------------------
+When app uninstalled:
+- App data deleted by default
+- User can choose to keep data
+- Data shown in storage settings
+
+8.2 ACCOUNT DATA DELETION
+-------------------------
+User requests account deletion:
+- All Circle account data removed
+- Local data remains (user's property)
+- Clear documentation of what's deleted
+
+8.3 FULL WIPE
+-------------
+Factory reset:
+- All user data erased
+- Encryption keys destroyed
+- Secure erase where hardware supports
+
+================================================================================
+9. SUMMARY
+================================================================================
+
+USERS KEEP THEIR DATA:
+- Photos immediately available
+- Music immediately available
+- Documents immediately available
+- Contacts importable
+- Messages importable (with effort)
+
+APPS START FRESH:
+- This is intentional (privacy)
+- Fresh start is cleaner
+- Specific apps may support migration
+
+MIGRATION WIZARD:
+- Guides new users
+- Automates common tasks
+- Explains limitations
+
+DATA PORTABILITY:
+- Export everything anytime
+- Standard formats
+- No lock-in
+
+================================================================================
+END OF CHAPTER 09
+================================================================================

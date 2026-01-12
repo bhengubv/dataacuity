@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataAcuity - Data Intelligence Platform</title>
+    <meta name="description" content="Unified data intelligence and analytics platform">
+    <link rel="icon" type="image/svg+xml" href="assets/logo-icon.svg">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/autobiz-templates.css">
+    <link rel="stylesheet" href="css/waitlist.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Minimal Top Bar -->
+    <header class="topbar">
+        <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle menu">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <line x1="3" y1="12" x2="21" y2="12"></line>
+                <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+        </button>
+
+        <a href="#home" class="topbar-brand">
+            <img src="assets/logo-icon.svg" alt="DataAcuity" width="28" height="28">
+            <span>DataAcuity</span>
+        </a>
+
+        <button class="search-trigger" id="search-trigger" title="Search (Cmd+K)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <span>Search...</span>
+            <kbd>⌘K</kbd>
+        </button>
+
+        <div class="topbar-actions">
+            <button class="topbar-btn" id="theme-toggle" title="Toggle theme">
+                <svg class="icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"></circle>
+                    <line x1="12" y1="1" x2="12" y2="3"></line>
+                    <line x1="12" y1="21" x2="12" y2="23"></line>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                    <line x1="1" y1="12" x2="3" y2="12"></line>
+                    <line x1="21" y1="12" x2="23" y2="12"></line>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                </svg>
+                <svg class="icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+
+            <div class="user-menu" id="user-menu">
+                <button class="user-btn" id="user-menu-btn">
+                    <span class="user-avatar" id="user-avatar">?</span>
+                </button>
+                <div class="user-dropdown hidden" id="user-dropdown">
+                    <div class="user-info">
+                        <span class="user-name" id="dropdown-user-name">Guest</span>
+                        <span class="user-email" id="dropdown-user-email"></span>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <a href="#settings" class="dropdown-item" data-page="settings">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                        Settings
+                    </a>
+                    <a href="#" class="dropdown-item" id="logout-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        Sign out
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Collapsible Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-nav">
+            <div class="nav-section">
+                <a href="#home" class="nav-item active" data-page="home">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                    <span>Home</span>
+                </a>
+                <a href="#apps" class="nav-item" data-page="apps">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="3" width="7" height="7"></rect>
+                        <rect x="14" y="14" width="7" height="7"></rect>
+                        <rect x="3" y="14" width="7" height="7"></rect>
+                    </svg>
+                    <span>All Apps</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Learning</div>
+                <a href="https://dataacuity.co.za/learn/" class="nav-item" target="_blank">
+                    <span class="nav-icon">📚</span>
+                    <span>Python Tutorials</span>
+                    <span class="nav-badge free">Free</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">AI & Dev</div>
+                <a href="#" class="nav-item" data-app="ai">
+                    <span class="nav-icon">🧠</span>
+                    <span>Ask AI</span>
+                </a>
+                <a href="https://dataacuity.co.za/studio/" class="nav-item" target="_blank">
+                    <span class="nav-icon">🎨</span>
+                    <span>Web Builder</span>
+                </a>
+                <a href="https://dataacuity.co.za/maps/" class="nav-item" target="_blank">
+                    <span class="nav-icon">🗺️</span>
+                    <span>Maps</span>
+                </a>
+                <a href="#" class="nav-item" data-app="grafana">
+                    <span class="nav-icon">💚</span>
+                    <span>System Health</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Automation</div>
+                <a href="#" class="nav-item" data-app="automatisch">
+                    <span class="nav-icon">⚡</span>
+                    <span>Quick Automate</span>
+                    <span class="nav-badge free">Free</span>
+                </a>
+                <a href="#" class="nav-item" data-app="workflows">
+                    <span class="nav-icon">🏗️</span>
+                    <span>Workflow Studio</span>
+                    <span class="nav-badge pro">Pro</span>
+                </a>
+                <a href="#" class="nav-item" data-app="etl">
+                    <span class="nav-icon">🔄</span>
+                    <span>Connect Apps</span>
+                </a>
+            </div>
+
+            <div class="nav-section">
+                <div class="nav-section-title">Productivity</div>
+                <a href="#" class="nav-item" data-app="markets">
+                    <span class="nav-icon">📈</span>
+                    <span>Stock Tracker</span>
+                    <span class="nav-badge free">Free</span>
+                </a>
+                <a href="#" class="nav-item" data-app="analytics">
+                    <span class="nav-icon">📊</span>
+                    <span>Charts & Reports</span>
+                </a>
+                <a href="#" class="nav-item" data-app="crm">
+                    <span class="nav-icon">👥</span>
+                    <span>Contacts</span>
+                </a>
+                <a href="#" class="nav-item" data-app="converter">
+                    <span class="nav-icon">📁</span>
+                    <span>File Tools</span>
+                    <span class="nav-badge free">Free</span>
+                </a>
+                <a href="#" class="nav-item" data-app="bio">
+                    <span class="nav-icon">🔗</span>
+                    <span>Link Page</span>
+                    <span class="nav-badge free">Free</span>
+                </a>
+            </div>
+
+            <div class="nav-section nav-section-bottom">
+                <a href="#autobiz" class="nav-item" data-page="autobiz">
+                    <span class="nav-icon">🚀</span>
+                    <span>AutoBiz</span>
+                </a>
+                <a href="#pricing" class="nav-item" data-page="pricing">
+                    <span class="nav-icon">💎</span>
+                    <span>Pricing</span>
+                </a>
+                <a href="#settings" class="nav-item" data-page="settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                    </svg>
+                    <span>Settings</span>
+                </a>
+            </div>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" id="main-content"></main>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container"></div>
+
+    <!-- Command Palette (Cmd+K) -->
+    <div id="command-palette" class="command-palette hidden">
+        <div class="command-overlay"></div>
+        <div class="command-modal">
+            <div class="command-input-wrapper">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input type="text" id="command-input" placeholder="Search apps, pages..." autocomplete="off">
+                <kbd>ESC</kbd>
+            </div>
+            <div class="command-results" id="command-results"></div>
+        </div>
+    </div>
+
+    <!-- Onboarding Modal -->
+    <div id="onboarding-modal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content onboarding-content">
+            <div class="onboarding-header">
+                <span class="onboarding-icon">👋</span>
+                <h2>Welcome to DataAcuity</h2>
+                <p>Your unified data intelligence platform</p>
+            </div>
+            <div class="onboarding-steps" id="onboarding-steps"></div>
+            <div class="onboarding-actions">
+                <button class="btn btn-secondary" id="onboarding-skip">Skip tour</button>
+                <button class="btn btn-primary" id="onboarding-next">Get started</button>
+            </div>
+            <div class="onboarding-progress">
+                <div class="progress-dots" id="progress-dots"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/components.js"></script>
+    <script src="js/pages.js"></script>
+    <script src="js/autobiz-templates.js"></script>
+    <script src="js/autobiz-ui.js"></script>
+    <script src="js/waitlist.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>

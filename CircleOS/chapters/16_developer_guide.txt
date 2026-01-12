@@ -1,0 +1,389 @@
+================================================================================
+CIRCLE OS SPECIFICATION
+Chapter 16: Developer Guide
+================================================================================
+
+Document: 16_developer_guide.txt
+Version: 1.0
+Date: December 2025
+Status: Foundation
+
+================================================================================
+1. DEVELOPMENT PHILOSOPHY
+================================================================================
+
+Circle OS development follows:
+- Privacy by design
+- Security by default
+- Accessibility required
+- Open source preferred
+
+================================================================================
+2. APP DEVELOPMENT
+================================================================================
+
+2.1 STANDARD ANDROID DEVELOPMENT
+--------------------------------
+Circle OS runs Android apps. Standard development applies:
+
+TOOLS:
+- Android Studio
+- Kotlin (preferred) or Java
+- Standard Android SDK
+
+TARGET:
+- API 34 (Android 14)
+- Minimum API 21 (Android 5.0)
+
+2.2 CIRCLE-SPECIFIC CONSIDERATIONS
+----------------------------------
+NETWORK PERMISSION:
+- Apps have no network by default
+- Request: android.permission.INTERNET
+- User must grant explicitly
+
+SCOPED STORAGE:
+- Use Storage Access Framework
+- No broad storage access
+- Request specific files/folders
+
+SCOPED CONTACTS:
+- Contact permission grants zero contacts
+- User adds contacts to your scope
+- Handle empty contacts gracefully
+
+DEVICE IDS:
+- Expect fake/random device IDs
+- Don't rely on hardware IDs for tracking
+- Use instance IDs for functionality
+
+2.3 BEST PRACTICES
+------------------
+PRIVACY:
+- Request minimum permissions
+- Explain why permissions needed
+- Work with permissions denied
+- Don't include trackers
+
+OFFLINE:
+- Work offline where possible
+- Cache data locally
+- Sync when connected
+- Handle no-network gracefully
+
+ACCESSIBILITY:
+- ContentDescription on all images
+- Minimum 48dp touch targets
+- Support text scaling
+- Test with TalkBack
+
+RESOURCES:
+- Minimize memory usage
+- Minimize storage usage
+- Respect battery optimization
+
+================================================================================
+3. SYSTEM APP DEVELOPMENT
+================================================================================
+
+3.1 CIRCLE APPS
+---------------
+Core Circle apps built with:
+
+FRAMEWORK:
+- Kotlin
+- Jetpack Compose (preferred)
+- Material Design 3
+- Circle Design System components
+
+BUILD:
+- Part of Circle OS AOSP tree
+- Built with system build
+
+PRIVILEGES:
+- Signature permissions
+- System UID where needed
+- Minimal necessary privileges
+
+3.2 CODE STANDARDS
+------------------
+KOTLIN:
+- Kotlin coding conventions
+- Coroutines for async
+- Flow for reactive streams
+
+DOCUMENTATION:
+- KDoc for public APIs
+- README for each module
+- Architecture documentation
+
+TESTING:
+- Unit tests required
+- UI tests for user-facing
+- Accessibility tests required
+
+================================================================================
+4. CIRCLE OS CONTRIBUTIONS
+================================================================================
+
+4.1 REPOSITORY STRUCTURE
+------------------------
+circle-os/
+├── kernel/           # Linux kernel
+├── system/           # Core system
+├── frameworks/       # Android framework modifications
+├── packages/         # System apps
+│   ├── apps/        # User-facing apps
+│   └── services/    # System services
+├── vendor/           # Vendor components
+├── hardware/         # HAL definitions
+├── build/            # Build system
+└── device/           # Device trees
+
+4.2 CONTRIBUTION PROCESS
+------------------------
+1. Fork repository
+2. Create feature branch
+3. Implement changes
+4. Write tests
+5. Submit pull request
+6. Code review
+7. Address feedback
+8. Merge
+
+4.3 CODE REVIEW REQUIREMENTS
+----------------------------
+SECURITY-SENSITIVE:
+- Two approvals required
+- Security team review
+- Thorough testing
+
+PRIVACY-SENSITIVE:
+- Privacy team review
+- Impact assessment
+- Documentation update
+
+NORMAL:
+- One approval
+- CI passing
+- Tests passing
+
+================================================================================
+5. API DOCUMENTATION
+================================================================================
+
+5.1 CIRCLE-SPECIFIC APIS
+------------------------
+PRIVACY MANAGER:
+```java
+// Check if app has network permission
+PrivacyManager pm = context.getSystemService(PrivacyManager.class);
+boolean hasNetwork = pm.hasNetworkPermission(packageName);
+
+// Get privacy score
+int score = pm.getPrivacyScore(packageName);
+
+// Get permission usage
+List<PermissionUsage> usage = pm.getPermissionUsage(packageName);
+```
+
+SCOPED CONTACTS:
+```java
+// Get scoped contacts for this app
+ContentResolver cr = context.getContentResolver();
+Cursor c = cr.query(
+    ContactsContract.ScopedContacts.CONTENT_URI,
+    projection, selection, args, sort);
+```
+
+5.2 MODIFIED ANDROID APIS
+-------------------------
+ADVERTISING ID:
+- Returns zeros by default
+- Always returns "limit tracking = true"
+
+DEVICE ID:
+- Returns fake/random values
+- Per-app unique where needed
+
+CLIPBOARD:
+- Background access blocked
+- User notified on access
+
+================================================================================
+6. BUILD SYSTEM
+================================================================================
+
+6.1 BUILDING CIRCLE OS
+----------------------
+PREREQUISITES:
+- Ubuntu 20.04+ or similar
+- 250GB+ free space
+- 16GB+ RAM
+- Fast internet
+
+SETUP:
+```bash
+# Install repo
+mkdir -p ~/bin
+curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+chmod a+x ~/bin/repo
+
+# Initialize
+repo init -u https://github.com/circleos/manifest.git -b main
+
+# Sync
+repo sync -j8
+
+# Build
+source build/envsetup.sh
+lunch circle_devicename-userdebug
+make -j$(nproc)
+```
+
+6.2 DEVICE BUILDS
+-----------------
+Generic (GSI):
+```bash
+lunch circle_arm64-userdebug
+make -j$(nproc)
+```
+
+P30 Lite:
+```bash
+lunch circle_mar-userdebug
+make -j$(nproc)
+```
+
+6.3 BUILD VARIANTS
+------------------
+- user: Production, locked
+- userdebug: Production + debugging
+- eng: Development, all debugging
+
+================================================================================
+7. TESTING
+================================================================================
+
+7.1 TESTING REQUIREMENTS
+------------------------
+UNIT TESTS:
+- Required for all business logic
+- JUnit + Mockito
+- Run on CI
+
+INSTRUMENTED TESTS:
+- Required for UI components
+- Espresso for views
+- Compose testing for Compose
+
+ACCESSIBILITY TESTS:
+- Required for all UI
+- AccessibilityChecks library
+- TalkBack manual testing
+
+7.2 CI/CD PIPELINE
+------------------
+ON PULL REQUEST:
+- Build verification
+- Unit tests
+- Static analysis (ktlint, detekt)
+- Accessibility checks
+
+ON MERGE:
+- Full build
+- Integration tests
+- Device tests (emulator farm)
+- Nightly on physical devices
+
+7.3 DEVICE TESTING
+------------------
+REFERENCE DEVICES:
+- P30 Lite (Tier 3)
+- Generic GSI (Tier 2)
+- Pixel (Tier 1, if available)
+
+TESTING MATRIX:
+- Fresh install
+- Upgrade from previous
+- Low memory conditions
+- Offline conditions
+
+================================================================================
+8. DEBUGGING
+================================================================================
+
+8.1 ADB DEBUGGING
+-----------------
+ENABLE:
+- Settings > About > Tap build number 7x
+- Settings > Developer options > USB debugging
+
+COMMANDS:
+```bash
+adb logcat             # View logs
+adb shell              # Shell access
+adb install app.apk    # Install app
+adb bugreport          # Full bug report
+```
+
+8.2 LOGGING
+-----------
+LEVELS:
+- ERROR: Always visible
+- WARN: Development + production
+- INFO: Development
+- DEBUG: Development only
+- VERBOSE: Never in production
+
+PRIVACY:
+- Never log personal data
+- Sanitize logs before sharing
+- Strip sensitive data in release
+
+================================================================================
+9. DOCUMENTATION
+================================================================================
+
+9.1 REQUIRED DOCUMENTATION
+--------------------------
+EVERY MODULE:
+- README.md: Purpose, setup, usage
+- API docs: KDoc/Javadoc
+- Architecture: Design decisions
+
+EVERY FEATURE:
+- User documentation
+- Developer documentation
+- Privacy impact assessment
+
+9.2 DOCUMENTATION STANDARDS
+---------------------------
+- Clear, concise language
+- Code examples where helpful
+- Keep updated with code
+
+================================================================================
+10. SUMMARY
+================================================================================
+
+APP DEVELOPERS:
+- Standard Android development
+- Handle Circle permission model
+- Respect privacy by design
+- Test accessibility
+
+SYSTEM DEVELOPERS:
+- Follow contribution guidelines
+- Security and privacy review
+- Comprehensive testing
+- Documentation required
+
+BUILD:
+- Standard AOSP-based build
+- Device-specific configurations
+- CI/CD for all changes
+
+================================================================================
+END OF CHAPTER 16
+================================================================================

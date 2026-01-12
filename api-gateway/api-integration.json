@@ -1,0 +1,325 @@
+{
+  "api_gateway": {
+    "name": "Data Acuity API Gateway",
+    "version": "1.0.0",
+    "base_url": "https://api.dataacuity.co.za",
+    "documentation": "https://docs.dataacuity.co.za",
+    "description": "Unified API gateway for all Data Acuity services"
+  },
+  "authentication": {
+    "methods": [
+      {
+        "type": "api_key",
+        "header": "X-API-Key",
+        "prefix": "dak_",
+        "description": "API key for external clients. Obtain from developer portal."
+      },
+      {
+        "type": "oauth2",
+        "token_url": "https://auth.dataacuity.co.za/realms/dataacuity/protocol/openid-connect/token",
+        "authorization_url": "https://auth.dataacuity.co.za/realms/dataacuity/protocol/openid-connect/auth",
+        "header": "Authorization",
+        "format": "Bearer {token}",
+        "description": "OAuth2/OIDC via Keycloak for user authentication"
+      },
+      {
+        "type": "internal_app",
+        "headers": {
+          "X-App-ID": "Your registered app ID (e.g., markets-dashboard)",
+          "X-App-Secret": "Your app secret (das_xxxxx)"
+        },
+        "description": "Internal app credentials for company applications. No rate limiting."
+      }
+    ],
+    "company_whitelisted_ips": [
+      "197.97.200.118",
+      "197.97.200.104",
+      "197.97.200.105",
+      "197.97.200.106",
+      "196.22.142.107"
+    ]
+  },
+  "rate_limiting": {
+    "authenticated": {
+      "requests_per_minute": 60,
+      "burst": 10,
+      "description": "Standard rate limit for authenticated requests"
+    },
+    "unauthenticated": {
+      "requests_per_minute": 10,
+      "daily_limit": 100,
+      "description": "Strict limits for public/unauthenticated access (markets & maps only)"
+    },
+    "headers": {
+      "X-RateLimit-Limit": "Maximum requests allowed",
+      "X-RateLimit-Remaining": "Requests remaining in window",
+      "X-RateLimit-Reset": "Unix timestamp when limit resets",
+      "X-Daily-Limit-Remaining": "Remaining daily requests (unauthenticated only)"
+    },
+    "bypass": "Requests from whitelisted IPs or with valid internal app credentials bypass rate limiting"
+  },
+  "services": {
+    "markets": {
+      "prefix": "/api/v1/markets",
+      "internal_url": "http://markets-api:5010",
+      "description": "Market data, prices, predictions, and sentiment analysis",
+      "auth_required": true,
+      "public_access": {
+        "enabled": true,
+        "rate_limit": 10,
+        "daily_limit": 100,
+        "description": "Limited public access without credentials"
+      },
+      "authenticated_rate_limit": 60,
+      "endpoints": [
+        {"method": "GET", "path": "/prices", "description": "Get current market prices"},
+        {"method": "GET", "path": "/prices/{symbol}", "description": "Get price for specific symbol"},
+        {"method": "GET", "path": "/predictions", "description": "Get market predictions"},
+        {"method": "GET", "path": "/sentiment", "description": "Get market sentiment analysis"},
+        {"method": "GET", "path": "/news", "description": "Get market news"},
+        {"method": "GET", "path": "/calendar", "description": "Get economic calendar events"}
+      ]
+    },
+    "maps": {
+      "prefix": "/api/v1/maps",
+      "internal_url": "http://maps-api:8000",
+      "description": "Historical maps, places, events, and geographical data",
+      "auth_required": true,
+      "public_access": {
+        "enabled": true,
+        "rate_limit": 10,
+        "daily_limit": 100,
+        "description": "Limited public access without credentials"
+      },
+      "authenticated_rate_limit": 60,
+      "endpoints": [
+        {"method": "GET", "path": "/places", "description": "Search historical places"},
+        {"method": "GET", "path": "/places/{id}", "description": "Get place details"},
+        {"method": "GET", "path": "/events", "description": "Get historical events"},
+        {"method": "GET", "path": "/maps", "description": "Get map layers"},
+        {"method": "GET", "path": "/timeline", "description": "Get timeline data"}
+      ]
+    },
+    "tagme": {
+      "prefix": "/api/v1/tagme",
+      "internal_url": "http://tagme-api:8000",
+      "description": "Location data ingestion from TagMe mobile app",
+      "auth_required": true,
+      "rate_limit": 100,
+      "endpoints": [
+        {"method": "POST", "path": "/locations", "description": "Submit location data"},
+        {"method": "GET", "path": "/locations", "description": "Get location history"},
+        {"method": "GET", "path": "/devices", "description": "List registered devices"},
+        {"method": "POST", "path": "/devices", "description": "Register new device"}
+      ]
+    },
+    "billing": {
+      "prefix": "/api/v1/billing",
+      "internal_url": "http://portal:80",
+      "description": "Subscription and billing management",
+      "auth_required": true,
+      "rate_limit": 30,
+      "endpoints": [
+        {"method": "GET", "path": "/subscriptions", "description": "Get user subscriptions"},
+        {"method": "POST", "path": "/subscriptions", "description": "Create subscription"},
+        {"method": "GET", "path": "/invoices", "description": "Get invoices"},
+        {"method": "GET", "path": "/usage", "description": "Get usage statistics"}
+      ]
+    },
+    "morph": {
+      "prefix": "/api/v1/convert",
+      "internal_url": "http://morph:3000",
+      "description": "File format conversion service",
+      "auth_required": true,
+      "rate_limit": 10,
+      "endpoints": [
+        {"method": "GET", "path": "/formats", "description": "List supported formats"},
+        {"method": "POST", "path": "/convert", "description": "Convert file"},
+        {"method": "GET", "path": "/jobs/{id}", "description": "Get conversion job status"},
+        {"method": "GET", "path": "/jobs/{id}/download", "description": "Download converted file"}
+      ]
+    },
+    "ai": {
+      "prefix": "/api/v1/ai",
+      "internal_url": "http://ai_brain_ollama:11434",
+      "description": "AI/LLM inference and generation",
+      "auth_required": true,
+      "rate_limit": 20,
+      "endpoints": [
+        {"method": "POST", "path": "/generate", "description": "Generate text completion"},
+        {"method": "POST", "path": "/chat", "description": "Chat completion"},
+        {"method": "POST", "path": "/embeddings", "description": "Generate embeddings"},
+        {"method": "GET", "path": "/models", "description": "List available models"}
+      ]
+    },
+    "openbb": {
+      "prefix": "/api/v1/openbb",
+      "internal_url": "http://openbb-platform:6900",
+      "description": "OpenBB financial data platform",
+      "auth_required": true,
+      "rate_limit": 60,
+      "endpoints": [
+        {"method": "GET", "path": "/equity/price", "description": "Get equity prices"},
+        {"method": "GET", "path": "/equity/fundamental", "description": "Get fundamental data"},
+        {"method": "GET", "path": "/economy/indicators", "description": "Get economic indicators"},
+        {"method": "GET", "path": "/crypto/price", "description": "Get crypto prices"}
+      ]
+    },
+    "crm": {
+      "prefix": "/api/v1/crm",
+      "internal_url": "http://twenty_crm:3000",
+      "description": "Twenty CRM - customer relationship management",
+      "auth_required": true,
+      "rate_limit": 60,
+      "endpoints": [
+        {"method": "GET", "path": "/companies", "description": "List companies"},
+        {"method": "POST", "path": "/companies", "description": "Create company"},
+        {"method": "GET", "path": "/people", "description": "List contacts"},
+        {"method": "POST", "path": "/people", "description": "Create contact"},
+        {"method": "GET", "path": "/opportunities", "description": "List opportunities"},
+        {"method": "POST", "path": "/opportunities", "description": "Create opportunity"},
+        {"method": "GET", "path": "/activities", "description": "List activities"}
+      ]
+    },
+    "n8n": {
+      "prefix": "/api/v1/workflows",
+      "internal_url": "http://n8n:5678",
+      "description": "N8N workflow automation and integrations",
+      "auth_required": true,
+      "rate_limit": 30,
+      "endpoints": [
+        {"method": "GET", "path": "/workflows", "description": "List workflows"},
+        {"method": "POST", "path": "/workflows", "description": "Create workflow"},
+        {"method": "GET", "path": "/workflows/{id}", "description": "Get workflow details"},
+        {"method": "POST", "path": "/workflows/{id}/execute", "description": "Execute workflow"},
+        {"method": "GET", "path": "/executions", "description": "List executions"},
+        {"method": "POST", "path": "/webhook/{path}", "description": "Trigger webhook"}
+      ]
+    },
+    "superset": {
+      "prefix": "/api/v1/analytics",
+      "internal_url": "http://superset:8088",
+      "description": "Apache Superset business intelligence and data visualization",
+      "auth_required": true,
+      "rate_limit": 60,
+      "endpoints": [
+        {"method": "GET", "path": "/dashboards", "description": "List dashboards"},
+        {"method": "GET", "path": "/dashboards/{id}", "description": "Get dashboard"},
+        {"method": "GET", "path": "/charts", "description": "List charts"},
+        {"method": "GET", "path": "/charts/{id}/data", "description": "Get chart data"},
+        {"method": "GET", "path": "/datasets", "description": "List datasets"},
+        {"method": "POST", "path": "/queries", "description": "Execute SQL query"}
+      ]
+    },
+    "etl": {
+      "prefix": "/api/v1/etl",
+      "internal_url": "http://172.17.0.1:5002",
+      "description": "Airbyte ETL - data integration and synchronization",
+      "auth_required": true,
+      "rate_limit": 30,
+      "endpoints": [
+        {"method": "GET", "path": "/sources", "description": "List data sources"},
+        {"method": "POST", "path": "/sources", "description": "Create source"},
+        {"method": "GET", "path": "/destinations", "description": "List destinations"},
+        {"method": "POST", "path": "/destinations", "description": "Create destination"},
+        {"method": "GET", "path": "/connections", "description": "List connections"},
+        {"method": "POST", "path": "/connections", "description": "Create connection"},
+        {"method": "POST", "path": "/connections/{id}/sync", "description": "Trigger sync"},
+        {"method": "GET", "path": "/jobs", "description": "List sync jobs"}
+      ]
+    },
+    "dashboard": {
+      "prefix": "/api/v1/status",
+      "internal_url": "http://dashboard-backend:5000",
+      "description": "System status dashboard and monitoring",
+      "auth_required": true,
+      "rate_limit": 60,
+      "endpoints": [
+        {"method": "GET", "path": "/services", "description": "Get all service statuses"},
+        {"method": "GET", "path": "/services/{name}", "description": "Get specific service status"},
+        {"method": "GET", "path": "/health", "description": "Overall system health"},
+        {"method": "GET", "path": "/metrics", "description": "System metrics"},
+        {"method": "GET", "path": "/incidents", "description": "Recent incidents"}
+      ]
+    },
+    "bio": {
+      "prefix": "/api/v1/bio",
+      "internal_url": "http://bio_onelink:3000",
+      "description": "Link-in-bio service for social media profiles",
+      "auth_required": true,
+      "rate_limit": 60,
+      "endpoints": [
+        {"method": "GET", "path": "/profiles", "description": "List user profiles"},
+        {"method": "POST", "path": "/profiles", "description": "Create profile"},
+        {"method": "GET", "path": "/profiles/{id}", "description": "Get profile"},
+        {"method": "PUT", "path": "/profiles/{id}", "description": "Update profile"},
+        {"method": "GET", "path": "/profiles/{id}/links", "description": "Get profile links"},
+        {"method": "POST", "path": "/profiles/{id}/links", "description": "Add link to profile"},
+        {"method": "GET", "path": "/analytics/{id}", "description": "Get profile analytics"}
+      ]
+    }
+  },
+  "internal_apps": {
+    "description": "Pre-registered internal applications for tracking API usage",
+    "registration_endpoint": "POST /admin/apps",
+    "apps": [
+      {"app_id": "markets-dashboard", "name": "Markets Dashboard", "type": "web_app"},
+      {"app_id": "portal-main", "name": "Data Acuity Portal", "type": "web_app"},
+      {"app_id": "tagme-mobile-ios", "name": "TagMe iOS App", "type": "mobile_app"},
+      {"app_id": "tagme-mobile-android", "name": "TagMe Android App", "type": "mobile_app"},
+      {"app_id": "maps-frontend", "name": "Historical Maps Frontend", "type": "web_app"},
+      {"app_id": "morph-converter", "name": "Morph File Converter", "type": "web_app"},
+      {"app_id": "ai-webui", "name": "AI Brain WebUI", "type": "web_app"},
+      {"app_id": "n8n-workflows", "name": "N8N Workflow Automation", "type": "service"},
+      {"app_id": "superset-analytics", "name": "Superset Analytics", "type": "service"},
+      {"app_id": "twenty-crm", "name": "Twenty CRM", "type": "service"}
+    ]
+  },
+  "common_headers": {
+    "request": {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "X-Request-ID": "Optional unique request identifier (UUID)",
+      "X-Correlation-ID": "Optional correlation ID for distributed tracing"
+    },
+    "response": {
+      "X-Request-ID": "Request identifier (echoed or generated)",
+      "X-RateLimit-Limit": "Rate limit ceiling",
+      "X-RateLimit-Remaining": "Remaining requests",
+      "X-RateLimit-Reset": "Reset timestamp"
+    }
+  },
+  "error_responses": {
+    "400": {"error": "Bad Request", "description": "Invalid request parameters"},
+    "401": {"error": "Unauthorized", "description": "Missing or invalid authentication"},
+    "403": {"error": "Forbidden", "description": "Insufficient permissions"},
+    "404": {"error": "Not Found", "description": "Resource not found"},
+    "429": {"error": "Too Many Requests", "description": "Rate limit exceeded"},
+    "500": {"error": "Internal Server Error", "description": "Server error"},
+    "502": {"error": "Bad Gateway", "description": "Upstream service unavailable"},
+    "503": {"error": "Service Unavailable", "description": "Service temporarily unavailable"}
+  },
+  "examples": {
+    "api_key_request": {
+      "curl": "curl -X GET 'https://api.dataacuity.co.za/api/v1/markets/prices' -H 'X-API-Key: dak_your_api_key_here'",
+      "description": "API key authentication (60 req/min)"
+    },
+    "internal_app_request": {
+      "curl": "curl -X GET 'https://api.dataacuity.co.za/api/v1/markets/prices' -H 'X-App-ID: markets-dashboard' -H 'X-App-Secret: das_your_app_secret'",
+      "description": "Internal app authentication (no rate limiting)"
+    },
+    "oauth2_request": {
+      "curl": "curl -X GET 'https://api.dataacuity.co.za/api/v1/billing/subscriptions' -H 'Authorization: Bearer eyJhbGciOiJSUzI1NiIs...'",
+      "description": "OAuth2 bearer token authentication"
+    },
+    "public_request": {
+      "curl": "curl -X GET 'https://api.dataacuity.co.za/api/v1/markets/prices'",
+      "description": "Public access to markets/maps only (10 req/min, 100/day limit)"
+    }
+  },
+  "support": {
+    "documentation": "https://docs.dataacuity.co.za",
+    "status_page": "https://status.dataacuity.co.za",
+    "contact": "api-support@dataacuity.co.za"
+  }
+}

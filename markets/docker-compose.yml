@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  openbb-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: markets_openbb_backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-openbb}:${DB_PASSWORD:-openbb_pass}@markets_db:5432/${DB_NAME:-openbb_data}
+    depends_on:
+      - markets_db
+    networks:
+      - data-warehouse_data_stack
+
+  markets_db:
+    image: postgres:15
+    container_name: markets_db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${DB_NAME:-openbb_data}
+      - POSTGRES_USER=${DB_USER:-openbb}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-openbb_pass}
+    volumes:
+      - markets_db_data:/var/lib/postgresql/data
+    networks:
+      - data-warehouse_data_stack
+
+  market-api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: markets_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-openbb}:${DB_PASSWORD:-openbb_pass}@markets_db:5432/${DB_NAME:-openbb_data}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5010,http://localhost:3000}
+    depends_on:
+      - markets_db
+    networks:
+      - data-warehouse_data_stack
+
+  market-dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile.dashboard
+    container_name: markets_dashboard
+    restart: unless-stopped
+    ports:
+      - "5010:80"
+    depends_on:
+      - market-api
+    networks:
+      - data-warehouse_data_stack
+
+volumes:
+  markets_db_data:
+
+networks:
+  data-warehouse_data_stack:
+    external: true

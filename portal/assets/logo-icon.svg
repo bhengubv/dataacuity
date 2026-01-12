@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#007AFF"/>
+      <stop offset="50%" style="stop-color:#5856D6"/>
+      <stop offset="100%" style="stop-color:#AF52DE"/>
+    </linearGradient>
+    <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#34C759"/>
+      <stop offset="100%" style="stop-color:#30D158"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="32" height="32" rx="7" fill="#0a0a0f"/>
+
+  <!-- Eye shape -->
+  <ellipse cx="16" cy="16" rx="12" ry="10" fill="url(#g1)"/>
+
+  <!-- Diamond aperture -->
+  <path d="M16,8 L22,16 L16,24 L10,16 Z" fill="#0a0a0f"/>
+
+  <!-- Iris -->
+  <circle cx="16" cy="16" r="5" fill="url(#g2)"/>
+
+  <!-- Pupil -->
+  <circle cx="16" cy="16" r="2.5" fill="#0a0a0f"/>
+
+  <!-- Highlight -->
+  <circle cx="14.5" cy="14.5" r="1" fill="white" opacity="0.9"/>
+
+  <!-- Corner data nodes -->
+  <circle cx="5" cy="5" r="1.5" fill="#007AFF"/>
+  <circle cx="27" cy="5" r="1.5" fill="#AF52DE"/>
+  <circle cx="27" cy="27" r="1.5" fill="#FF9500"/>
+  <circle cx="5" cy="27" r="1.5" fill="#34C759"/>
+</svg>

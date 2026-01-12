@@ -1,0 +1,667 @@
+================================================================================
+CIRCLE OS SPECIFICATION
+Chapter 03: Security Model
+================================================================================
+
+Document: 03_security.txt
+Version: 1.0
+Date: December 2025
+Status: Foundation
+
+================================================================================
+REFERENCE
+================================================================================
+
+This chapter draws heavily from GrapheneOS security model.
+Credit: GrapheneOS project (https://grapheneos.org)
+
+Where we diverge or extend, we note explicitly.
+Where hardware limits prevent parity, we document honestly.
+
+================================================================================
+1. THREAT MODEL
+================================================================================
+
+1.1 WHAT WE PROTECT AGAINST
+---------------------------
+REMOTE ATTACKS
+- Malicious apps attempting data exfiltration
+- Network-based exploits (malformed packets, MITM)
+- Malicious websites / drive-by downloads
+- Phishing and social engineering (technical mitigations only)
+- Remote code execution via messaging (Pegasus-style)
+
+LOCAL ATTACKS  
+- Physical device theft
+- Shoulder surfing (PIN observation)
+- Evil maid attacks (device tampered while unattended)
+- Forced unlock (duress situations)
+- Forensic extraction (Cellebrite-style tools)
+
+SUPPLY CHAIN
+- Compromised apps in stores
+- Malicious updates
+- Backdoored builds
+
+PLATFORM ATTACKS
+- Privilege escalation from app to system
+- Kernel exploits
+- Bootloader attacks
+- Firmware attacks (where we have visibility)
+
+
+1.2 WHAT WE CANNOT FULLY PROTECT AGAINST
+----------------------------------------
+NATION-STATE WITH PHYSICAL ACCESS
+- Hardware implants
+- JTAG/chip-off attacks
+- Rubber hose cryptanalysis (torture)
+
+COMPROMISED BASEBAND
+- The cellular modem runs proprietary firmware
+- We isolate it, but cannot verify it
+- Circle native hardware will use open baseband where available
+
+ZERO-DAY EXPLOITS
+- We harden aggressively to raise the bar
+- We cannot guarantee immunity to unknown vulnerabilities
+
+USER INSTALLING MALWARE
+- If user explicitly grants permissions to malicious app, we show warnings
+- We cannot prevent determined self-harm
+
+
+1.3 HONEST LIMITATIONS BY HARDWARE TIER
+---------------------------------------
+TIER 1 (Circle Native, Pixel with Circle OS)
+- Full threat model coverage
+- Hardware root of trust
+- Verified boot with re-locking
+- Attestation available
+
+TIER 2 (Treble devices, unlocked bootloader)
+- Strong software protections
+- No hardware attestation
+- Bootloader cannot be re-locked (physical access = game over for some attacks)
+- Baseband isolation best-effort
+
+TIER 3 (P30 Lite, exploit-boot devices)
+- Best-effort software protections
+- Boot chain not verified (we got in via exploit)
+- Cannot guarantee system integrity against sophisticated physical attacker
+- Still dramatically better than stock Android
+
+Users see their tier clearly in Settings > Security > Device Security Status.
+
+================================================================================
+2. KERNEL HARDENING
+================================================================================
+
+2.1 BASELINE: GRAPHENEOS KERNEL PATCHES
+---------------------------------------
+We adopt GrapheneOS kernel hardening where applicable:
+
+MEMORY PROTECTIONS
+- CONFIG_INIT_ON_ALLOC_DEFAULT_ON (zero memory on allocation)
+- CONFIG_INIT_ON_FREE_DEFAULT_ON (zero memory on free)
+- CONFIG_ZERO_CALL_USED_REGS (clear registers after function return)
+- CONFIG_RANDOMIZE_KSTACK_OFFSET (randomize kernel stack offset)
+
+EXPLOIT MITIGATIONS
+- CONFIG_CFI_CLANG (Control Flow Integrity)
+- CONFIG_SHADOW_CALL_STACK (protect return addresses)
+- CONFIG_STACKPROTECTOR_STRONG (stack canaries)
+
+ATTACK SURFACE REDUCTION
+- Disable unused drivers
+- Disable unused filesystems
+- Disable kernel modules loading after boot (where possible)
+- Disable kexec
+
+DEBUG/ATTACK SURFACE REMOVAL
+- No kallsyms for unprivileged users
+- No dmesg for unprivileged users
+- No kprobes in production builds
+- No perf for unprivileged users
+
+
+2.2 HARDENED_MALLOC
+-------------------
+Replace standard allocator with hardened_malloc (GrapheneOS project):
+
+FEATURES
+- Guard pages between allocations
+- Randomized allocation
+- Quarantine for freed memory
+- Canaries on allocations
+- Hardened metadata
+
+IMPLEMENTATION
+- System-wide default allocator
+- Used by all native processes
+- Zygote (app spawner) uses it, so all apps inherit it
+
+
+2.3 SELINUX IN ENFORCING MODE
+-----------------------------
+Mandatory Access Control via SELinux:
+
+POLICY
+- Strict policy based on AOSP but tightened
+- No permissive domains in production
+- App domains cannot access other app data
+- System services have minimal required permissions
+
+CUSTOM RULES
+- Circle Privacy Manager has dedicated domain
+- Circle Firewall has dedicated domain  
+- No domain can bypass privacy controls
+
+
+2.4 SECCOMP-BPF FILTERS
+-----------------------
+System call filtering:
+
+IMPLEMENTATION
+- Baseline filter for all apps (block dangerous syscalls)
+- Tightened filter for sensitive processes
+- Zygote applies filter before spawning apps
+
+BLOCKED SYSCALLS (examples)
+- kexec_load (kernel replacement)
+- init_module (kernel module loading)
+- delete_module
+- reboot (except system process)
+- syslog (kernel log access)
+
+================================================================================
+3. VERIFIED BOOT & INTEGRITY
+================================================================================
+
+3.1 VERIFIED BOOT (TIER 1 ONLY)
+-------------------------------
+Full chain of trust from hardware:
+
+BOOT FLOW
+1. Hardware root of trust verifies bootloader
+2. Bootloader verifies boot partition (kernel + ramdisk)
+3. Kernel verifies system partition (dm-verity)
+4. Init verifies critical services
+
+IMPLEMENTATION
+- AVB (Android Verified Boot) 2.0
+- Custom signing keys (Circle Foundation)
+- Bootloader re-locked after install
+- Rollback protection enabled
+
+USER-VISIBLE
+- "Verified" status in Settings
+- Warning if verification unavailable
+
+
+3.2 DM-VERITY (ALL TIERS)
+-------------------------
+System partition integrity:
+
+IMPLEMENTATION
+- Read-only system partition
+- Merkle tree hash verification
+- Any modification = boot failure or detection
+
+LIMITATION (Tier 3)
+- If we booted via exploit, initial boot wasn't verified
+- dm-verity still protects against runtime modification
+
+
+3.3 RUNTIME INTEGRITY
+---------------------
+Ongoing system verification:
+
+CHECKS
+- Periodic verification of critical binaries (hashes)
+- Detection of mounted rootfs modifications
+- Integrity of security policy files
+
+RESPONSE
+- Alert user to tampering
+- Option to refuse boot if integrity compromised (user choice)
+
+================================================================================
+4. ENCRYPTION
+================================================================================
+
+4.1 FILE-BASED ENCRYPTION (FBE)
+-------------------------------
+Per-file encryption with per-user keys:
+
+IMPLEMENTATION
+- AES-256-XTS for file contents
+- AES-256-CTS for file names
+- Per-profile keys (main user, work profile, kid mode)
+
+KEY DERIVATION
+- User credential (PIN/password) + hardware binding
+- Weaver HAL where available (Tier 1)
+- Software KDF fallback (Tier 2/3)
+
+
+4.2 METADATA ENCRYPTION
+-----------------------
+File metadata protection:
+
+IMPLEMENTATION
+- dm-default-key for metadata encryption
+- Protects file sizes, timestamps, structure
+- Enabled by default
+
+
+4.3 MEMORY ENCRYPTION
+---------------------
+RAM encryption (hardware dependent):
+
+TIER 1 (if hardware supports)
+- ARM Memory Tagging Extension (MTE)
+- Intel TME / AMD SME where applicable
+
+ALL TIERS
+- Zeroize sensitive memory after use
+- Avoid swapping sensitive data
+- Auto-reboot clears all keys
+
+
+4.4 NETWORK ENCRYPTION
+----------------------
+All Circle OS services use:
+- TLS 1.3 minimum
+- Certificate pinning for Circle services
+- DNS over HTTPS/TLS by default
+- Optional Tor integration
+
+================================================================================
+5. SANDBOXING
+================================================================================
+
+5.1 APP SANDBOX
+---------------
+Process isolation:
+
+IMPLEMENTATION  
+- Unique UID per app
+- Unique SELinux context per app
+- Private data directory (no other app access)
+- No shared storage without explicit permission
+
+ENHANCED (beyond AOSP)
+- Network permission required (not granted by default)
+- Sensor permissions explicit (accelerometer, gyroscope)
+- Clipboard access requires permission
+
+
+5.2 WEBVIEW ISOLATION
+---------------------
+Browser engine sandboxing:
+
+IMPLEMENTATION
+- Site isolation (each site in separate process)
+- Renderer process sandboxed
+- Network process sandboxed
+- GPU process sandboxed
+
+WEBVIEW PROVIDER
+- Chromium-based with privacy patches
+- No Google tracking
+- JIT disabled in sensitive contexts (option)
+
+
+5.3 ANDROID COMPATIBILITY LAYER
+-------------------------------
+Apps running via ART:
+
+SANDBOX MODEL
+- Standard Android sandbox applies
+- Circle extensions on top (network permission, etc.)
+- Cannot bypass Circle Privacy Manager
+
+GOOGLE PLAY SERVICES (if installed)
+- Runs as regular app, not privileged
+- Same sandbox as any other app
+- No special access to hardware attestation
+- User sees everything it does in Privacy Dashboard
+
+
+5.4 INTER-PROCESS COMMUNICATION
+-------------------------------
+IPC restrictions:
+
+BINDER
+- SELinux policy restricts which processes talk
+- No arbitrary binder access between apps
+
+INTENTS
+- Broadcast intents filtered
+- Sensitive broadcasts (SMS received, etc.) restricted
+
+CONTENT PROVIDERS
+- Cross-app data access requires explicit grant
+- Storage Access Framework enforced
+
+================================================================================
+6. AUTHENTICATION
+================================================================================
+
+6.1 PIN / PASSWORD
+------------------
+Primary authentication:
+
+REQUIREMENTS
+- Minimum 6 digits (recommended: 8+ alphanumeric)
+- Lockout after failed attempts (exponential backoff)
+- No "simple" PINs (1234, 0000 blocked)
+
+PIN SCRAMBLING
+- Keypad layout randomizes on each unlock attempt
+- Defeats shoulder surfing
+- Optional (enabled by default)
+
+
+6.2 BIOMETRICS
+--------------
+Secondary authentication:
+
+POLICY
+- Biometric unlocks only after PIN verified at boot
+- Biometric data never leaves device
+- Biometric data encrypted with device key
+
+LOCKDOWN MODE
+- Quick tile to disable biometrics temporarily
+- Useful in coerced unlock situations
+
+
+6.3 DURESS FEATURES
+-------------------
+Protection under coercion:
+
+DURESS PIN
+- Secondary PIN that appears to unlock
+- Actually triggers secure wipe
+- User configures secret duress PIN
+
+EMERGENCY LOCKDOWN
+- 5 taps power button = immediate lockdown
+- Biometrics disabled
+- USB data disabled
+- Requires PIN to unlock
+
+AUTO-REBOOT
+- Device reboots if not unlocked for N hours (configurable)
+- Clears encryption keys from memory
+- Requires full PIN entry to boot
+- Default: 18 hours
+
+
+6.4 SIM PIN
+-----------
+Cellular security:
+
+IMPLEMENTATION
+- SIM PIN enabled by default
+- Required on boot
+- Separate from device PIN
+
+================================================================================
+7. NETWORK SECURITY
+================================================================================
+
+7.1 NETWORK PERMISSION
+----------------------
+Revolutionary feature (not in stock Android):
+
+IMPLEMENTATION
+- Apps have no network access by default
+- User must grant "Network access" permission
+- Can be revoked at any time
+- Works for both WiFi and cellular
+
+UI
+- Permission requested like camera/mic
+- "This app wants to access the internet"
+
+
+7.2 PER-APP NETWORK POLICY
+--------------------------
+Granular control:
+
+OPTIONS
+- Full network access
+- WiFi only
+- Cellular only  
+- No network
+- VPN only
+
+FIREWALL RULES
+- Block specific domains per app
+- Allow-list mode (only specified domains)
+- Logged in Privacy Dashboard
+
+
+7.3 MAC RANDOMIZATION
+---------------------
+Prevent tracking via hardware addresses:
+
+IMPLEMENTATION
+- Per-connection MAC address
+- New MAC for each WiFi network
+- New MAC for each connection attempt
+- Option for per-network persistent MAC (for captive portals)
+
+
+7.4 DNS PRIVACY
+---------------
+Prevent DNS-based tracking:
+
+IMPLEMENTATION
+- DNS over HTTPS (DoH) by default
+- DNS over TLS (DoT) supported
+- Multiple provider options
+- Custom server option
+
+DEFAULT PROVIDER
+- Quad9 (privacy-focused, no logging)
+- User can change
+
+
+7.5 VPN SUPPORT
+---------------
+First-class VPN integration:
+
+FEATURES
+- Always-on VPN option
+- Block non-VPN traffic option
+- Per-app VPN routing
+- WireGuard built-in
+
+================================================================================
+8. PHYSICAL SECURITY
+================================================================================
+
+8.1 USB SECURITY
+----------------
+Protect against USB attacks:
+
+CHARGING ONLY MODE
+- Default when locked: USB data disabled
+- Only charging functions enabled
+- Defeats juice-jacking attacks
+
+USER-CONTROLLED DATA
+- Must unlock and approve USB data
+- Timeout after N minutes of inactivity
+
+ADB CONTROLS
+- ADB disabled by default
+- Requires developer options + explicit enable
+- Per-computer authorization required
+
+
+8.2 SCREEN SECURITY
+-------------------
+Prevent visual surveillance:
+
+FEATURES
+- Screen off on face-down (accelerometer)
+- Quick blank option
+- No sensitive data in notifications on lock screen (default)
+- Notification content hidden until unlock
+
+
+8.3 SECURE ELEMENT
+------------------
+Hardware key storage:
+
+TIER 1
+- StrongBox / Titan M for key storage
+- Attestation keys
+- Authentication keys
+
+TIER 2/3
+- TEE (TrustZone) where available
+- Software fallback with documentation
+
+================================================================================
+9. UPDATE SECURITY
+================================================================================
+
+9.1 SIGNED UPDATES
+------------------
+Update authenticity:
+
+IMPLEMENTATION
+- All updates signed with Circle Foundation keys
+- Signature verified before install
+- Rollback protection (cannot downgrade to vulnerable version)
+
+
+9.2 A/B UPDATES
+---------------
+Seamless updates:
+
+IMPLEMENTATION
+- Dual partition scheme
+- Update installs to inactive partition
+- Verify before reboot
+- Automatic rollback on boot failure
+
+
+9.3 UPDATE CADENCE
+------------------
+Timely security fixes:
+
+COMMITMENT
+- Monthly security patches
+- Critical vulnerabilities: emergency patch within 72 hours
+- Kernel LTS updates
+
+================================================================================
+10. SECURITY INDICATORS
+================================================================================
+
+10.1 STATUS BAR INDICATORS
+--------------------------
+Always-visible security status:
+
+INDICATORS
+- 🎤 Microphone in use
+- 📷 Camera in use
+- 📍 Location in use
+- 🔒 VPN connected
+- ⚠️ Security warning
+
+BEHAVIOR
+- Cannot be hidden by apps
+- System-drawn, not spoofable
+
+
+10.2 PERMISSION USE NOTIFICATIONS
+---------------------------------
+Real-time awareness:
+
+IMPLEMENTATION
+- "App X is using your camera" notification
+- Tap to go to app settings
+- Persistent while permission in use
+
+
+10.3 SECURITY DASHBOARD
+-----------------------
+Comprehensive status view:
+
+DISPLAYS
+- Device security tier
+- Last security update
+- Encryption status
+- Verified boot status
+- Active security features
+- Recommendations for improvement
+
+================================================================================
+11. INCIDENT RESPONSE
+================================================================================
+
+11.1 EXPLOIT DETECTION
+----------------------
+Runtime anomaly detection:
+
+MONITORS
+- Unexpected privilege escalation
+- SELinux violations
+- Unusual system call patterns
+- Memory corruption indicators
+
+RESPONSE
+- Log incident (local)
+- Alert user
+- Optional: submit anonymized crash report
+
+
+11.2 REMOTE WIPE
+----------------
+Lost device protection:
+
+IMPLEMENTATION
+- Circle account (optional) can trigger remote wipe
+- Works via push notification
+- User can self-trigger from web
+- No tracking of device location (privacy preserved)
+
+
+11.3 PANIC BUTTON
+-----------------
+Emergency data destruction:
+
+IMPLEMENTATION
+- Quick action to wipe sensitive data
+- Configurable scope (messages, photos, all)
+- Irreversible
+
+================================================================================
+12. SUMMARY: SECURITY COMMITMENTS
+================================================================================
+
+WE WILL:
+- Implement GrapheneOS-level hardening where possible
+- Be transparent about hardware security limitations
+- Ship security updates monthly
+- Respond to critical vulnerabilities within 72 hours
+- Default to secure configurations
+- Make security status visible to users
+
+WE WILL NOT:
+- Claim security we cannot deliver
+- Weaken security for app compatibility
+- Hide security limitations
+- Ship without security review
+
+================================================================================
+END OF CHAPTER 03
+================================================================================

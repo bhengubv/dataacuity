@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Acuity Developer Studio</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+        }
+
+        .logo-text {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .logo-text span {
+            color: #667eea;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #2a2a3e;
+            color: #e0e0e0;
+            border: 1px solid #444;
+        }
+
+        .btn-dribbble {
+            background: linear-gradient(135deg, #ea4c89 0%, #c32361 100%);
+            color: white;
+        }
+
+        .btn-dribbble:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(234, 76, 137, 0.4);
+        }
+
+        .main {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
+        .sidebar {
+            width: 280px;
+            background: #111;
+            border-right: 1px solid #333;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .sidebar h3 {
+            color: #888;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.75rem;
+            padding: 0 0.5rem;
+        }
+
+        .import-section {
+            background: linear-gradient(135deg, rgba(234, 76, 137, 0.1) 0%, rgba(195, 35, 97, 0.1) 100%);
+            border: 1px dashed #ea4c89;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .import-section h4 {
+            color: #ea4c89;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .import-section p {
+            color: #888;
+            font-size: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .template-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .template-card {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .template-card:hover {
+            border-color: #667eea;
+            background: #1f1f35;
+        }
+
+        .template-card.active {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        }
+
+        .template-card h4 {
+            color: #fff;
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .template-card p {
+            color: #888;
+            font-size: 0.75rem;
+            line-height: 1.4;
+        }
+
+        .template-card .tag {
+            display: inline-block;
+            background: #2a2a3e;
+            color: #667eea;
+            font-size: 0.65rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            margin-top: 0.5rem;
+        }
+
+        .template-card .tag.ai {
+            background: rgba(234, 76, 137, 0.2);
+            color: #ea4c89;
+        }
+
+        .editor-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .editor-tabs {
+            display: flex;
+            background: #1a1a1a;
+            border-bottom: 1px solid #333;
+            padding: 0 1rem;
+        }
+
+        .tab {
+            padding: 0.75rem 1rem;
+            color: #888;
+            font-size: 0.875rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: #e0e0e0;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .snack-container {
+            flex: 1;
+            background: #0a0a0a;
+        }
+
+        .snack-embed {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: #111;
+            border-top: 1px solid #333;
+        }
+
+        .action-bar-left {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-bar-right {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #888;
+            font-size: 0.8rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: #1a1a2e;
+            border-radius: 12px;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            border: 1px solid #333;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal h2 {
+            color: #fff;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .modal p {
+            color: #888;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .input-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .input-group label {
+            display: block;
+            color: #888;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .input-group input, .input-group textarea {
+            width: 100%;
+            padding: 0.75rem;
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            color: #fff;
+            font-size: 0.9rem;
+        }
+
+        .input-group input:focus, .input-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .input-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .drop-zone {
+            border: 2px dashed #444;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: #ea4c89;
+            background: rgba(234, 76, 137, 0.05);
+        }
+
+        .drop-zone-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .drop-zone h4 {
+            color: #fff;
+            margin-bottom: 0.5rem;
+        }
+
+        .drop-zone p {
+            color: #888;
+            font-size: 0.875rem;
+            margin-bottom: 0;
+        }
+
+        .analysis-results {
+            background: #0a0a0a;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .analysis-results h4 {
+            color: #22c55e;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .analysis-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #e0e0e0;
+            font-size: 0.875rem;
+            padding: 0.25rem 0;
+        }
+
+        .analysis-item .check {
+            color: #22c55e;
+        }
+
+        .color-palette {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .color-swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            border: 1px solid #333;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #333;
+            border-top-color: #ea4c89;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .preview-image {
+            max-width: 100%;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo">
+            <div class="logo-icon"></div>
+            <div class="logo-text">Data Acuity <span>Studio</span></div>
+        </div>
+        <div class="user-info">
+            <button class="btn btn-secondary" onclick="showDocs()">Documentation</button>
+            <button class="btn btn-primary" onclick="showPublish()">Publish to Slepton</button>
+        </div>
+    </header>
+
+    <main class="main">
+        <aside class="sidebar">
+            <!-- Dribbble Import Section -->
+            <div class="import-section">
+                <h4>Import from Design</h4>
+                <p>Turn any Dribbble shot or screenshot into code</p>
+                <button class="btn btn-dribbble" onclick="showDribbbleImport()">
+                    Import Design
+                </button>
+            </div>
+
+            <h3>Templates</h3>
+            <div class="template-list">
+                <div class="template-card active" onclick="loadTemplate('markets')">
+                    <h4>Markets Dashboard</h4>
+                    <p>Real-time market data with prices, charts, and predictions</p>
+                    <span class="tag">Beginner</span>
+                </div>
+
+                <div class="template-card" onclick="loadTemplate('game')">
+                    <h4>Simple Game</h4>
+                    <p>Basic game template with touch controls and scoring</p>
+                    <span class="tag">Beginner</span>
+                </div>
+
+                <div class="template-card" onclick="loadTemplate('maps')">
+                    <h4>Historical Maps</h4>
+                    <p>Interactive maps with historical places and events</p>
+                    <span class="tag">Intermediate</span>
+                </div>
+
+                <div class="template-card" onclick="loadTemplate('tracker')">
+                    <h4>Location Tracker</h4>
+                    <p>GPS tracking app using TagMe API</p>
+                    <span class="tag">Intermediate</span>
+                </div>
+
+                <div class="template-card" onclick="loadTemplate('dashboard')">
+                    <h4>Data Dashboard</h4>
+                    <p>Connect to Superset and display your analytics</p>
+                    <span class="tag">Advanced</span>
+                </div>
+
+                <div class="template-card" onclick="loadTemplate('blank')">
+                    <h4>Blank Project</h4>
+                    <p>Start from scratch with Data Acuity SDK</p>
+                    <span class="tag">Any Level</span>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 2rem;">AI Generated</h3>
+            <div class="template-list" id="ai-projects">
+                <!-- AI generated projects will appear here -->
+            </div>
+
+            <h3 style="margin-top: 2rem;">Your Projects</h3>
+            <div class="template-list">
+                <div class="template-card" onclick="loadProject('my-app')">
+                    <h4>My First App</h4>
+                    <p>Last edited 2 hours ago</p>
+                </div>
+            </div>
+        </aside>
+
+        <section class="editor-area">
+            <div class="editor-tabs">
+                <div class="tab active">App.js</div>
+                <div class="tab">api.js</div>
+                <div class="tab">styles.js</div>
+            </div>
+
+            <div class="snack-container" id="snack-container">
+                <!-- Expo Snack will be embedded here -->
+            </div>
+
+            <div class="action-bar">
+                <div class="action-bar-left">
+                    <div class="status">
+                        <div class="status-dot"></div>
+                        <span>Connected to Data Acuity API</span>
+                    </div>
+                </div>
+                <div class="action-bar-right">
+                    <button class="btn btn-secondary" onclick="showQR()">Preview on Phone</button>
+                    <button class="btn btn-secondary" onclick="saveProject()">Save</button>
+                    <button class="btn btn-primary" onclick="buildApp()">Build APK</button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Dribbble Import Modal -->
+    <div class="modal-overlay" id="dribbble-modal">
+        <div class="modal">
+            <h2>Import from Design</h2>
+            <p>Paste a Dribbble URL, upload a screenshot, or describe what you want to build. Our AI will analyze the design and generate React Native code.</p>
+
+            <div class="input-group">
+                <label>Dribbble URL (optional)</label>
+                <input type="text" id="dribbble-url" placeholder="https://dribbble.com/shots/..." />
+            </div>
+
+            <div class="input-group">
+                <label>Or upload a screenshot</label>
+                <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+                    <div class="drop-zone-icon">🎨</div>
+                    <h4>Drop image here</h4>
+                    <p>or click to browse</p>
+                </div>
+                <input type="file" id="file-input" accept="image/*" style="display: none" onchange="handleFileSelect(event)" />
+            </div>
+
+            <div id="preview-container" style="display: none;">
+                <img id="preview-image" class="preview-image" />
+            </div>
+
+            <div class="input-group">
+                <label>Describe the app (helps AI understand better)</label>
+                <textarea id="app-description" placeholder="E.g., A finance app that shows account balance, recent transactions, and spending charts..."></textarea>
+            </div>
+
+            <div id="analysis-container" style="display: none;">
+                <div class="analysis-results">
+                    <h4><span class="check">✓</span> AI Analysis Complete</h4>
+                    <div id="analysis-items"></div>
+                    <div class="color-palette" id="color-palette"></div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('dribbble-modal')">Cancel</button>
+                <button class="btn btn-dribbble" id="generate-btn" onclick="generateFromDesign()">
+                    <span id="generate-text">Analyze & Generate</span>
+                    <span id="generate-spinner" class="loading-spinner" style="display: none;"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Publish Modal -->
+    <div class="modal-overlay" id="publish-modal">
+        <div class="modal">
+            <h2>Publish to Slepton</h2>
+            <p>Your app will be reviewed and published to the Slepton App Store. This typically takes 24-48 hours.</p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('publish-modal')">Cancel</button>
+                <button class="btn btn-primary" onclick="submitToSlepton()">Submit for Review</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Modal -->
+    <div class="modal-overlay" id="qr-modal">
+        <div class="modal">
+            <h2>Preview on Your Phone</h2>
+            <p>1. Install "Expo Go" from your app store<br>
+               2. Scan this QR code with the Expo Go app<br>
+               3. Your app will load instantly!</p>
+            <div style="text-align: center; padding: 2rem; background: #fff; border-radius: 8px; margin: 1rem 0;">
+                <div style="color: #000; font-size: 0.9rem;">QR Code will appear here</div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('qr-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Template code snippets
+        const templates = {
+            markets: {
+                name: 'Markets Dashboard',
+                code: `import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, StyleSheet, RefreshControl } from 'react-native';
+
+// Data Acuity Markets API
+const API_BASE = 'https://api.dataacuity.co.za/api/v1/markets';
+
+export default function App() {
+  const [prices, setPrices] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchPrices = async () => {
+    try {
+      const response = await fetch(API_BASE + '/prices');
+      const data = await response.json();
+      setPrices(data.prices || []);
+    } catch (error) {
+      console.error('Error fetching prices:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPrices();
+  }, []);
+
+  const renderPrice = ({ item }) => (
+    <View style={styles.card}>
+      <Text style={styles.symbol}>{item.symbol}</Text>
+      <Text style={styles.price}>R {item.price?.toFixed(2)}</Text>
+      <Text style={[styles.change, item.change >= 0 ? styles.up : styles.down]}>
+        {item.change >= 0 ? '+' : ''}{item.change?.toFixed(2)}%
+      </Text>
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Market Prices</Text>
+      <FlatList
+        data={prices}
+        renderItem={renderPrice}
+        keyExtractor={(item) => item.symbol}
+        refreshControl={
+          <RefreshControl refreshing={loading} onRefresh={fetchPrices} />
+        }
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0a0a0a', padding: 16 },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#fff', marginBottom: 16 },
+  card: {
+    backgroundColor: '#1a1a2e',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  symbol: { fontSize: 16, fontWeight: '600', color: '#fff' },
+  price: { fontSize: 18, color: '#e0e0e0' },
+  change: { fontSize: 14, fontWeight: '500' },
+  up: { color: '#22c55e' },
+  down: { color: '#ef4444' },
+});`
+            },
+
+            game: {
+                name: 'Simple Game',
+                code: `import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+
+const { width, height } = Dimensions.get('window');
+
+export default function App() {
+  const [score, setScore] = useState(0);
+  const [targetPosition, setTargetPosition] = useState({ x: 100, y: 200 });
+  const [gameActive, setGameActive] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(30);
+
+  const moveTarget = () => {
+    setTargetPosition({
+      x: Math.random() * (width - 80),
+      y: Math.random() * (height - 200) + 100,
+    });
+  };
+
+  const handleTap = () => {
+    if (gameActive) {
+      setScore(s => s + 1);
+      moveTarget();
+    }
+  };
+
+  const startGame = () => {
+    setScore(0);
+    setTimeLeft(30);
+    setGameActive(true);
+    moveTarget();
+  };
+
+  useEffect(() => {
+    if (gameActive && timeLeft > 0) {
+      const timer = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (timeLeft === 0) {
+      setGameActive(false);
+    }
+  }, [gameActive, timeLeft]);
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.score}>Score: {score}</Text>
+        <Text style={styles.timer}>Time: {timeLeft}s</Text>
+      </View>
+
+      {!gameActive ? (
+        <View style={styles.startScreen}>
+          <Text style={styles.title}>Tap Attack!</Text>
+          <Text style={styles.finalScore}>
+            {score > 0 ? 'Final Score: ' + score : 'Tap the circles as fast as you can!'}
+          </Text>
+          <TouchableOpacity style={styles.startButton} onPress={startGame}>
+            <Text style={styles.startButtonText}>
+              {score > 0 ? 'Play Again' : 'Start Game'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <TouchableOpacity
+          style={[styles.target, { left: targetPosition.x, top: targetPosition.y }]}
+          onPress={handleTap}
+        >
+          <Text style={styles.targetText}>TAP!</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#1a1a2e' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', padding: 20, paddingTop: 50 },
+  score: { fontSize: 24, color: '#22c55e', fontWeight: 'bold' },
+  timer: { fontSize: 24, color: '#ef4444', fontWeight: 'bold' },
+  startScreen: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  title: { fontSize: 48, color: '#fff', fontWeight: 'bold', marginBottom: 20 },
+  finalScore: { fontSize: 18, color: '#888', marginBottom: 40 },
+  startButton: { backgroundColor: '#667eea', paddingHorizontal: 40, paddingVertical: 16, borderRadius: 30 },
+  startButtonText: { fontSize: 20, color: '#fff', fontWeight: '600' },
+  target: { position: 'absolute', width: 80, height: 80, borderRadius: 40, backgroundColor: '#667eea', justifyContent: 'center', alignItems: 'center' },
+  targetText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+});`
+            },
+
+            blank: {
+                name: 'Blank Project',
+                code: `import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+
+// Data Acuity SDK - pre-configured for your account
+// API Docs: https://api.dataacuity.co.za/integration.json
+
+export default function App() {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>My New App</Text>
+      <Text style={styles.subtitle}>Start building something amazing!</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0a0a0a', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  title: { fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
+  subtitle: { fontSize: 16, color: '#888' },
+});`
+            },
+
+            maps: {
+                name: 'Historical Maps',
+                code: `import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+
+const API_BASE = 'https://api.dataacuity.co.za/api/v1/maps';
+
+export default function App() {
+  const [places, setPlaces] = useState([]);
+
+  useEffect(() => { fetchPlaces(); }, []);
+
+  const fetchPlaces = async () => {
+    try {
+      const response = await fetch(API_BASE + '/places');
+      const data = await response.json();
+      setPlaces(data.places || []);
+    } catch (error) { console.error('Error:', error); }
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Historical Places</Text>
+      <FlatList
+        data={places}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <Text style={styles.placeName}>{item.name}</Text>
+            <Text style={styles.placeDate}>{item.year || 'Unknown'}</Text>
+          </View>
+        )}
+        keyExtractor={(item) => item.id?.toString()}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0a0a0a', padding: 16 },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#fff', marginBottom: 16 },
+  card: { backgroundColor: '#1a1a2e', padding: 16, borderRadius: 8, marginBottom: 8 },
+  placeName: { fontSize: 18, fontWeight: '600', color: '#fff' },
+  placeDate: { fontSize: 12, color: '#667eea', marginTop: 4 },
+});`
+            },
+
+            tracker: {
+                name: 'Location Tracker',
+                code: `import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import * as Location from 'expo-location';
+
+export default function App() {
+  const [location, setLocation] = useState(null);
+  const [status, setStatus] = useState('Ready');
+
+  const getLocation = async () => {
+    setStatus('Getting location...');
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') { setStatus('Permission denied'); return; }
+    const loc = await Location.getCurrentPositionAsync({});
+    setLocation(loc.coords);
+    setStatus('Location captured!');
+  };
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Location Tracker</Text>
+      <Text style={styles.status}>{status}</Text>
+      {location && (
+        <View style={styles.card}>
+          <Text style={styles.coord}>Lat: {location.latitude.toFixed(6)}</Text>
+          <Text style={styles.coord}>Lng: {location.longitude.toFixed(6)}</Text>
+        </View>
+      )}
+      <TouchableOpacity style={styles.button} onPress={getLocation}>
+        <Text style={styles.buttonText}>Get Location</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0a0a0a', padding: 20, justifyContent: 'center' },
+  title: { fontSize: 28, fontWeight: 'bold', color: '#fff', textAlign: 'center', marginBottom: 20 },
+  status: { color: '#22c55e', fontSize: 18, textAlign: 'center', marginBottom: 20 },
+  card: { backgroundColor: '#1a1a2e', padding: 20, borderRadius: 12, marginBottom: 20 },
+  coord: { color: '#fff', fontSize: 18, marginBottom: 8 },
+  button: { backgroundColor: '#667eea', padding: 18, borderRadius: 12, alignItems: 'center' },
+  buttonText: { color: '#fff', fontSize: 18, fontWeight: '600' },
+});`
+            },
+
+            dashboard: {
+                name: 'Data Dashboard',
+                code: `import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView } from 'react-native';
+
+export default function App() {
+  const [metrics] = useState({ totalSales: 145230, customers: 1247, orders: 3891, revenue: 89450 });
+
+  const MetricCard = ({ title, value, prefix = '' }) => (
+    <View style={styles.metricCard}>
+      <Text style={styles.metricTitle}>{title}</Text>
+      <Text style={styles.metricValue}>{prefix}{value.toLocaleString()}</Text>
+    </View>
+  );
+
+  return (
+    <ScrollView style={styles.container}>
+      <Text style={styles.title}>Business Dashboard</Text>
+      <View style={styles.grid}>
+        <MetricCard title="Total Sales" value={metrics.totalSales} prefix="R " />
+        <MetricCard title="Customers" value={metrics.customers} />
+        <MetricCard title="Orders" value={metrics.orders} />
+        <MetricCard title="Revenue" value={metrics.revenue} prefix="R " />
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0a0a0a', padding: 16 },
+  title: { fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 24 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  metricCard: { backgroundColor: '#1a1a2e', padding: 16, borderRadius: 12, width: '48%' },
+  metricTitle: { color: '#888', fontSize: 12, textTransform: 'uppercase' },
+  metricValue: { color: '#fff', fontSize: 24, fontWeight: 'bold', marginTop: 8 },
+});`
+            }
+        };
+
+        let currentTemplate = 'markets';
+        let aiGeneratedProjects = [];
+        let uploadedImage = null;
+
+        // Load template into Expo Snack
+        function loadTemplate(templateId) {
+            currentTemplate = templateId;
+            const template = templates[templateId];
+            if (!template) return;
+
+            document.querySelectorAll('.template-card').forEach(card => card.classList.remove('active'));
+            event.target.closest('.template-card')?.classList.add('active');
+
+            const encodedCode = encodeURIComponent(template.code);
+            const snackUrl = `https://snack.expo.dev/embedded?name=${encodeURIComponent(template.name)}&platform=android&preview=true&theme=dark&code=${encodedCode}`;
+
+            document.getElementById('snack-container').innerHTML =
+                `<iframe class="snack-embed" src="${snackUrl}" allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; microphone; midi; payment; usb; vr; xr-spatial-tracking"></iframe>`;
+        }
+
+        function loadAIProject(index) {
+            const project = aiGeneratedProjects[index];
+            if (!project) return;
+
+            document.querySelectorAll('.template-card').forEach(card => card.classList.remove('active'));
+            event.target.closest('.template-card')?.classList.add('active');
+
+            const encodedCode = encodeURIComponent(project.code);
+            const snackUrl = `https://snack.expo.dev/embedded?name=${encodeURIComponent(project.name)}&platform=android&preview=true&theme=dark&code=${encodedCode}`;
+
+            document.getElementById('snack-container').innerHTML =
+                `<iframe class="snack-embed" src="${snackUrl}" allow="accelerometer; ambient-light-sensor; camera; encrypted-media; geolocation; gyroscope; microphone; midi; payment; usb; vr; xr-spatial-tracking"></iframe>`;
+        }
+
+        function loadProject(projectId) {
+            alert('Loading project: ' + projectId);
+        }
+
+        function showDribbbleImport() {
+            document.getElementById('dribbble-modal').classList.add('active');
+            document.getElementById('analysis-container').style.display = 'none';
+            document.getElementById('preview-container').style.display = 'none';
+        }
+
+        function showPublish() { document.getElementById('publish-modal').classList.add('active'); }
+        function showQR() { document.getElementById('qr-modal').classList.add('active'); }
+        function closeModal(modalId) { document.getElementById(modalId).classList.remove('active'); }
+        function showDocs() { window.open('https://api.dataacuity.co.za/integration.json', '_blank'); }
+        function saveProject() { alert('Project saved!'); }
+        function buildApp() { alert('Build started! APK will be ready in ~5 minutes.'); }
+        function submitToSlepton() { closeModal('publish-modal'); alert('App submitted for review!'); }
+
+        // File upload handling
+        const dropZone = document.getElementById('drop-zone');
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => { dropZone.classList.remove('dragover'); });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+        });
+
+        function handleFileSelect(event) {
+            if (event.target.files.length) handleFile(event.target.files[0]);
+        }
+
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) { alert('Please upload an image'); return; }
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                uploadedImage = e.target.result;
+                document.getElementById('preview-image').src = uploadedImage;
+                document.getElementById('preview-container').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        async function generateFromDesign() {
+            const url = document.getElementById('dribbble-url').value;
+            const description = document.getElementById('app-description').value;
+
+            if (!url && !uploadedImage && !description) {
+                alert('Please provide a Dribbble URL, upload an image, or describe your app');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('generate-text').style.display = 'none';
+            document.getElementById('generate-spinner').style.display = 'inline-block';
+            document.getElementById('generate-btn').disabled = true;
+
+            // Simulate AI analysis (in production, this would call Claude API)
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Mock analysis results
+            const analysis = {
+                screens: ['Home', 'Details', 'Profile'],
+                components: ['Header', 'Card', 'Button', 'List', 'Bottom Navigation'],
+                colors: ['#667eea', '#1a1a2e', '#ffffff', '#22c55e', '#ea4c89'],
+                style: 'Modern, Dark theme, Card-based layout'
+            };
+
+            // Show analysis
+            document.getElementById('analysis-items').innerHTML = `
+                <div class="analysis-item"><span class="check">✓</span> ${analysis.screens.length} screens detected: ${analysis.screens.join(', ')}</div>
+                <div class="analysis-item"><span class="check">✓</span> ${analysis.components.length} components: ${analysis.components.join(', ')}</div>
+                <div class="analysis-item"><span class="check">✓</span> Style: ${analysis.style}</div>
+            `;
+
+            document.getElementById('color-palette').innerHTML =
+                analysis.colors.map(c => `<div class="color-swatch" style="background: ${c}" title="${c}"></div>`).join('');
+
+            document.getElementById('analysis-container').style.display = 'block';
+
+            // Reset button
+            document.getElementById('generate-text').textContent = 'Generate Code';
+            document.getElementById('generate-text').style.display = 'inline';
+            document.getElementById('generate-spinner').style.display = 'none';
+            document.getElementById('generate-btn').disabled = false;
+
+            // Change button to generate
+            document.getElementById('generate-btn').onclick = () => finalizeGeneration(analysis, description);
+        }
+
+        function finalizeGeneration(analysis, description) {
+            // Generate code based on analysis
+            const generatedCode = `import React from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
+
+// AI-Generated from design
+// ${description || 'Imported design'}
+
+export default function App() {
+  return (
+    <ScrollView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>My App</Text>
+      </View>
+
+      {/* Cards */}
+      {[1, 2, 3].map((item) => (
+        <TouchableOpacity key={item} style={styles.card}>
+          <View style={styles.cardIcon}>
+            <Text style={styles.cardIconText}>📱</Text>
+          </View>
+          <View style={styles.cardContent}>
+            <Text style={styles.cardTitle}>Feature {item}</Text>
+            <Text style={styles.cardSubtitle}>Tap to explore</Text>
+          </View>
+          <Text style={styles.cardArrow}>→</Text>
+        </TouchableOpacity>
+      ))}
+
+      {/* Bottom Navigation */}
+      <View style={styles.bottomNav}>
+        <TouchableOpacity style={styles.navItem}>
+          <Text style={styles.navIcon}>🏠</Text>
+          <Text style={styles.navLabel}>Home</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem}>
+          <Text style={styles.navIcon}>🔍</Text>
+          <Text style={styles.navLabel}>Search</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.navItem}>
+          <Text style={styles.navIcon}>👤</Text>
+          <Text style={styles.navLabel}>Profile</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '${analysis.colors[1]}' },
+  header: { padding: 20, paddingTop: 50, backgroundColor: '${analysis.colors[0]}' },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
+  card: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2a2a3e',
+    margin: 16,
+    marginBottom: 8,
+    padding: 16,
+    borderRadius: 12
+  },
+  cardIcon: { width: 48, height: 48, borderRadius: 12, backgroundColor: '${analysis.colors[0]}', justifyContent: 'center', alignItems: 'center' },
+  cardIconText: { fontSize: 24 },
+  cardContent: { flex: 1, marginLeft: 16 },
+  cardTitle: { fontSize: 16, fontWeight: '600', color: '#fff' },
+  cardSubtitle: { fontSize: 14, color: '#888', marginTop: 4 },
+  cardArrow: { fontSize: 20, color: '${analysis.colors[0]}' },
+  bottomNav: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    paddingVertical: 16,
+    backgroundColor: '#111',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  navItem: { alignItems: 'center' },
+  navIcon: { fontSize: 24 },
+  navLabel: { fontSize: 12, color: '#888', marginTop: 4 },
+});`;
+
+            // Add to AI projects
+            const projectName = description ? description.slice(0, 30) + '...' : 'Imported Design';
+            aiGeneratedProjects.push({ name: projectName, code: generatedCode });
+
+            // Update sidebar
+            const aiProjectsContainer = document.getElementById('ai-projects');
+            const index = aiGeneratedProjects.length - 1;
+            aiProjectsContainer.innerHTML += `
+                <div class="template-card" onclick="loadAIProject(${index})">
+                    <h4>${projectName}</h4>
+                    <p>Generated from design</p>
+                    <span class="tag ai">AI Generated</span>
+                </div>
+            `;
+
+            // Load the generated project
+            closeModal('dribbble-modal');
+            loadAIProject(index);
+        }
+
+        // Load default template on page load
+        window.onload = () => { loadTemplate('markets'); };
+    </script>
+</body>
+</html>

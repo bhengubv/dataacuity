@@ -1,0 +1,240 @@
+================================================================================
+CIRCLE OS SPECIFICATION
+Chapter 01: Vision & Principles
+================================================================================
+
+Document: 01_vision.txt
+Version: 1.0
+Date: December 2025
+Status: Foundation
+
+================================================================================
+1. THE CIRCLE PHILOSOPHY
+================================================================================
+
+"We are all one family circle, without which our community circle cannot thrive."
+
+Circle OS exists to protect the individual so they may freely participate in 
+community. Privacy is not isolation — it is sovereignty. The power to choose 
+what you share, with whom, and when.
+
+A person with privacy can:
+- Join a stokvel without the bank tracking their savings patterns
+- Message family without advertisers profiling their relationships
+- Seek medical information without insurers adjusting their premiums
+- Explore ideas without algorithms boxing them into filter bubbles
+- Participate in democracy without manipulation
+
+A person without privacy is not free. They are a product.
+
+Circle OS returns that freedom.
+
+================================================================================
+2. CORE PRINCIPLES
+================================================================================
+
+2.1 PRIVACY IS SOVEREIGNTY, NOT ISOLATION
+-----------------------------------------
+We protect individual privacy so people can CHOOSE to participate in community.
+Circle OS never prevents sharing — it ensures sharing is intentional.
+
+- You may share your location with family. Circle ensures only family sees it.
+- You may post publicly. Circle ensures you know it's public.
+- You may join any service. Circle shows you what that service takes in return.
+
+The individual is sovereign. Communities are chosen, not imposed.
+
+
+2.2 COEXIST, DON'T CONQUER
+--------------------------
+Circle OS dual boots alongside existing systems. We do not ask users to 
+abandon what works. We offer an alternative and let them choose.
+
+- Android remains intact — boot back anytime
+- User data remains accessible — photos, music, documents
+- Existing apps can run — under Circle's privacy rules
+- No bootloader unlock required where possible
+- OEM warranty preserved where possible
+
+We respect what came before. We earn trust through coexistence.
+
+
+2.3 WORK WITH WHAT YOU HAVE
+---------------------------
+Not everyone can buy new hardware. Circle OS runs on existing devices.
+The reference port is Huawei P30 Lite — chosen because it is:
+
+- Widely owned in target markets
+- Technically challenging (locked bootloader, Huawei restrictions)
+- Affordable on the secondary market
+- Representative of real-world constraints
+
+If Circle OS works on P30 Lite, it works anywhere.
+Circle native hardware is the aspiration, not the requirement.
+
+
+2.4 APPS ARE WELCOME, SNOOPING ISN'T
+------------------------------------
+Android applications run on Circle OS — not emulated, but native.
+The ART runtime executes APKs. The difference is oversight.
+
+Every app runs under Circle's Privacy Framework:
+- Network access requires permission (revolutionary — Android doesn't do this)
+- Storage access is scoped — apps see only what you share
+- Contacts are scoped — share 3 contacts, not 300
+- Background activity is visible and controllable
+- All permission usage is logged and auditable
+
+Apps that respect users are welcome.
+Apps that refuse to run without snooping have made their choice.
+
+
+2.5 GOOGLE IS A GUEST, NOT A LANDLORD
+-------------------------------------
+Google Play Services is not included by default.
+Google applications are not pre-installed.
+
+If Google wishes to participate:
+- Their apps run in the same sandbox as everyone else
+- Their services go through the same Privacy Framework
+- Their tracking is visible in the same dashboards
+- They receive no special privileges
+
+If Google's services cannot function without surveillance, that is Google's 
+problem to solve, not ours to accommodate.
+
+Users who need Google services may install them — sandboxed, monitored, 
+controlled. The choice is theirs.
+
+
+2.6 SECURITY THROUGH HONESTY
+----------------------------
+We aspire to GrapheneOS-level security. We also acknowledge reality:
+
+- Pixel phones have hardware security (Titan M) that P30 Lite lacks
+- Circle native hardware will have designed-in security
+- Ported devices have constraints we cannot fully overcome
+
+We will be honest about security tiers:
+
+TIER 1 - FULL SECURITY
+  - Circle native hardware (designed for security)
+  - Pixel devices (GrapheneOS-equivalent hardening)
+  - Verified boot, hardware attestation, locked bootloader after install
+
+TIER 2 - HARDENED SOFTWARE
+  - Treble-compatible devices with unlockable bootloaders
+  - Full software hardening, kernel hardening, sandboxing
+  - No hardware root of trust — transparent about limitations
+
+TIER 3 - BEST EFFORT
+  - Devices requiring exploit-based boot (P30 Lite)
+  - Maximum software protection within constraints
+  - Clear documentation of what we cannot guarantee
+
+A user on Tier 3 is still safer than stock Android with Google services.
+But they deserve to know the difference.
+
+
+2.7 ACCESSIBLE TO ALL
+---------------------
+"Ages 8 to 80" is not a slogan — it is a specification requirement.
+
+- A child can use Circle OS safely (Kid Mode)
+- An elder can use Circle OS comfortably (Elder Mode)
+- A person with visual impairment can use Circle OS fully (Accessibility)
+- A person in a rural area can use Circle OS offline (Offline-First)
+- A person with a low-end device can use Circle OS smoothly (Performance)
+
+If any of these fail, Circle OS has failed.
+
+
+2.8 UBUNTU — I AM BECAUSE WE ARE
+--------------------------------
+Circle OS is built by a community, for communities.
+
+The Circle Foundation governs with:
+- Geographic diversity — no single country dominates
+- Transparent funding — no single entity controls
+- Open source code — anyone can verify, anyone can contribute
+- Open hardware designs — anyone can manufacture
+
+The technology belongs to humanity.
+We are custodians, not owners.
+
+================================================================================
+3. WHAT SUCCESS LOOKS LIKE
+================================================================================
+
+3.1 FOR THE INDIVIDUAL
+----------------------
+"I understand what my phone is doing."
+"I control what apps can access."
+"I trust my phone with my private life."
+"I can still use the apps I need."
+"I didn't have to buy a new phone."
+
+3.2 FOR THE FAMILY
+------------------
+"My children are safe online."
+"My parents can use their phone without confusion."
+"We share what we want, privately, without Big Tech watching."
+
+3.3 FOR THE COMMUNITY
+---------------------
+"Our stokvel communicates without banks profiling us."
+"Our church group organizes without advertisers targeting us."
+"Our small business operates without competitors data-mining us."
+
+3.4 FOR SOCIETY
+---------------
+"Journalists can protect sources."
+"Activists can organize safely."
+"Democracy functions without algorithmic manipulation."
+"African communities own their digital future."
+
+================================================================================
+4. THE DEVELOPMENT PHILOSOPHY
+================================================================================
+
+SLOW IS SMOOTH. SMOOTH IS FAST.
+
+We do not rush. We do not cut corners on security. We do not ship broken.
+
+- Every feature is specified before coded
+- Every security claim is verified
+- Every privacy promise is enforced technically, not just policy
+- Every limitation is documented honestly
+
+A fast release that compromises privacy is a failure.
+A slow release that earns trust is success.
+
+================================================================================
+5. SUMMARY
+================================================================================
+
+Circle OS is:
+- A privacy-respecting mobile operating system
+- Built on Linux, compatible with Android apps
+- Designed to run on existing devices (P30 Lite reference)
+- Dual-boot friendly — coexists with Android
+- Secure to GrapheneOS standards where hardware allows
+- Honest about limitations where hardware constrains
+- Accessible to ages 8-80, all abilities
+- Open source, community governed
+
+Circle OS is not:
+- A Google replacement that acts like Google
+- A walled garden with different walls
+- Security theater — we prove our claims
+- Vaporware — we ship what we specify
+
+The individual is sovereign.
+The community is chosen.
+The technology is ours.
+
+Welcome to Circle.
+
+================================================================================
+END OF CHAPTER 01
+================================================================================

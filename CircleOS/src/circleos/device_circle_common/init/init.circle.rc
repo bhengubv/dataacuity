@@ -1,0 +1,66 @@
+#
+# Circle OS Init Script
+# Started during Android init
+#
+
+on early-init
+    # Create Circle OS data directories
+    mkdir /data/circle 0770 system system
+    mkdir /data/circle/privacy 0770 system system
+    mkdir /data/circle/firewall 0770 system system
+    mkdir /data/circle/threatintel 0770 system system
+    mkdir /data/circle/mesh 0770 system system
+
+on boot
+    # Set Circle OS properties
+    setprop circle.boot.complete 0
+
+on property:sys.boot_completed=1
+    # Circle OS boot complete
+    setprop circle.boot.complete 1
+
+    # Start Circle services (if not started by system_server)
+    # start circle_privacy
+    # start circle_firewall
+    # start circle_threatintel
+
+# ============================================================
+# SERVICE DEFINITIONS
+# ============================================================
+# Note: Most Circle services run within system_server
+# These are for standalone daemon processes if needed
+
+# Circle Privacy Service (standalone option)
+# service circle_privacy /system/bin/circleprivacyd
+#     class main
+#     user system
+#     group system
+#     capabilities SYS_PTRACE
+#     seclabel u:r:circle_privacy:s0
+#     disabled
+
+# Circle Firewall Service (standalone option)
+# service circle_firewall /system/bin/circlefirewalld
+#     class main
+#     user system
+#     group system net_admin net_raw
+#     capabilities NET_ADMIN NET_RAW
+#     seclabel u:r:circle_firewall:s0
+#     disabled
+
+# ============================================================
+# SECURITY HARDENING
+# ============================================================
+
+on property:circle.boot.complete=1
+    # Disable kernel module loading after boot (if supported)
+    # write /proc/sys/kernel/modules_disabled 1
+
+    # Restrict dmesg access
+    write /proc/sys/kernel/dmesg_restrict 1
+
+    # Restrict ptrace
+    write /proc/sys/kernel/yama/ptrace_scope 2
+
+    # Enable ASLR
+    write /proc/sys/kernel/randomize_va_space 2

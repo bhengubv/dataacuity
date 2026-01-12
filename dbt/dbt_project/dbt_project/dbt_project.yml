@@ -1,0 +1,42 @@
+# DataAcuity DBT Project
+name: 'dbt_project'
+version: '1.0.0'
+
+profile: 'dbt_project'
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# Model configurations
+models:
+  dbt_project:
+    # Example models (default)
+    example:
+      +materialized: view
+
+    # TGN Staging - lightweight views for data transformation
+    staging:
+      +materialized: view
+      +schema: staging
+      tgn:
+        +tags: ['tgn', 'staging']
+
+    # TGN Marts - materialized tables for analytics
+    marts:
+      +materialized: table
+      +schema: marts
+      tgn:
+        +tags: ['tgn', 'marts']
+
+# Variables for flexibility
+vars:
+  tgn_retention_years: 5
+  tgn_default_lookback_days: 30

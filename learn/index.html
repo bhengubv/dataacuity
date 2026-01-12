@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataAcuity Learn - Code Like a Pro!</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #007AFF;
+            --primary-hover: #0056CC;
+            --primary-light: rgba(0, 122, 255, 0.12);
+            --success: #34C759;
+            --success-light: rgba(52, 199, 89, 0.12);
+            --cyan: #32ADE6;
+            --cyan-light: rgba(50, 173, 230, 0.12);
+            --purple: #AF52DE;
+            --purple-light: rgba(175, 82, 222, 0.12);
+
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F2F2F7;
+            --bg-tertiary: #E5E5EA;
+            --bg-card: #FFFFFF;
+            --bg-glass: rgba(255, 255, 255, 0.72);
+            --border-color: rgba(0, 0, 0, 0.08);
+            --border-separator: rgba(60, 60, 67, 0.12);
+            --text-primary: #000000;
+            --text-secondary: #3C3C43;
+            --text-tertiary: #8E8E93;
+
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+            --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.12);
+
+            --radius-sm: 12px;
+            --radius-md: 16px;
+            --radius-lg: 20px;
+            --radius-full: 9999px;
+
+            --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #000000;
+            --bg-secondary: #1C1C1E;
+            --bg-tertiary: #2C2C2E;
+            --bg-card: #1C1C1E;
+            --bg-glass: rgba(28, 28, 30, 0.72);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --border-separator: rgba(84, 84, 88, 0.65);
+            --text-primary: #FFFFFF;
+            --text-secondary: #EBEBF5;
+            --text-tertiary: #8E8E93;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', system-ui, sans-serif;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Compact Navbar */
+        .navbar {
+            background: var(--bg-glass);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid var(--border-separator);
+            padding: 0 2rem;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.625rem;
+            text-decoration: none;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .nav-brand span { font-size: 1.25rem; }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .back-link {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+
+        .nav-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: transparent;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 1.125rem;
+        }
+
+        /* Main Content - fills remaining space */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 1.5rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            min-height: 0;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+        }
+
+        /* Cards Grid - takes remaining space */
+        .grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.25rem;
+            min-height: 0;
+            align-items: stretch;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            transition: all var(--transition-fast);
+            overflow: hidden;
+            height: 100%;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-icon {
+            font-size: 2.5rem;
+            line-height: 1;
+        }
+
+        .card-title h3 {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.125rem;
+        }
+
+        .card-badge {
+            display: inline-block;
+            padding: 0.125rem 0.5rem;
+            border-radius: var(--radius-full);
+            font-size: 0.6875rem;
+            font-weight: 600;
+        }
+
+        .card-badge.beginner { background: var(--success-light); color: var(--success); }
+        .card-badge.visual { background: var(--cyan-light); color: var(--cyan); }
+        .card-badge.explore { background: var(--purple-light); color: var(--purple); }
+
+        .card-desc {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            line-height: 1.5;
+            margin-bottom: 0.75rem;
+            height: 2.625em;
+            overflow: hidden;
+        }
+
+        /* What you can do box */
+        .what-you-can-do {
+            background: var(--bg-secondary);
+            border-radius: var(--radius-sm);
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            flex-shrink: 0;
+        }
+
+        .what-you-can-do h4 {
+            font-size: 0.6875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: var(--text-tertiary);
+            margin-bottom: 0.5rem;
+        }
+
+        .what-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.375rem;
+        }
+
+        .what-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            background: var(--bg-card);
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-full);
+            border: 1px solid var(--border-color);
+        }
+
+        /* Description card (nested) */
+        .desc-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow-sm);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .desc-card-img {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+            border-radius: var(--radius-sm);
+        }
+
+        .desc-card-img.python { background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%); }
+        .desc-card-img.webstudio { background: linear-gradient(135deg, #2196F3 0%, #03A9F4 100%); }
+        .desc-card-img.maps { background: linear-gradient(135deg, #9C27B0 0%, #E91E63 100%); }
+
+        .desc-card p {
+            font-size: 0.9375rem;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            margin: 0;
+            height: 3.2em;
+            overflow: hidden;
+        }
+
+        /* Lessons list */
+        .lessons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            flex-shrink: 0;
+        }
+
+        .lesson {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.625rem 0.75rem;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-sm);
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: all var(--transition-fast);
+            flex-shrink: 0;
+        }
+
+        .lesson:hover {
+            background: var(--bg-tertiary);
+            transform: translateX(2px);
+        }
+
+        .lesson-num {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.8125rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .lesson-num.green { background: var(--success); }
+        .lesson-num.cyan { background: var(--cyan); }
+        .lesson-num.purple { background: var(--purple); }
+
+        .lesson-title {
+            font-size: 0.8125rem;
+            font-weight: 500;
+        }
+
+        .btn {
+            display: block;
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1rem;
+            border-radius: var(--radius-full);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-align: center;
+            transition: all var(--transition-fast);
+            flex-shrink: 0;
+        }
+
+        .btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+        }
+
+        /* Footer - minimal */
+        .footer {
+            text-align: center;
+            padding: 0.75rem;
+            color: var(--text-tertiary);
+            font-size: 0.75rem;
+            border-top: 1px solid var(--border-separator);
+            flex-shrink: 0;
+        }
+
+        .footer a { color: var(--primary); text-decoration: none; }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .grid { grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+            .main { padding: 1rem 1.5rem; }
+        }
+
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+            html, body { overflow: auto; height: auto; }
+            .main { padding: 1rem; }
+            .lessons { max-height: 150px; }
+        }
+
+        @media (max-height: 700px) {
+            .header h1 { font-size: 1.5rem; }
+            .header { margin-bottom: 1rem; }
+            .card { padding: 1.25rem; }
+            .card-icon { font-size: 2rem; }
+            .lesson { padding: 0.5rem 0.625rem; }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="/" class="nav-brand">
+            <span>📚</span>
+            DataAcuity Learn
+        </a>
+        <div class="nav-actions">
+            <a href="/" class="back-link">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+                Home
+            </a>
+            <button class="nav-btn" id="theme-toggle" title="Toggle theme">
+                <span id="theme-icon">🌙</span>
+            </button>
+        </div>
+    </nav>
+
+    <main class="main">
+        <div class="header">
+            <h1>🚀 Learn to Code</h1>
+            <p>Code like a pro - even if you're 7 years old!</p>
+        </div>
+
+        <div class="grid">
+            <!-- Python -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">🐍</div>
+                    <div class="card-title">
+                        <h3>Python Playground</h3>
+                        <span class="card-badge beginner">Beginner</span>
+                    </div>
+                </div>
+                <p class="card-desc">Learn to code with fun tutorials - draw, play games, create stories!</p>
+                <div class="lessons">
+                    <a href="code/lab/index.html?path=01_Hello_Python.ipynb" class="lesson">
+                        <div class="lesson-num green">1</div>
+                        <span class="lesson-title">Hello Python!</span>
+                    </a>
+                    <a href="code/lab/index.html?path=02_Turtle_Drawing.ipynb" class="lesson">
+                        <div class="lesson-num green">2</div>
+                        <span class="lesson-title">Turtle Drawing</span>
+                    </a>
+                    <a href="code/lab/index.html?path=03_Guessing_Game.ipynb" class="lesson">
+                        <div class="lesson-num green">3</div>
+                        <span class="lesson-title">Guessing Game</span>
+                    </a>
+                    <a href="code/lab/index.html?path=04_Adventure_Story.ipynb" class="lesson">
+                        <div class="lesson-num green">4</div>
+                        <span class="lesson-title">Adventure Story</span>
+                    </a>
+                </div>
+                <div class="desc-card">
+                    <div class="desc-card-img python">🐢</div>
+                    <p>🎨 Draw amazing art · 🎮 Build your own games · 📖 Write epic stories · 🔢 Become a math wizard!</p>
+                </div>
+                <a href="code/" class="btn">Open Playground</a>
+            </div>
+
+            <!-- Web Studio -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">🎨</div>
+                    <div class="card-title">
+                        <h3>Web Studio</h3>
+                        <span class="card-badge visual">Visual</span>
+                    </div>
+                </div>
+                <p class="card-desc">Design beautiful websites - drag, drop, create like a pro!</p>
+                <div class="lessons">
+                    <a href="webstudio-tutorials/01-getting-started.html" class="lesson">
+                        <div class="lesson-num cyan">1</div>
+                        <span class="lesson-title">Getting Started</span>
+                    </a>
+                    <a href="webstudio-tutorials/02-adding-content.html" class="lesson">
+                        <div class="lesson-num cyan">2</div>
+                        <span class="lesson-title">Adding Content</span>
+                    </a>
+                    <a href="webstudio-tutorials/03-styling-basics.html" class="lesson">
+                        <div class="lesson-num cyan">3</div>
+                        <span class="lesson-title">Styling Basics</span>
+                    </a>
+                    <a href="webstudio-tutorials/04-building-pages.html" class="lesson">
+                        <div class="lesson-num cyan">4</div>
+                        <span class="lesson-title">Building Pages</span>
+                    </a>
+                </div>
+                <div class="desc-card">
+                    <div class="desc-card-img webstudio">💻</div>
+                    <p>🖱️ Design like a pro · 🖼️ Add cool images · 🎨 Pick awesome colors · 🚀 Share with the world!</p>
+                </div>
+                <a href="/studio/" class="btn">Open Web Studio</a>
+            </div>
+
+            <!-- Maps -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">🗺️</div>
+                    <div class="card-title">
+                        <h3>Maps Explorer</h3>
+                        <span class="card-badge explore">Explore</span>
+                    </div>
+                </div>
+                <p class="card-desc">Travel through time - see how the world looked in ancient times!</p>
+                <div class="lessons">
+                    <a href="/maps/" class="lesson">
+                        <div class="lesson-num purple">1</div>
+                        <span class="lesson-title">Ancient World</span>
+                    </a>
+                    <a href="/maps/" class="lesson">
+                        <div class="lesson-num purple">2</div>
+                        <span class="lesson-title">Roman Empire</span>
+                    </a>
+                    <a href="/maps/" class="lesson">
+                        <div class="lesson-num purple">3</div>
+                        <span class="lesson-title">Trade Routes</span>
+                    </a>
+                    <a href="/maps/" class="lesson">
+                        <div class="lesson-num purple">4</div>
+                        <span class="lesson-title">Famous Cities</span>
+                    </a>
+                </div>
+                <div class="desc-card">
+                    <div class="desc-card-img maps">🧭</div>
+                    <p>⏳ Travel through time · 🏛️ Visit ancient empires · 🛤️ Walk the Silk Road · 🏰 Find hidden treasures!</p>
+                </div>
+                <a href="/maps/" class="btn">Explore Maps</a>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        Made with ❤️ by <a href="https://dataacuity.co.za">DataAcuity</a> · Free forever · No tracking
+    </footer>
+
+    <script>
+        const themeToggle = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+
+        const savedTheme = localStorage.getItem('dataacuity_theme');
+        if (savedTheme) {
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            themeIcon.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+        } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            themeIcon.textContent = '☀️';
+        }
+
+        themeToggle.addEventListener('click', () => {
+            const current = document.documentElement.getAttribute('data-theme');
+            const newTheme = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('dataacuity_theme', newTheme);
+            themeIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+        });
+    </script>
+</body>
+</html>

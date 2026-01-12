@@ -1,0 +1,211 @@
+{
+  "name": "AutoBiz - Job Scheduler",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autobiz/schedule-job",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "job-webhook",
+      "name": "Schedule Job Request",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "job-id",
+              "name": "jobId",
+              "value": "=JOB-{{ $now.format('yyyyMMdd') }}-{{ $randomInt(1000, 9999) }}",
+              "type": "string"
+            },
+            {
+              "id": "created-at",
+              "name": "createdAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "name": "status",
+              "value": "scheduled",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "generate-job-id",
+      "name": "Generate Job ID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Check resource availability and schedule job\nconst job = $input.first().json;\nconst requestedDate = new Date(job.scheduledDate);\nconst duration = parseInt(job.estimatedDuration) || 60; // minutes\n\n// Calculate end time\nconst endTime = new Date(requestedDate.getTime() + duration * 60000);\n\n// Check if it's a business hour (8am-5pm, Mon-Fri)\nconst hour = requestedDate.getHours();\nconst day = requestedDate.getDay();\nconst isBusinessHours = hour >= 8 && hour < 17 && day >= 1 && day <= 5;\n\nlet schedule = {\n  ...job,\n  startTime: requestedDate.toISOString(),\n  endTime: endTime.toISOString(),\n  duration: duration,\n  isBusinessHours: isBusinessHours,\n  conflict: false,\n  notes: []\n};\n\nif (!isBusinessHours) {\n  schedule.notes.push('Scheduled outside business hours - overtime rates may apply');\n}\n\nif (job.priority === 'urgent') {\n  schedule.notes.push('Urgent job - notify team immediately');\n}\n\nreturn schedule;"
+      },
+      "id": "check-availability",
+      "name": "Check Availability",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/jobs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"jobId\": \"{{ $json.jobId }}\",\n  \"customerId\": \"{{ $json.customerId }}\",\n  \"customerName\": \"{{ $json.customerName }}\",\n  \"description\": \"{{ $json.description }}\",\n  \"location\": \"{{ $json.location }}\",\n  \"startTime\": \"{{ $json.startTime }}\",\n  \"endTime\": \"{{ $json.endTime }}\",\n  \"duration\": {{ $json.duration }},\n  \"assignedTo\": \"{{ $json.assignedTo }}\",\n  \"priority\": \"{{ $json.priority || 'normal' }}\",\n  \"status\": \"{{ $json.status }}\",\n  \"createdAt\": \"{{ $json.createdAt }}\"\n}",
+        "options": {}
+      },
+      "id": "save-job",
+      "name": "Save Job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        910,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $json.assignedTo?.email || $env.OWNER_EMAIL }}",
+        "subject": "=New Job Assigned: {{ $json.jobId }}",
+        "emailType": "html",
+        "html": "=<h2>New Job Assignment</h2>\n<table style=\"width: 100%; border-collapse: collapse;\">\n<tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>Job ID:</strong></td><td style=\"padding: 8px; border-bottom: 1px solid #eee;\">{{ $json.jobId }}</td></tr>\n<tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>Customer:</strong></td><td style=\"padding: 8px; border-bottom: 1px solid #eee;\">{{ $json.customerName }}</td></tr>\n<tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>Description:</strong></td><td style=\"padding: 8px; border-bottom: 1px solid #eee;\">{{ $json.description }}</td></tr>\n<tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>Location:</strong></td><td style=\"padding: 8px; border-bottom: 1px solid #eee;\">{{ $json.location }}</td></tr>\n<tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>Date/Time:</strong></td><td style=\"padding: 8px; border-bottom: 1px solid #eee;\">{{ new Date($json.startTime).toLocaleString() }}</td></tr>\n<tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>Duration:</strong></td><td style=\"padding: 8px; border-bottom: 1px solid #eee;\">{{ $json.duration }} minutes</td></tr>\n<tr><td style=\"padding: 8px; border-bottom: 1px solid #eee;\"><strong>Priority:</strong></td><td style=\"padding: 8px; border-bottom: 1px solid #eee;\">{{ $json.priority }}</td></tr>\n</table>\n{{ $json.notes?.length ? '<p style=\"color: #FF9500; margin-top: 15px;\"><strong>Notes:</strong><br>' + $json.notes.join('<br>') + '</p>' : '' }}\n<p><a href=\"{{ $env.CRM_URL }}/jobs/{{ $json.jobId }}\" style=\"background: #007AFF; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; margin-top: 15px;\">View Job Details</a></p>",
+        "options": {}
+      },
+      "id": "notify-assignee",
+      "name": "Notify Assignee",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1130,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $json.customerEmail }}",
+        "subject": "=Your appointment is confirmed - {{ $json.jobId }}",
+        "emailType": "html",
+        "html": "=<h2>Appointment Confirmed</h2>\n<p>Hi {{ $json.customerName.split(' ')[0] }},</p>\n<p>Your appointment has been scheduled. Here are the details:</p>\n<table style=\"width: 100%; border-collapse: collapse; margin: 20px 0;\">\n<tr><td style=\"padding: 10px; background: #f5f5f5;\"><strong>Date:</strong></td><td style=\"padding: 10px;\">{{ new Date($json.startTime).toLocaleDateString() }}</td></tr>\n<tr><td style=\"padding: 10px; background: #f5f5f5;\"><strong>Time:</strong></td><td style=\"padding: 10px;\">{{ new Date($json.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }}</td></tr>\n<tr><td style=\"padding: 10px; background: #f5f5f5;\"><strong>Duration:</strong></td><td style=\"padding: 10px;\">Approximately {{ $json.duration }} minutes</td></tr>\n<tr><td style=\"padding: 10px; background: #f5f5f5;\"><strong>Reference:</strong></td><td style=\"padding: 10px;\">{{ $json.jobId }}</td></tr>\n</table>\n<p>If you need to reschedule, please contact us at least 24 hours in advance.</p>\n<p>Thank you for your business!</p>",
+        "options": {}
+      },
+      "id": "confirm-customer",
+      "name": "Confirm to Customer",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1350,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"jobId\": \"{{ $json.jobId }}\",\n  \"scheduledFor\": \"{{ $json.startTime }}\",\n  \"duration\": {{ $json.duration }},\n  \"assignedTo\": \"{{ $json.assignedTo?.name || 'Unassigned' }}\"\n}",
+        "options": {}
+      },
+      "id": "schedule-response",
+      "name": "Schedule Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1570,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Job Request": {
+      "main": [
+        [
+          {
+            "node": "Generate Job ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Job ID": {
+      "main": [
+        [
+          {
+            "node": "Check Availability",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Availability": {
+      "main": [
+        [
+          {
+            "node": "Save Job",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Job": {
+      "main": [
+        [
+          {
+            "node": "Notify Assignee",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Assignee": {
+      "main": [
+        [
+          {
+            "node": "Confirm to Customer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm to Customer": {
+      "main": [
+        [
+          {
+            "node": "Schedule Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

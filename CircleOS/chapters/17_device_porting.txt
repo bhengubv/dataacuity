@@ -1,0 +1,454 @@
+================================================================================
+CIRCLE OS SPECIFICATION
+Chapter 17: Community Device Porting
+================================================================================
+
+Document: 17_device_porting.txt
+Version: 1.0
+Date: December 2025
+Status: Foundation
+
+================================================================================
+1. PORTING PHILOSOPHY
+================================================================================
+
+Circle OS is designed to be portable.
+
+Official team maintains reference devices. Community maintains additional
+devices. We provide tools, documentation, and support for porters.
+
+================================================================================
+2. PORTING FEASIBILITY
+================================================================================
+
+2.1 REQUIREMENTS
+----------------
+MANDATORY:
+- Bootloader unlockable (or exploit available)
+- Kernel source available (GPL compliance)
+- 64-bit processor (ARM64 or RISC-V)
+- Minimum 3GB RAM
+- Minimum 32GB storage
+
+STRONGLY RECOMMENDED:
+- Treble support (Android 8.0+)
+- Active community
+- Readily available device
+
+2.2 FEASIBILITY CHECK
+---------------------
+Before starting:
+
+1. Can bootloader be unlocked?
+   - Check XDA, manufacturer policy
+   - Check for known exploits if locked
+
+2. Is kernel source available?
+   - Check manufacturer open source portal
+   - Check GitHub for community sources
+
+3. Is device Treble-compatible?
+   - Check: adb shell getprop ro.treble.enabled
+   - Treble = much easier port
+
+4. Is there existing LineageOS/custom ROM work?
+   - Existing device tree = head start
+   - Active maintainer = collaboration possible
+
+================================================================================
+3. PORTING APPROACHES
+================================================================================
+
+3.1 GSI (TREBLE DEVICES)
+------------------------
+Easiest path for Treble devices:
+
+PROCESS:
+1. Unlock bootloader
+2. Flash Circle GSI to system partition
+3. Flash Circle boot image
+4. Boot and test
+
+LIMITATIONS:
+- Vendor HAL compatibility varies
+- Some features may not work
+- Device-specific tuning needed
+
+3.2 FULL PORT (NON-TREBLE)
+--------------------------
+Required for non-Treble devices:
+
+PROCESS:
+1. Obtain device kernel source
+2. Create device tree
+3. Identify and configure HALs
+4. Build full Circle OS for device
+5. Test and iterate
+
+EFFORT: Significant (weeks to months)
+
+3.3 HYBRID PORT
+---------------
+GSI + device-specific fixes:
+
+PROCESS:
+1. Start with GSI
+2. Identify broken features
+3. Create device overlays/fixes
+4. Package as device-specific release
+
+COMMON: Most community ports use this
+
+================================================================================
+4. DEVICE TREE CREATION
+================================================================================
+
+4.1 STRUCTURE
+-------------
+device/[vendor]/[codename]/
+├── AndroidProducts.mk
+├── BoardConfig.mk
+├── device.mk
+├── circle_[codename].mk
+├── extract-files.sh
+├── setup-makefiles.sh
+├── proprietary-files.txt
+├── fstab.[codename]
+├── init.[codename].rc
+├── ueventd.[codename].rc
+├── overlay/
+├── sepolicy/
+├── configs/
+│   ├── audio/
+│   ├── media/
+│   └── sensors/
+└── rootdir/
+
+4.2 KEY FILES
+-------------
+AndroidProducts.mk:
+```makefile
+PRODUCT_MAKEFILES := \
+    $(LOCAL_DIR)/circle_codename.mk
+
+COMMON_LUNCH_CHOICES := \
+    circle_codename-userdebug \
+    circle_codename-user
+```
+
+BoardConfig.mk:
+```makefile
+DEVICE_PATH := device/vendor/codename
+
+# Architecture
+TARGET_ARCH := arm64
+TARGET_ARCH_VARIANT := armv8-a
+TARGET_CPU_ABI := arm64-v8a
+
+# Kernel
+BOARD_KERNEL_CMDLINE := ...
+TARGET_KERNEL_SOURCE := kernel/vendor/codename
+TARGET_KERNEL_CONFIG := codename_defconfig
+
+# Partitions
+BOARD_BOOTIMAGE_PARTITION_SIZE := ...
+BOARD_SYSTEMIMAGE_PARTITION_SIZE := ...
+
+# SELinux
+BOARD_SEPOLICY_DIRS += $(DEVICE_PATH)/sepolicy
+```
+
+device.mk:
+```makefile
+# Inherit Circle common
+$(call inherit-product, vendor/circle/config/common.mk)
+
+# Device identifiers
+PRODUCT_NAME := circle_codename
+PRODUCT_DEVICE := codename
+PRODUCT_BRAND := Circle
+PRODUCT_MODEL := Device Name
+PRODUCT_MANUFACTURER := Vendor
+
+# Device-specific packages
+PRODUCT_PACKAGES += \
+    audio.primary.codename
+
+# Device-specific overlays
+DEVICE_PACKAGE_OVERLAYS += $(LOCAL_PATH)/overlay
+
+# Proprietary files
+$(call inherit-product, vendor/vendor/codename/codename-vendor.mk)
+```
+
+4.3 PROPRIETARY FILES
+---------------------
+extract-files.sh extracts vendor blobs:
+
+SOURCES:
+- Stock ROM dump
+- Another device with same SoC
+- Existing LineageOS extraction
+
+proprietary-files.txt:
+```
+# HALs
+vendor/lib64/hw/audio.primary.codename.so
+vendor/lib64/hw/camera.codename.so
+vendor/lib64/hw/sensors.codename.so
+
+# Firmware
+vendor/firmware/modem.bin
+vendor/firmware/wifi.bin
+```
+
+================================================================================
+5. KERNEL PORTING
+================================================================================
+
+5.1 KERNEL SOURCE
+-----------------
+OBTAIN:
+- Manufacturer open source release
+- GitHub community kernel
+- If unavailable, use prebuilt (limited)
+
+5.2 KERNEL CONFIGURATION
+------------------------
+START WITH:
+- Manufacturer defconfig
+- Or community defconfig
+
+ADD:
+- Circle security options (see Chapter 03)
+- Circle-required features
+
+REMOVE:
+- Debug options
+- Unnecessary drivers
+
+5.3 DEFCONFIG CHANGES
+---------------------
+Required additions:
+```
+CONFIG_SECURITY_SELINUX=y
+CONFIG_AUDIT=y
+CONFIG_DM_VERITY=y
+CONFIG_ENCRYPTED_KEYS=y
+CONFIG_HARDENED_USERCOPY=y
+CONFIG_FORTIFY_SOURCE=y
+```
+
+5.4 OUT-OF-TREE MODULES
+-----------------------
+If needed:
+- WiFi drivers
+- GPU drivers
+- Other vendor modules
+
+Build as modules or inline as needed.
+
+================================================================================
+6. HAL CONFIGURATION
+================================================================================
+
+6.1 AUDIO HAL
+-------------
+CONFIGURATION:
+- audio_policy_configuration.xml
+- mixer_paths.xml
+- Device-specific tuning
+
+TESTING:
+- Call audio
+- Media playback
+- Recording
+- Bluetooth audio
+
+6.2 CAMERA HAL
+--------------
+CONFIGURATION:
+- Camera provider
+- Camera characteristics
+- Feature support
+
+TESTING:
+- Photo capture
+- Video recording
+- Front/rear cameras
+- Flash
+
+6.3 SENSORS HAL
+---------------
+CONFIGURATION:
+- Sensor list
+- Calibration data
+- Polling rates
+
+TESTING:
+- Accelerometer
+- Gyroscope
+- Proximity
+- Light sensor
+- Compass
+
+6.4 OTHER HALS
+--------------
+- Fingerprint
+- NFC
+- Bluetooth
+- WiFi
+- GPS
+- Display/Composer
+
+================================================================================
+7. TESTING CHECKLIST
+================================================================================
+
+7.1 BASIC FUNCTIONALITY
+-----------------------
+[ ] Device boots to Circle OS
+[ ] Touch screen works
+[ ] Display correct resolution/orientation
+[ ] Buttons work (power, volume)
+[ ] Charging works
+[ ] Battery level reported
+
+7.2 TELEPHONY
+-------------
+[ ] SIM detected
+[ ] Signal strength shown
+[ ] Calls work (outgoing)
+[ ] Calls work (incoming)
+[ ] SMS send/receive
+[ ] Data connection
+[ ] Dual SIM (if applicable)
+
+7.3 CONNECTIVITY
+----------------
+[ ] WiFi connects
+[ ] WiFi hotspot works
+[ ] Bluetooth pairs
+[ ] Bluetooth audio works
+[ ] GPS locks
+[ ] NFC works (if applicable)
+
+7.4 MEDIA
+---------
+[ ] Audio playback
+[ ] Video playback
+[ ] Microphone recording
+[ ] Speaker output
+[ ] Headphone jack (if applicable)
+[ ] Bluetooth audio
+
+7.5 CAMERA
+----------
+[ ] Rear camera captures
+[ ] Front camera captures
+[ ] Video recording
+[ ] Flash works
+[ ] Camera switch works
+
+7.6 SENSORS
+-----------
+[ ] Auto-brightness
+[ ] Auto-rotation
+[ ] Proximity (call)
+[ ] Compass
+[ ] Fingerprint (if applicable)
+
+7.7 CIRCLE-SPECIFIC
+-------------------
+[ ] Privacy Manager functional
+[ ] Network permission enforced
+[ ] Dual boot works (if applicable)
+[ ] Shared storage accessible
+[ ] Updates can be applied
+
+================================================================================
+8. SUBMISSION PROCESS
+================================================================================
+
+8.1 REQUIREMENTS FOR OFFICIAL STATUS
+------------------------------------
+TIER 3 (Community Maintained):
+- Passes testing checklist (>90%)
+- Maintainer committed
+- Source available
+- Installation guide
+
+TIER 2 (Officially Supported):
+- Passes testing checklist (100%)
+- Multiple testers verified
+- Circle team reviewed
+- Maintainer vetted
+- Regular update commitment
+
+8.2 SUBMISSION
+--------------
+1. Complete testing checklist
+2. Document known issues
+3. Submit device tree PR
+4. Submit kernel source PR
+5. Write installation guide
+6. Announce on community forum
+
+8.3 MAINTENANCE EXPECTATIONS
+----------------------------
+MAINTAINER COMMITS TO:
+- Monthly security patch builds
+- Bug fix response
+- Community support
+- Handoff if abandoning
+
+================================================================================
+9. RESOURCES
+================================================================================
+
+9.1 DOCUMENTATION
+-----------------
+- This guide
+- AOSP porting documentation
+- LineageOS wiki (similar process)
+- XDA device forums
+
+9.2 TOOLS
+---------
+- adb / fastboot
+- repo tool
+- extract_utils (proprietary extraction)
+- brotli (compression)
+
+9.3 COMMUNITY
+-------------
+- Circle OS forum
+- Device-specific threads
+- IRC/Matrix channels
+- GitHub discussions
+
+================================================================================
+10. SUMMARY
+================================================================================
+
+PORTING CIRCLE OS:
+1. Check feasibility
+2. Choose approach (GSI/full/hybrid)
+3. Create device tree
+4. Port/configure kernel
+5. Configure HALs
+6. Test thoroughly
+7. Document and submit
+
+COMMUNITY SUPPORT:
+- Official resources provided
+- Community forum for help
+- Maintainer recognition
+
+GOAL:
+Make Circle OS available on as many devices as possible, bringing
+privacy-respecting mobile computing to everyone.
+
+================================================================================
+END OF CHAPTER 17
+================================================================================

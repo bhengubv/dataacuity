@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+        <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #4facfe 75%, #00f2fe 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Loading Screen */
+        #loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(30, 30, 50, 0.3);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+
+        #loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-content {
+            text-align: center;
+            color: white;
+        }
+
+        .loading-logo img {
+            height: 80px;
+            margin-bottom: 1rem;
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+        }
+
+        .loading-logo-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .loading-subtitle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 2rem;
+        }
+
+        .loading-subtitle img {
+            height: 30px;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+        }
+
+        
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #0ea5e9, #10b981);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .loading-status {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            grid-template-rows: 60px 1fr 250px;
+            height: 100vh;
+            grid-template-areas:
+                "sidebar header"
+                "sidebar main"
+                "sidebar movers";
+            gap: 0;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .dashboard-container.loaded {
+            opacity: 1;
+        }
+
+        /* Exchange Sidebar - Dark Glassmorphism */
+        .exchange-sidebar {
+            grid-area: sidebar;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 5px 0 30px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            padding: 1rem 0;
+            gap: 0.5rem;
+            overflow-y: auto;
+            scrollbar-width: none; /* Firefox */
+            -ms-overflow-style: none; /* IE/Edge */
+        }
+
+        .exchange-sidebar::-webkit-scrollbar {
+            display: none; /* Chrome, Safari, Opera */
+        }
+
+        .exchange-tab {
+            padding: 0.75rem 0.5rem;
+            margin: 0 0.5rem 0.5rem 0.5rem;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .exchange-tab:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+
+        .exchange-tab.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.4);
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+        }
+
+        .exchange-count {
+            display: block;
+            font-size: 0.75rem;
+            opacity: 0.95;
+            margin-top: 0.25rem;
+        }
+
+        /* Header */
+        .dashboard-header {
+            grid-area: header;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 5px 30px rgba(0, 0, 0, 0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .branding {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .branding-title {
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .branding-powered {
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .branding-logo {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+        }
+
+        .exchange-title {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+            margin-left: 1rem;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .category-tabs {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .category-tab {
+            padding: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.9);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .category-tab:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .category-tab.active {
+            background: rgba(255, 255, 255, 0.3);
+            border-color: rgba(255, 255, 255, 0.4);
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+        }
+
+        #language-selector {
+            color: #fff;
+            background: #000;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        #language-selector option {
+            color: #fff;
+            background: #000;
+        }
+
+        /* Main Content - Dark Panels */
+        .dashboard-main {
+            grid-area: main;
+            display: grid;
+            grid-template-columns: 250px 1fr 300px;
+            gap: 1rem;
+            padding: 1rem;
+            overflow: hidden;
+        }
+
+        .symbols-panel, .chart-panel, .right-panels > * {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        .symbols-panel {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .symbols-header {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            font-weight: 600;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .symbols-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+
+        .symbol-item {
+            padding: 0.75rem;
+            margin-bottom: 0.25rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .symbol-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateX(5px);
+        }
+
+        .symbol-item.active {
+            background: rgba(255, 255, 255, 0.25);
+            border-left: 3px solid #ffffff;
+            font-weight: 600;
+            color: white;
+        }
+
+        .symbol-price {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+
+        .chart-panel {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .chart-container {
+            flex: 1;
+            min-height: 0;
+        }
+
+        .right-panels {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .ai-panel, .stats-panel {
+            padding: 1.5rem;
+        }
+
+        .panel-title {
+            font-weight: 600;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        #ai-content, #stats-content {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        #ai-content p, #stats-content p {
+            margin-bottom: 0.5rem;
+        }
+
+        /* Top Movers - Very Dark */
+        .top-movers {
+            grid-area: movers;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(30px);
+            border-top: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .movers-section {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+            border-radius: 12px;
+            padding: 1rem;
+        }
+
+        .movers-title {
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+            color: white;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .mover-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem;
+            margin-bottom: 0.25rem;
+            border-radius: 4px;
+            transition: background 0.2s;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .mover-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .mover-change {
+            font-weight: 600;
+        }
+
+        .mover-change.positive {
+            color: #10b981;
+        }
+
+        .mover-change.negative {
+            color: #ef4444;
+        }
+        /* Central Loading Overlay */
+                
+        
+        
+        
+        
+        
+        .progress-container {
+            margin: 2rem 0;
+        }
+        
+        .progress-bar-thick {
+            width: 100%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff88 0%, #00cc6a 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+        }
+        
+                .progress-percentage {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #00ff88 !important;
+            text-shadow: 0 0 20px rgba(0, 255, 136, 0.8);
+            margin: 1rem 0;
+            display: block !important;
+            visibility: visible !important;
+        }
+        
+        .loading-status {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 500;
+        }
+
+        /* Hamburger Menu Button */
+        .hamburger-menu {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 10000;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 0.75rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .hamburger-menu:hover {
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        /* Pulse animation for first-time hint */
+        @keyframes pulse-hint {
+            0%, 100% {
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+                border-color: rgba(255, 255, 255, 0.2);
+            }
+            50% {
+                box-shadow: 0 0 0 8px rgba(16, 185, 129, 0);
+                border-color: rgba(16, 185, 129, 0.6);
+            }
+        }
+
+        .hamburger-menu.hint {
+            animation: pulse-hint 2s ease-in-out 3;
+        }
+
+        .hamburger-icon {
+            width: 24px;
+            height: 18px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .hamburger-icon span {
+            display: block;
+            height: 2px;
+            background: white;
+            border-radius: 2px;
+            transition: all 0.3s;
+        }
+
+        .hamburger-menu.active .hamburger-icon span:nth-child(1) {
+            transform: translateY(8px) rotate(45deg);
+        }
+
+        .hamburger-menu.active .hamburger-icon span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .hamburger-menu.active .hamburger-icon span:nth-child(3) {
+            transform: translateY(-8px) rotate(-45deg);
+        }
+
+        /* RESPONSIVE DESIGN - TABLET */
+        @media (max-width: 1024px) {
+            .dashboard-container {
+                grid-template-columns: 80px 1fr;
+            }
+
+            .exchange-tab {
+                font-size: 0.75rem;
+                padding: 0.5rem 0.25rem;
+            }
+
+            .exchange-count {
+                font-size: 0.65rem;
+            }
+
+            .main-content {
+                grid-template-columns: 200px 1fr 280px;
+                gap: 0.75rem;
+            }
+
+            .dashboard-header {
+                padding: 0 1rem;
+            }
+
+            .branding-title {
+                font-size: 1rem;
+            }
+        }
+
+        /* Mobile Exchange Bar (Horizontal Scroll) */
+        .mobile-exchange-bar {
+            display: none;
+        }
+
+        /* RESPONSIVE DESIGN - MOBILE */
+        @media (max-width: 768px) {
+            body {
+                overflow-y: auto;
+                overflow-x: hidden;
+            }
+
+            /* Hide hamburger menu - not needed with horizontal bar */
+            .hamburger-menu {
+                display: none !important;
+            }
+
+            /* Show horizontal exchange bar on mobile */
+            .mobile-exchange-bar {
+                display: flex;
+                gap: 0.5rem;
+                padding: 0.75rem 1rem;
+                overflow-x: auto;
+                overflow-y: hidden;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+                background: rgba(0, 0, 0, 0.4);
+                backdrop-filter: blur(20px);
+                border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+                position: sticky;
+                top: 60px;
+                z-index: 99;
+                scroll-behavior: smooth;
+            }
+
+            .mobile-exchange-bar::-webkit-scrollbar {
+                display: none;
+            }
+
+            .mobile-exchange-chip {
+                flex-shrink: 0;
+                padding: 0.6rem 1.2rem;
+                background: rgba(255, 255, 255, 0.1);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 20px;
+                color: rgba(255, 255, 255, 0.9);
+                font-size: 0.9rem;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.3s;
+                white-space: nowrap;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .mobile-exchange-chip:active {
+                transform: scale(0.95);
+            }
+
+            .mobile-exchange-chip.active {
+                background: rgba(16, 185, 129, 0.3);
+                border-color: rgba(16, 185, 129, 0.6);
+                color: white;
+                box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+            }
+
+            .mobile-exchange-chip-count {
+                background: rgba(255, 255, 255, 0.2);
+                padding: 0.15rem 0.5rem;
+                border-radius: 10px;
+                font-size: 0.75rem;
+            }
+
+            .mobile-exchange-chip.active .mobile-exchange-chip-count {
+                background: rgba(16, 185, 129, 0.3);
+            }
+
+            /* Optimize Loading Screen for Mobile */
+            .loading-logo img {
+                height: 60px;
+            }
+
+            .loading-logo-title {
+                font-size: clamp(1.1rem, 4vw, 1.5rem);
+            }
+
+            .loading-subtitle {
+                font-size: clamp(0.75rem, 2.5vw, 0.9rem);
+            }
+
+            .loading-subtitle img {
+                height: 24px;
+            }
+
+            .progress-percentage {
+                font-size: clamp(2rem, 8vw, 3rem) !important;
+            }
+
+            .loading-status {
+                font-size: clamp(0.75rem, 3vw, 1rem) !important;
+                letter-spacing: 1px;
+            }
+
+            .dashboard-container {
+                grid-template-columns: 1fr;
+                grid-template-rows: 60px auto auto auto;
+                grid-template-areas:
+                    "header"
+                    "main"
+                    "movers"
+                    "sidebar";
+                height: auto;
+                min-height: 100vh;
+            }
+
+            /* Hide sidebar completely on mobile - using horizontal bar instead */
+            .exchange-sidebar {
+                display: none;
+            }
+
+            .exchange-tab {
+                padding: 1rem;
+                font-size: 1rem;
+                min-height: 44px;
+            }
+
+            .exchange-count {
+                font-size: 0.85rem;
+            }
+
+            .dashboard-header {
+                padding: 0 1rem;
+                position: sticky;
+                top: 0;
+                z-index: 100;
+            }
+
+            .branding {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+
+            .branding-logo {
+                height: 25px;
+            }
+
+            .branding-title {
+                font-size: clamp(0.65rem, 2vw, 0.85rem);
+            }
+
+            .branding-powered {
+                display: none;
+            }
+
+            .exchange-title {
+                font-size: clamp(0.9rem, 3vw, 1.1rem);
+            }
+
+            #language-selector {
+                font-size: clamp(0.75rem, 2.5vw, 0.85rem);
+                padding: 0.4rem;
+            }
+
+            /* Responsive Images */
+            .branding-logo {
+                width: auto;
+                max-width: 100%;
+                object-fit: contain;
+            }
+
+            .main-content {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto auto 400px;
+                grid-template-areas:
+                    "symbols"
+                    "stats"
+                    "chart";
+                gap: 1rem;
+                padding: 1rem;
+                height: auto;
+            }
+
+            .symbols-panel {
+                min-height: 200px;
+            }
+
+            .symbols-header {
+                font-size: clamp(0.9rem, 3vw, 1rem);
+                padding: 0.75rem;
+            }
+
+            .symbol-item {
+                padding: 1rem;
+                min-height: 44px;
+                font-size: clamp(0.9rem, 3.5vw, 1.1rem);
+            }
+
+            .chart-panel {
+                min-height: 400px;
+                order: 3;
+            }
+
+            .chart-title {
+                font-size: clamp(0.9rem, 3vw, 1.1rem);
+                padding: 0.75rem;
+            }
+
+            .panel-group {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .panel {
+                min-height: 150px;
+            }
+
+            .panel-title {
+                font-size: clamp(0.9rem, 3vw, 1rem);
+                padding: 0.75rem;
+            }
+
+            .movers-section {
+                padding: 1rem;
+            }
+
+            .movers-container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .movers-column {
+                width: 100%;
+            }
+
+            .movers-title {
+                font-size: clamp(1rem, 3.5vw, 1.2rem);
+                padding: 0.75rem;
+            }
+
+            .mover-item {
+                padding: 1rem;
+                min-height: 44px;
+                font-size: clamp(0.9rem, 3.5vw, 1.1rem);
+            }
+
+            .mover-change {
+                font-size: clamp(0.85rem, 3vw, 1rem);
+            }
+
+            .category-tabs {
+                gap: 0.5rem;
+                padding: 0.5rem;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .category-tab {
+                padding: 0.75rem 1rem;
+                min-height: 44px;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+        }
+
+        /* RESPONSIVE DESIGN - SMALL MOBILE */
+        @media (max-width: 480px) {
+            .dashboard-header {
+                padding: 0 0.5rem;
+            }
+
+            .branding-title {
+                font-size: clamp(0.6rem, 2.5vw, 0.75rem);
+            }
+
+            .exchange-title {
+                font-size: clamp(0.85rem, 3vw, 1rem);
+            }
+
+            #language-selector {
+                font-size: clamp(0.7rem, 2.5vw, 0.8rem);
+                padding: 0.3rem;
+            }
+
+            .main-content {
+                padding: 0.5rem;
+                gap: 0.75rem;
+            }
+
+            .chart-panel {
+                min-height: 300px;
+            }
+
+            .category-tab {
+                font-size: clamp(0.8rem, 3vw, 0.9rem);
+                padding: 0.6rem 0.75rem;
+            }
+
+            .loading-logo img {
+                height: 50px;
+            }
+
+            .loading-percentage {
+                font-size: clamp(1.5rem, 6vw, 2rem) !important;
+            }
+
+            /* Optimize images for small screens */
+            img {
+                max-width: 100%;
+                height: auto;
+            }
+        }
+
+    </style>
+</head>
+<body>
+    <div id="loading-screen">
+        <div class="loading-content">
+            <div class="loading-logo">
+                <img src="../images/TheAfroGeek.png" alt="The Geek">
+                <div class="loading-logo-title">Market Intelligence!</div>
+            </div>
+            <div class="loading-subtitle">
+                powered by
+                <img src="../images/TheAfroGeek.png" alt="The Geek">
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progress-bar">
+                    <div class="progress-fill" id="loading-progress-fill" style="height: 100%; background: linear-gradient(90deg, #00ff88 0%, #00cc6a 100%); width: 0%; transition: width 0.3s ease;"></div>
+                </div>
+            </div>
+            <div class="progress-percentage" id="loading-percentage" style="margin-top: 1.5rem; font-size: 3rem; font-weight: 700; color: #00ff88; text-shadow: 0 0 20px rgba(0, 255, 136, 0.8);">0%</div>
+            <div class="loading-status" id="loading-status" style="margin-top: 1rem; font-size: 1rem; color: rgba(255, 255, 255, 0.8); text-transform: uppercase; letter-spacing: 2px;">Initializing...</div>
+            <div class="progress-container-dummy">
+            </div>
+            <div class="loading-status" id="loading-status">Initializing...</div>
+        </div>        <!-- Central Panel Loading Overlay -->
+        
+
+    </div>
+
+    <!-- Hamburger Menu for Mobile -->
+    <div class="hamburger-menu" id="hamburger-menu">
+        <div class="hamburger-icon">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+
+    <div class="dashboard-container" id="dashboard">
+        <div class="exchange-sidebar" id="exchange-sidebar"></div>
+
+        <div class="dashboard-header">
+            <div class="header-left">
+                <div class="branding">
+                    <span class="branding-title">Market Intelligence!</span>
+                    <span class="branding-powered">powered by</span>
+                    <img src="../images/TheAfroGeek.png" alt="The Geek" class="branding-logo">
+                </div>
+                <div class="exchange-title" id="exchange-title">NYSE</div>
+            </div>
+            <div class="header-right">
+                <div class="category-tabs">
+                    <div class="category-tab active" data-category="metals">🥇 Metals</div>
+                    <div class="category-tab" data-category="indices">📈 Indices</div>
+                    <div class="category-tab" data-category="stocks">📊 Stocks</div>
+                    <div class="category-tab" data-category="crypto">₿ Crypto</div>
+                </div>
+                <select id="language-selector">
+                    <option value="en">English</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Mobile Horizontal Exchange Bar -->
+        <div class="mobile-exchange-bar" id="mobile-exchange-bar">
+            <!-- Populated dynamically by JavaScript -->
+        </div>
+
+        <div class="dashboard-main">
+            <div class="symbols-panel">
+                <div class="symbols-header">Symbols</div>
+                <div class="symbols-list" id="symbols-list"></div>
+            </div>
+
+            <div class="chart-panel">
+                <div class="chart-title" id="chart-title">Select a symbol</div>
+                <div class="chart-container">
+                    <canvas id="priceChart"></canvas>
+                </div>
+            </div>
+
+            <div class="right-panels">
+                <div class="ai-panel">
+                    <div class="panel-title">🤖 AI Prediction</div>
+                    <div id="ai-content"></div>
+                </div>
+
+                <div class="stats-panel">
+                    <div class="panel-title">📊 Stats</div>
+                    <div id="stats-content"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="top-movers">
+            <div class="movers-section">
+                <div class="movers-title">Top Gainers</div>
+                <div id="gainers-list"></div>
+            </div>
+
+            <div class="movers-section">
+                <div class="movers-title">Top Losers</div>
+                <div id="losers-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

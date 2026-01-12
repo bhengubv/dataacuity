@@ -1,0 +1,342 @@
+{
+  "name": "AutoBiz - Follow-up Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "schedule",
+      "name": "Check Every 6 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CRM_API_URL }}/follow-ups/pending",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "get-pending",
+      "name": "Get Pending Follow-ups",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-items",
+              "leftValue": "={{ $json.followUps?.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "has-followups",
+      "name": "Has Follow-ups?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "followUps",
+        "options": {}
+      },
+      "id": "split-followups",
+      "name": "Split Follow-ups",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        910,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            {
+              "outputKey": "quote_sent",
+              "value1": "={{ $json.type }}",
+              "operation": "equals",
+              "value2": "quote_sent"
+            },
+            {
+              "outputKey": "meeting_scheduled",
+              "value1": "={{ $json.type }}",
+              "operation": "equals",
+              "value2": "meeting_scheduled"
+            },
+            {
+              "outputKey": "proposal_viewed",
+              "value1": "={{ $json.type }}",
+              "operation": "equals",
+              "value2": "proposal_viewed"
+            },
+            {
+              "outputKey": "general",
+              "value1": "={{ $json.type }}",
+              "operation": "notEquals",
+              "value2": ""
+            }
+          ]
+        },
+        "fallbackOutput": "none"
+      },
+      "id": "route-type",
+      "name": "Follow-up Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1130,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate personalized follow-up email for quote\nconst data = $input.first().json;\nconst daysSince = Math.floor((Date.now() - new Date(data.sentDate)) / (1000 * 60 * 60 * 24));\n\nlet subject, body;\n\nif (daysSince <= 2) {\n  subject = `Following up on your quote ${data.quoteNumber}`;\n  body = `\n    <p>Hi ${data.customerName.split(' ')[0]},</p>\n    <p>I wanted to follow up on the quote I sent you recently. Have you had a chance to review it?</p>\n    <p>If you have any questions or would like to discuss any adjustments, I'm happy to jump on a quick call.</p>\n    <p>Looking forward to hearing from you!</p>\n  `;\n} else if (daysSince <= 5) {\n  subject = `Quick check-in: Quote ${data.quoteNumber}`;\n  body = `\n    <p>Hi ${data.customerName.split(' ')[0]},</p>\n    <p>Just checking in on the quote I sent over. I know things get busy, but I wanted to make sure it didn't slip through the cracks.</p>\n    <p>Is there anything holding you back from moving forward? I'd be happy to address any concerns.</p>\n    <p>Let me know either way!</p>\n  `;\n} else {\n  subject = `Last chance: Quote ${data.quoteNumber} expiring soon`;\n  body = `\n    <p>Hi ${data.customerName.split(' ')[0]},</p>\n    <p>I noticed the quote I sent is approaching its expiry date. Before it expires, I wanted to reach out one more time.</p>\n    <p>If timing isn't right, just let me know and I can extend the quote or circle back in a few months.</p>\n    <p>Otherwise, I'd love to help you get started!</p>\n  `;\n}\n\nreturn {\n  ...data,\n  emailSubject: subject,\n  emailBody: body,\n  followUpSequence: daysSince <= 2 ? 1 : (daysSince <= 5 ? 2 : 3)\n};"
+      },
+      "id": "quote-followup-content",
+      "name": "Quote Follow-up",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1350,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Generate meeting reminder/follow-up\nconst data = $input.first().json;\nconst meetingDate = new Date(data.meetingDate);\nconst now = new Date();\nconst hoursUntil = (meetingDate - now) / (1000 * 60 * 60);\n\nlet subject, body;\n\nif (hoursUntil > 0 && hoursUntil <= 24) {\n  // Reminder before meeting\n  subject = `Reminder: Our meeting tomorrow`;\n  body = `\n    <p>Hi ${data.customerName.split(' ')[0]},</p>\n    <p>Just a friendly reminder about our meeting scheduled for ${meetingDate.toLocaleString()}.</p>\n    <p><strong>Agenda:</strong> ${data.agenda || 'Discussion of your project requirements'}</p>\n    <p>Looking forward to speaking with you!</p>\n  `;\n} else if (hoursUntil < 0 && hoursUntil > -48) {\n  // Follow-up after meeting\n  subject = `Great speaking with you!`;\n  body = `\n    <p>Hi ${data.customerName.split(' ')[0]},</p>\n    <p>Thank you for taking the time to meet with me. I really enjoyed our conversation!</p>\n    <p>As discussed, here's a summary of our next steps:</p>\n    <ul>\n      <li>I'll send over the proposal by end of week</li>\n      <li>Feel free to reach out if you have any questions</li>\n    </ul>\n    <p>Talk soon!</p>\n  `;\n}\n\nreturn {\n  ...data,\n  emailSubject: subject,\n  emailBody: body,\n  isReminder: hoursUntil > 0\n};"
+      },
+      "id": "meeting-followup-content",
+      "name": "Meeting Follow-up",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1350,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Follow-up when proposal was viewed\nconst data = $input.first().json;\nconst viewedAt = new Date(data.viewedAt);\nconst hoursSinceView = (Date.now() - viewedAt) / (1000 * 60 * 60);\n\nlet subject, body;\n\nif (hoursSinceView <= 4) {\n  // Strike while iron is hot\n  subject = `Quick question about the proposal`;\n  body = `\n    <p>Hi ${data.customerName.split(' ')[0]},</p>\n    <p>I noticed you just checked out our proposal. Perfect timing!</p>\n    <p>Any initial thoughts or questions? I'm around now if you'd like to chat.</p>\n  `;\n} else {\n  subject = `Thoughts on the proposal?`;\n  body = `\n    <p>Hi ${data.customerName.split(' ')[0]},</p>\n    <p>I saw you had a chance to review our proposal. I'd love to hear your thoughts!</p>\n    <p>If you'd like to discuss anything or have questions, just reply and we can set up a quick call.</p>\n  `;\n}\n\nreturn {\n  ...data,\n  emailSubject: subject,\n  emailBody: body,\n  hotLead: hoursSinceView <= 4\n};"
+      },
+      "id": "proposal-followup-content",
+      "name": "Proposal Viewed Follow-up",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1350,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $json.customerEmail }}",
+        "subject": "={{ $json.emailSubject }}",
+        "emailType": "html",
+        "html": "={{ $json.emailBody }}\n<br><br>\n<p style=\"color: #666;\">Best regards,<br>{{ $env.OWNER_NAME }}<br>{{ $env.BUSINESS_NAME }}</p>",
+        "options": {}
+      },
+      "id": "send-followup",
+      "name": "Send Follow-up Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1570,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.CRM_API_URL }}/follow-ups/{{ $json.id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"status\": \"sent\",\n  \"sentAt\": \"{{ $now.toISO() }}\",\n  \"sequence\": {{ $json.followUpSequence || 1 }}\n}",
+        "options": {}
+      },
+      "id": "mark-complete",
+      "name": "Mark as Sent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1790,
+        200
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "no-followups",
+      "name": "No Follow-ups",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        910,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Check Every 6 Hours": {
+      "main": [
+        [
+          {
+            "node": "Get Pending Follow-ups",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Pending Follow-ups": {
+      "main": [
+        [
+          {
+            "node": "Has Follow-ups?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Follow-ups?": {
+      "main": [
+        [
+          {
+            "node": "Split Follow-ups",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Follow-ups",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Follow-ups": {
+      "main": [
+        [
+          {
+            "node": "Follow-up Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Follow-up Type": {
+      "main": [
+        [
+          {
+            "node": "Quote Follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Meeting Follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Proposal Viewed Follow-up",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quote Follow-up": {
+      "main": [
+        [
+          {
+            "node": "Send Follow-up Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meeting Follow-up": {
+      "main": [
+        [
+          {
+            "node": "Send Follow-up Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Proposal Viewed Follow-up": {
+      "main": [
+        [
+          {
+            "node": "Send Follow-up Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Follow-up Email": {
+      "main": [
+        [
+          {
+            "node": "Mark as Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

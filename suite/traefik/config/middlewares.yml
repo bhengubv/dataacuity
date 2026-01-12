@@ -1,0 +1,110 @@
+# Traefik Dynamic Configuration - Middlewares
+# These can be referenced in docker labels or file-based routing
+
+http:
+  middlewares:
+    # Rate limiting
+    rate-limit:
+      rateLimit:
+        average: 100
+        burst: 50
+        period: 1s
+
+    # Stricter rate limiting for APIs
+    api-rate-limit:
+      rateLimit:
+        average: 30
+        burst: 10
+        period: 1s
+
+    # Security headers
+    secure-headers:
+      headers:
+        frameDeny: true
+        sslRedirect: true
+        browserXssFilter: true
+        contentTypeNosniff: true
+        forceSTSHeader: true
+        stsIncludeSubdomains: true
+        stsPreload: true
+        stsSeconds: 31536000
+        customFrameOptionsValue: "SAMEORIGIN"
+        referrerPolicy: "strict-origin-when-cross-origin"
+
+    # Compress responses
+    compress:
+      compress: {}
+
+    # Strip /api prefix for backends that don't expect it
+    strip-api-prefix:
+      stripPrefix:
+        prefixes:
+          - "/api"
+
+    # Add trailing slash
+    add-trailing-slash:
+      redirectRegex:
+        regex: "^(https?://[^/]+/[a-zA-Z0-9_-]+)$"
+        replacement: "${1}/"
+
+    # CORS for APIs
+    cors-allow-all:
+      headers:
+        accessControlAllowMethods:
+          - "GET"
+          - "POST"
+          - "PUT"
+          - "DELETE"
+          - "OPTIONS"
+        accessControlAllowHeaders:
+          - "Content-Type"
+          - "Authorization"
+          - "X-Requested-With"
+        accessControlAllowOriginList:
+          - "*"
+        accessControlMaxAge: 100
+        addVaryHeader: true
+
+    # IP whitelist for admin services (customize IPs)
+    admin-whitelist:
+      ipWhiteList:
+        sourceRange:
+          - "127.0.0.1/32"
+          - "10.0.0.0/8"
+          - "172.16.0.0/12"
+          - "192.168.0.0/16"
+          # Add your public IPs here
+          # - "YOUR_IP/32"
+
+    # Chain: secure + rate-limited (for public services)
+    public-chain:
+      chain:
+        middlewares:
+          - secure-headers
+          - rate-limit
+          - compress
+
+    # Chain: admin services (auth + whitelist)
+    admin-chain:
+      chain:
+        middlewares:
+          - secure-headers
+          - admin-whitelist
+          - compress
+
+    # Strip /docs prefix for documentation portal
+    docs-strip-prefix:
+      stripPrefix:
+        prefixes:
+          - "/docs"
+
+    # Security headers for docs - read-only, no sensitive data exposure
+    docs-security-headers:
+      headers:
+        frameDeny: true
+        contentTypeNosniff: true
+        browserXssFilter: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        customResponseHeaders:
+          X-Robots-Tag: "noindex, nofollow"
+          Cache-Control: "no-store, no-cache, must-revalidate"

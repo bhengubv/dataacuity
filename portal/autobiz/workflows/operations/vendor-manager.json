@@ -1,0 +1,210 @@
+{
+  "name": "AutoBiz - Vendor Manager",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autobiz/vendor-order",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "order-webhook",
+      "name": "Create Purchase Order",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "po-number",
+              "name": "poNumber",
+              "value": "=PO-{{ $now.format('yyyyMMdd') }}-{{ $randomInt(1000, 9999) }}",
+              "type": "string"
+            },
+            {
+              "id": "created-at",
+              "name": "createdAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            },
+            {
+              "id": "status",
+              "name": "status",
+              "value": "pending",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "generate-po-number",
+      "name": "Generate PO Number",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CRM_API_URL }}/vendors/{{ $json.vendorId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-vendor",
+      "name": "Fetch Vendor Details",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate order totals and generate PO\nconst order = $('Generate PO Number').first().json;\nconst vendor = $input.first().json;\nconst items = order.items || [];\n\nlet subtotal = 0;\nconst processedItems = items.map((item, idx) => {\n  const qty = parseFloat(item.quantity) || 1;\n  const price = parseFloat(item.unitPrice) || 0;\n  const lineTotal = qty * price;\n  subtotal += lineTotal;\n  return {\n    lineNumber: idx + 1,\n    sku: item.sku,\n    description: item.description,\n    quantity: qty,\n    unitPrice: price,\n    lineTotal: lineTotal\n  };\n});\n\nconst taxRate = parseFloat(vendor.taxRate) || 15;\nconst taxAmount = subtotal * (taxRate / 100);\nconst total = subtotal + taxAmount;\n\nconst expectedDelivery = new Date();\nexpectedDelivery.setDate(expectedDelivery.getDate() + (vendor.leadTimeDays || 7));\n\nreturn {\n  ...order,\n  vendor: {\n    id: vendor.id,\n    name: vendor.name,\n    email: vendor.email,\n    phone: vendor.phone,\n    address: vendor.address,\n    paymentTerms: vendor.paymentTerms || 'Net 30'\n  },\n  items: processedItems,\n  subtotal: subtotal.toFixed(2),\n  taxRate: taxRate,\n  taxAmount: taxAmount.toFixed(2),\n  total: total.toFixed(2),\n  expectedDelivery: expectedDelivery.toISOString(),\n  currency: order.currency || 'ZAR'\n};"
+      },
+      "id": "calculate-order",
+      "name": "Calculate Order",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        910,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/purchase-orders",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"poNumber\": \"{{ $json.poNumber }}\",\n  \"vendorId\": \"{{ $json.vendor.id }}\",\n  \"vendorName\": \"{{ $json.vendor.name }}\",\n  \"items\": {{ JSON.stringify($json.items) }},\n  \"subtotal\": {{ $json.subtotal }},\n  \"taxAmount\": {{ $json.taxAmount }},\n  \"total\": {{ $json.total }},\n  \"expectedDelivery\": \"{{ $json.expectedDelivery }}\",\n  \"status\": \"{{ $json.status }}\",\n  \"createdAt\": \"{{ $json.createdAt }}\"\n}",
+        "options": {}
+      },
+      "id": "save-po",
+      "name": "Save Purchase Order",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1130,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $json.vendor.email }}",
+        "subject": "=Purchase Order {{ $json.poNumber }} from {{ $env.BUSINESS_NAME }}",
+        "emailType": "html",
+        "html": "=<h2>Purchase Order</h2>\n<p><strong>PO Number:</strong> {{ $json.poNumber }}</p>\n<p><strong>Date:</strong> {{ new Date($json.createdAt).toLocaleDateString() }}</p>\n<p><strong>Expected Delivery:</strong> {{ new Date($json.expectedDelivery).toLocaleDateString() }}</p>\n\n<h3>Order Details</h3>\n<table style=\"width: 100%; border-collapse: collapse;\">\n<tr style=\"background: #f5f5f5;\">\n<th style=\"padding: 10px; text-align: left;\">#</th>\n<th style=\"padding: 10px; text-align: left;\">Description</th>\n<th style=\"padding: 10px; text-align: right;\">Qty</th>\n<th style=\"padding: 10px; text-align: right;\">Price</th>\n<th style=\"padding: 10px; text-align: right;\">Total</th>\n</tr>\n{{ $json.items.map(i => '<tr><td style=\"padding: 10px;\">' + i.lineNumber + '</td><td style=\"padding: 10px;\">' + i.description + '</td><td style=\"padding: 10px; text-align: right;\">' + i.quantity + '</td><td style=\"padding: 10px; text-align: right;\">' + $json.currency + ' ' + i.unitPrice.toFixed(2) + '</td><td style=\"padding: 10px; text-align: right;\">' + $json.currency + ' ' + i.lineTotal.toFixed(2) + '</td></tr>').join('') }}\n</table>\n\n<table style=\"width: 300px; margin-left: auto; margin-top: 20px;\">\n<tr><td style=\"padding: 8px;\">Subtotal:</td><td style=\"padding: 8px; text-align: right;\">{{ $json.currency }} {{ $json.subtotal }}</td></tr>\n<tr><td style=\"padding: 8px;\">VAT ({{ $json.taxRate }}%):</td><td style=\"padding: 8px; text-align: right;\">{{ $json.currency }} {{ $json.taxAmount }}</td></tr>\n<tr style=\"font-weight: bold; background: #f5f5f5;\"><td style=\"padding: 8px;\">Total:</td><td style=\"padding: 8px; text-align: right;\">{{ $json.currency }} {{ $json.total }}</td></tr>\n</table>\n\n<p style=\"margin-top: 30px;\"><strong>Payment Terms:</strong> {{ $json.vendor.paymentTerms }}</p>\n<p>Please confirm receipt of this order.</p>\n\n<p>Thank you,<br>{{ $env.BUSINESS_NAME }}</p>",
+        "options": {}
+      },
+      "id": "send-to-vendor",
+      "name": "Send to Vendor",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1350,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"poNumber\": \"{{ $json.poNumber }}\",\n  \"vendor\": \"{{ $json.vendor.name }}\",\n  \"total\": \"{{ $json.currency }} {{ $json.total }}\",\n  \"expectedDelivery\": \"{{ $json.expectedDelivery }}\"\n}",
+        "options": {}
+      },
+      "id": "po-response",
+      "name": "PO Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1570,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Create Purchase Order": {
+      "main": [
+        [
+          {
+            "node": "Generate PO Number",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate PO Number": {
+      "main": [
+        [
+          {
+            "node": "Fetch Vendor Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Vendor Details": {
+      "main": [
+        [
+          {
+            "node": "Calculate Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Order": {
+      "main": [
+        [
+          {
+            "node": "Save Purchase Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Purchase Order": {
+      "main": [
+        [
+          {
+            "node": "Send to Vendor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Vendor": {
+      "main": [
+        [
+          {
+            "node": "PO Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

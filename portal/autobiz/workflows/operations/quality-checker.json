@@ -1,0 +1,257 @@
+{
+  "name": "AutoBiz - Quality Checker",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autobiz/quality-check",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "qc-webhook",
+      "name": "Quality Check Submission",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "qc-id",
+              "name": "qcId",
+              "value": "=QC-{{ $now.format('yyyyMMdd') }}-{{ $randomInt(1000, 9999) }}",
+              "type": "string"
+            },
+            {
+              "id": "checked-at",
+              "name": "checkedAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "generate-qc-id",
+      "name": "Generate QC ID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Evaluate quality check results\nconst data = $input.first().json;\nconst checkItems = data.checkItems || [];\n\nlet passCount = 0;\nlet failCount = 0;\nlet warningCount = 0;\nconst issues = [];\n\nconst evaluatedItems = checkItems.map(item => {\n  let status = 'pass';\n  let notes = [];\n  \n  // Evaluate based on check type\n  switch(item.type) {\n    case 'measurement':\n      const value = parseFloat(item.value);\n      const min = parseFloat(item.minValue);\n      const max = parseFloat(item.maxValue);\n      const tolerance = parseFloat(item.tolerance) || 0;\n      \n      if (value < min - tolerance || value > max + tolerance) {\n        status = 'fail';\n        notes.push(`Value ${value} outside range ${min}-${max}`);\n      } else if (value < min || value > max) {\n        status = 'warning';\n        notes.push(`Value ${value} within tolerance but outside spec`);\n      }\n      break;\n      \n    case 'visual':\n      if (item.defectsFound > 0) {\n        status = item.defectsFound > (item.maxDefects || 0) ? 'fail' : 'warning';\n        notes.push(`${item.defectsFound} defects found`);\n      }\n      break;\n      \n    case 'functional':\n      status = item.passed ? 'pass' : 'fail';\n      if (!item.passed) {\n        notes.push(item.failureReason || 'Functional test failed');\n      }\n      break;\n      \n    default:\n      status = item.passed !== false ? 'pass' : 'fail';\n  }\n  \n  if (status === 'pass') passCount++;\n  else if (status === 'fail') failCount++;\n  else warningCount++;\n  \n  if (status !== 'pass') {\n    issues.push({\n      item: item.name,\n      status: status,\n      notes: notes.join('; ')\n    });\n  }\n  \n  return {\n    ...item,\n    status: status,\n    notes: notes\n  };\n});\n\nconst totalChecks = checkItems.length;\nconst passRate = totalChecks > 0 ? Math.round((passCount / totalChecks) * 100) : 0;\nconst overallStatus = failCount > 0 ? 'fail' : (warningCount > 0 ? 'warning' : 'pass');\n\nreturn {\n  ...data,\n  checkItems: evaluatedItems,\n  summary: {\n    totalChecks: totalChecks,\n    passed: passCount,\n    failed: failCount,\n    warnings: warningCount,\n    passRate: passRate,\n    overallStatus: overallStatus\n  },\n  issues: issues\n};"
+      },
+      "id": "evaluate-qc",
+      "name": "Evaluate Quality",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-status",
+              "leftValue": "={{ $json.summary.overallStatus }}",
+              "rightValue": "pass",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-result",
+      "name": "Check Result",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        910,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/quality-checks",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"qcId\": \"{{ $json.qcId }}\",\n  \"jobId\": \"{{ $json.jobId }}\",\n  \"productId\": \"{{ $json.productId }}\",\n  \"checkedBy\": \"{{ $json.checkedBy }}\",\n  \"summary\": {{ JSON.stringify($json.summary) }},\n  \"checkItems\": {{ JSON.stringify($json.checkItems) }},\n  \"issues\": {{ JSON.stringify($json.issues) }},\n  \"checkedAt\": \"{{ $json.checkedAt }}\"\n}",
+        "options": {}
+      },
+      "id": "save-qc-pass",
+      "name": "Save QC (Pass)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1130,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/quality-checks",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"qcId\": \"{{ $json.qcId }}\",\n  \"jobId\": \"{{ $json.jobId }}\",\n  \"productId\": \"{{ $json.productId }}\",\n  \"checkedBy\": \"{{ $json.checkedBy }}\",\n  \"summary\": {{ JSON.stringify($json.summary) }},\n  \"checkItems\": {{ JSON.stringify($json.checkItems) }},\n  \"issues\": {{ JSON.stringify($json.issues) }},\n  \"checkedAt\": \"{{ $json.checkedAt }}\",\n  \"requiresReview\": true\n}",
+        "options": {}
+      },
+      "id": "save-qc-fail",
+      "name": "Save QC (Fail)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1130,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $env.OWNER_EMAIL }}",
+        "subject": "=QC ALERT: {{ $json.summary.overallStatus.toUpperCase() }} - {{ $json.qcId }}",
+        "emailType": "html",
+        "html": "=<h2 style=\"color: {{ $json.summary.overallStatus === 'fail' ? '#FF3B30' : '#FF9500' }};\">Quality Check {{ $json.summary.overallStatus === 'fail' ? 'Failed' : 'Warning' }}</h2>\n<p><strong>QC ID:</strong> {{ $json.qcId }}</p>\n<p><strong>Job/Product:</strong> {{ $json.jobId || $json.productId }}</p>\n<p><strong>Checked By:</strong> {{ $json.checkedBy }}</p>\n<p><strong>Pass Rate:</strong> {{ $json.summary.passRate }}%</p>\n\n<h3>Summary</h3>\n<ul>\n<li>Total Checks: {{ $json.summary.totalChecks }}</li>\n<li style=\"color: #34C759;\">Passed: {{ $json.summary.passed }}</li>\n<li style=\"color: #FF3B30;\">Failed: {{ $json.summary.failed }}</li>\n<li style=\"color: #FF9500;\">Warnings: {{ $json.summary.warnings }}</li>\n</ul>\n\n<h3>Issues Found</h3>\n<table style=\"width: 100%; border-collapse: collapse;\">\n<tr style=\"background: #f5f5f5;\">\n<th style=\"padding: 10px; text-align: left;\">Item</th>\n<th style=\"padding: 10px; text-align: left;\">Status</th>\n<th style=\"padding: 10px; text-align: left;\">Notes</th>\n</tr>\n{{ $json.issues.map(i => '<tr><td style=\"padding: 10px;\">' + i.item + '</td><td style=\"padding: 10px; color: ' + (i.status === 'fail' ? '#FF3B30' : '#FF9500') + ';\">' + i.status.toUpperCase() + '</td><td style=\"padding: 10px;\">' + i.notes + '</td></tr>').join('') }}\n</table>\n\n<p style=\"margin-top: 20px;\"><a href=\"{{ $env.CRM_URL }}/quality/{{ $json.qcId }}\" style=\"background: #007AFF; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;\">View Full Report</a></p>",
+        "options": {}
+      },
+      "id": "alert-manager",
+      "name": "Alert Manager",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1350,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"qcId\": \"{{ $json.qcId }}\",\n  \"overallStatus\": \"{{ $json.summary.overallStatus }}\",\n  \"passRate\": {{ $json.summary.passRate }},\n  \"passed\": {{ $json.summary.passed }},\n  \"failed\": {{ $json.summary.failed }},\n  \"warnings\": {{ $json.summary.warnings }}\n}",
+        "options": {}
+      },
+      "id": "qc-response",
+      "name": "QC Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1570,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Quality Check Submission": {
+      "main": [
+        [
+          {
+            "node": "Generate QC ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate QC ID": {
+      "main": [
+        [
+          {
+            "node": "Evaluate Quality",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluate Quality": {
+      "main": [
+        [
+          {
+            "node": "Check Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Result": {
+      "main": [
+        [
+          {
+            "node": "Save QC (Pass)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save QC (Fail)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save QC (Pass)": {
+      "main": [
+        [
+          {
+            "node": "QC Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save QC (Fail)": {
+      "main": [
+        [
+          {
+            "node": "Alert Manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Alert Manager": {
+      "main": [
+        [
+          {
+            "node": "QC Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ai_brain_ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+      - OLLAMA_KEEP_ALIVE=24h
+    networks:
+      - data_stack
+
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: ai_brain_webui
+    restart: unless-stopped
+    ports:
+      - "5000:8080"
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_AUTH=true
+      - WEBUI_NAME=DataAcuity AI Brain
+      - ENABLE_SIGNUP=false
+    volumes:
+      - open_webui_data:/app/backend/data
+    depends_on:
+      - ollama
+    networks:
+      - data_stack
+
+volumes:
+  ollama_data:
+  open_webui_data:
+
+networks:
+  data_stack:
+    driver: bridge

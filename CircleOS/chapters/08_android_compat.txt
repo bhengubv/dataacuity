@@ -1,0 +1,468 @@
+================================================================================
+CIRCLE OS SPECIFICATION
+Chapter 08: Android Compatibility Layer
+================================================================================
+
+Document: 08_android_compat.txt
+Version: 1.0
+Date: December 2025
+Status: Foundation
+
+================================================================================
+1. COMPATIBILITY PHILOSOPHY
+================================================================================
+
+APPS ARE WELCOME, SNOOPING ISN'T
+
+Users need their apps:
+- WhatsApp for family
+- Banking apps for money
+- Uber for transport
+- Instagram for social
+
+Circle OS runs Android apps natively — not emulated, not sandboxed in VM.
+Same ART runtime, same APK format.
+
+The difference: Every app runs under Circle's privacy rules.
+
+================================================================================
+2. ANDROID API LEVEL
+================================================================================
+
+2.1 TARGET API
+--------------
+Circle OS targets Android 14 (API 34) compatibility:
+
+REASON:
+- Current apps target this level
+- Modern privacy features available
+- Reasonable security baseline
+- Wide device support
+
+2.2 COMPATIBILITY RANGE
+-----------------------
+SUPPORTED: Apps targeting API 21-34 (Android 5.0 - 14)
+LIMITED: Apps targeting API <21 (may work, not tested)
+BLOCKED: Apps requiring features we don't provide
+
+2.3 CTS COMPLIANCE
+------------------
+We aim for PARTIAL CTS (Compatibility Test Suite) compliance:
+
+COMPLIANT:
+- Core API behavior
+- App lifecycle
+- Intent handling
+- Content providers
+
+NOT COMPLIANT:
+- Google Play Services tests (not included)
+- SafetyNet/Play Integrity (deliberately)
+- Some proprietary API tests
+
+================================================================================
+3. ANDROID RUNTIME (ART)
+================================================================================
+
+3.1 IMPLEMENTATION
+------------------
+Standard AOSP ART with modifications:
+
+BASE: AOSP android-14.0.0_r* branch
+
+MODIFICATIONS:
+- Privacy hooks in runtime
+- Hardened memory allocator integration
+- Custom permission enforcement
+- Advertising ID neutralization
+
+3.2 EXECUTION MODES
+-------------------
+DEX EXECUTION:
+- Interpretation (fallback)
+- JIT compilation (default)
+- AOT compilation (system apps, optional for user apps)
+
+SECURITY MODE (optional):
+- JIT disabled
+- Full AOT only
+- Reduced attack surface
+- May impact app startup time
+
+3.3 ZYGOTE
+----------
+App process forking:
+
+MODIFICATIONS:
+- Circle permission state inherited
+- Privacy sandbox applied early
+- Hardened_malloc active from start
+- SELinux context applied
+
+================================================================================
+4. GOOGLE PLAY SERVICES
+================================================================================
+
+4.1 DEFAULT: NOT INCLUDED
+-------------------------
+Circle OS ships without Google Play Services.
+
+RESULT:
+- No Google account required
+- No Google tracking
+- Many apps still work
+- Some apps fail
+
+4.2 OPTION: MICROG
+------------------
+Open-source reimplementation:
+
+FEATURES:
+- Maps API (via UnifiedNLP)
+- Cloud messaging (push notifications)
+- SafetyNet (limited)
+- Basic Play Services API stubs
+
+INSTALLATION:
+- Optional, user choice
+- From Circle Store
+- Runs as regular app (not privileged)
+
+4.3 OPTION: SANDBOXED PLAY SERVICES
+-----------------------------------
+GrapheneOS approach:
+
+CONCEPT:
+- Install real Google Play Services
+- Runs as regular app (not privileged)
+- No system-level access
+- User controls permissions
+
+BENEFITS:
+- Best app compatibility
+- Google contained in sandbox
+- User sees all Google activity
+
+LIMITATIONS:
+- Some apps detect and refuse
+- Hardware attestation unavailable
+
+INSTALLATION:
+- Optional, user choice
+- Full disclosure of implications
+
+================================================================================
+5. APP INSTALLATION
+================================================================================
+
+5.1 SOURCES
+-----------
+CIRCLE STORE (default):
+- Curated apps with privacy labels
+- Automatic compatibility testing
+- Privacy score visible
+
+F-DROID (optional):
+- Open-source apps
+- Enabled by default in Circle
+
+SIDELOAD (optional):
+- Direct APK installation
+- Requires explicit user enable
+- Warning shown
+
+AURORA STORE (optional):
+- Anonymous Play Store access
+- No Google account needed
+- User installs from Circle Store
+
+5.2 INSTALLATION FLOW
+---------------------
+1. User selects app to install
+2. System scans APK for:
+   - Permissions requested
+   - Trackers detected
+   - Privacy score calculated
+3. User shown privacy summary
+4. User confirms installation
+5. APK installed
+6. First-run permission prompts
+
+5.3 APP VERIFICATION
+--------------------
+APK INTEGRITY:
+- Signature verification
+- Hash verification (for known apps)
+- Tamper detection
+
+SECURITY SCANNING:
+- Known malware database
+- Heuristic analysis
+- User warning for suspicious apps
+
+================================================================================
+6. PERMISSION TRANSLATION
+================================================================================
+
+6.1 ANDROID → CIRCLE MAPPING
+----------------------------
+Standard Android permissions mapped to Circle model:
+
+| Android Permission         | Circle Handling              |
+|---------------------------|------------------------------|
+| INTERNET                   | Network permission (NEW!)    |
+| READ_CONTACTS             | Scoped contacts              |
+| READ_EXTERNAL_STORAGE     | Scoped storage (SAF)         |
+| ACCESS_FINE_LOCATION      | Standard + logging           |
+| CAMERA                    | Standard + indicator         |
+| RECORD_AUDIO              | Standard + indicator         |
+| READ_PHONE_STATE          | Fake data return             |
+| GET_ACCOUNTS              | Empty or scoped              |
+| BODY_SENSORS              | New permission required      |
+
+6.2 NEW PERMISSIONS
+-------------------
+Circle-only permissions:
+
+NETWORK:
+- Apps must request network access
+- Not granted by default
+- Major privacy improvement
+
+SENSORS:
+- Accelerometer
+- Gyroscope  
+- Barometer
+- Magnetometer
+
+ADVERTISING:
+- Access to advertising ID
+- Default denied (returns zeros anyway)
+
+6.3 PERMISSION REQUEST FLOW
+---------------------------
+When app requests permission:
+
+1. Request intercepted by CirclePermissionService
+2. Check if Circle permission required
+3. Show Circle-style permission dialog
+4. Log request and response
+5. Return result to app
+
+================================================================================
+7. API MODIFICATIONS
+================================================================================
+
+7.1 DEVICE IDENTIFIERS
+----------------------
+IMEI:
+- getDeviceId() returns fake/random
+- Cannot be used for tracking
+
+SERIAL:
+- Build.SERIAL returns "unknown"
+- Build.getSerial() returns fake
+
+MAC ADDRESS:
+- Returns 02:00:00:00:00:00 or randomized
+
+ANDROID ID:
+- Per-app unique value
+- Resets on reinstall
+
+7.2 ADVERTISING ID
+------------------
+getAdvertisingId():
+- Returns 00000000-0000-0000-0000-000000000000
+- isLimitAdTrackingEnabled() returns true
+
+7.3 USAGE STATS
+---------------
+Apps cannot see:
+- Other installed apps
+- App usage patterns
+- Notification history
+
+7.4 CLIPBOARD
+-------------
+Clipboard access:
+- Background access blocked
+- Foreground access notified
+- Auto-clear option
+
+================================================================================
+8. APP COMPATIBILITY ISSUES
+================================================================================
+
+8.1 APPS REQUIRING PLAY SERVICES
+--------------------------------
+SYMPTOMS:
+- "Google Play Services required"
+- Crash on launch
+- Missing features
+
+SOLUTIONS:
+1. Install microG (partial compatibility)
+2. Install sandboxed Play Services
+3. Use alternative app
+4. Accept missing functionality
+
+8.2 APPS USING SAFETYNET / PLAY INTEGRITY
+-----------------------------------------
+SYMPTOMS:
+- "Device not certified"
+- App refuses to run
+- Features disabled
+
+AFFECTED:
+- Banking apps
+- Game anti-cheat
+- Netflix (HD restriction)
+- Some payment apps
+
+SOLUTIONS:
+- microG provides limited bypass
+- Sandboxed Play Services (no hardware attestation)
+- Contact developer to request fix
+- Use web version
+
+PHILOSOPHY:
+We do not spoof attestation. That would be lying to app developers.
+We advocate for apps to not require attestation.
+
+8.3 APPS DETECTING MODIFIED OS
+------------------------------
+SYMPTOMS:
+- "Rooted device detected"
+- App refuses to run
+
+CAUSE:
+- Apps check for signs of modification
+- Circle OS may trigger detection
+
+SOLUTIONS:
+- Hide root detection (where possible without spoofing)
+- App-specific workarounds
+- Alternative apps
+- User advocacy to developers
+
+8.4 KNOWN COMPATIBILITY LIST
+----------------------------
+Circle maintains compatibility database:
+
+STATUS LEVELS:
+- ✅ Works perfectly
+- ⚠️ Works with limitations
+- ❌ Does not work
+- 🔧 Workaround available
+
+EXAMPLES (to be validated):
+✅ WhatsApp (with microG for push)
+✅ Signal
+✅ Telegram
+⚠️ Instagram (some features)
+⚠️ Netflix (SD only without attestation)
+❌ Some banking apps
+🔧 Uber (works with sandboxed Play)
+
+================================================================================
+9. APP STORE COMPATIBILITY
+================================================================================
+
+9.1 CIRCLE STORE
+----------------
+Primary app source:
+
+FEATURES:
+- Privacy-focused curation
+- Privacy scores visible
+- Tracker disclosure
+- Update management
+
+9.2 F-DROID
+-----------
+Open-source repository:
+
+INTEGRATION:
+- F-Droid client included
+- Repository enabled by default
+- Updates via F-Droid
+
+9.3 AURORA STORE
+----------------
+Anonymous Play Store access:
+
+FEATURES:
+- Browse Play Store anonymously
+- Download free apps
+- No Google account needed
+
+LIMITATIONS:
+- Paid apps require account
+- Some apps region-locked
+
+================================================================================
+10. MIGRATION FROM ANDROID
+================================================================================
+
+10.1 APP MIGRATION
+------------------
+AUTOMATIC:
+- Apps in shared storage detected
+- Offer to import to Circle
+
+PROCESS:
+1. Detect APKs in Android partition
+2. Verify signatures
+3. Show privacy summary
+4. User selects apps to migrate
+5. Install in Circle
+6. App data NOT migrated (fresh start)
+
+10.2 DATA MIGRATION
+-------------------
+USER DATA (shared storage):
+- Photos: Available immediately
+- Music: Available immediately
+- Documents: Available immediately
+- Downloads: Available immediately
+
+APP DATA:
+- Private app data NOT accessible
+- Apps start fresh in Circle
+- Some apps support export/import
+
+SPECIAL CASES:
+- WhatsApp: Backup/restore via Google Drive OR local backup
+- Signal: Transfer via Signal protocol
+- Contacts: VCF export/import
+
+================================================================================
+11. SUMMARY
+================================================================================
+
+CIRCLE OS RUNS ANDROID APPS BY:
+- Including full ART runtime
+- Providing Android API compatibility
+- Supporting standard APK installation
+
+CIRCLE OS DIFFERS FROM ANDROID BY:
+- Requiring network permission
+- Scoping storage and contacts
+- Blocking device identifiers
+- No Google Play Services by default
+- Full privacy transparency
+
+COMPATIBILITY PRIORITY:
+1. WhatsApp (communication essential)
+2. Banking apps (financial essential)
+3. Ride/delivery apps (utility)
+4. Social media (user demand)
+5. Everything else
+
+We cannot run every app. We prioritize security over compatibility.
+Apps that require surveillance to function are not our problem to solve.
+
+================================================================================
+END OF CHAPTER 08
+================================================================================

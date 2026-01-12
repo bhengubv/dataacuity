@@ -1,0 +1,381 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Data Acuity Billing & Subscription API",
+    "description": "Subscription management, usage tracking, and billing operations for the Data Acuity platform.\n\n## Features\n- Subscription status and plan management\n- Usage tracking per metric\n- Limit checking for quota enforcement\n- PayFast payment integration\n\n## Authentication\nMost endpoints require an email parameter to identify the user. For administrative operations, use the API Gateway authentication.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Data Acuity Support",
+      "email": "support@dataacuity.co.za",
+      "url": "https://dataacuity.co.za"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://dataacuity.co.za/billing/api",
+      "description": "Production"
+    },
+    {
+      "url": "http://localhost:5006/billing/api",
+      "description": "Development"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Subscriptions",
+      "description": "Subscription management endpoints"
+    },
+    {
+      "name": "Usage",
+      "description": "Usage tracking and quota checking"
+    },
+    {
+      "name": "Preferences",
+      "description": "User preferences management"
+    }
+  ],
+  "paths": {
+    "/subscriptions.php": {
+      "get": {
+        "tags": ["Subscriptions", "Usage"],
+        "summary": "Subscription and usage operations",
+        "description": "Perform various subscription and usage operations based on the action parameter.",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "query",
+            "required": true,
+            "description": "The action to perform",
+            "schema": {
+              "type": "string",
+              "enum": ["status", "usage", "check"]
+            }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "description": "User email address",
+            "schema": {
+              "type": "string",
+              "format": "email"
+            }
+          },
+          {
+            "name": "metric",
+            "in": "query",
+            "required": false,
+            "description": "Metric name (required for 'check' action, optional for 'usage')",
+            "schema": {
+              "type": "string",
+              "enum": ["workflow_runs", "ai_conversations", "file_conversions", "bio_pages", "api_calls"]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful operation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/SubscriptionStatus"
+                    },
+                    {
+                      "$ref": "#/components/schemas/UsageResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/LimitCheck"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Usage"],
+        "summary": "Track usage increment",
+        "description": "Increment usage counter for a specific metric.",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["track"]
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "metric"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "User email address"
+                  },
+                  "metric": {
+                    "type": "string",
+                    "description": "Metric to increment"
+                  },
+                  "increment": {
+                    "type": "integer",
+                    "default": 1,
+                    "description": "Amount to increment"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Usage tracked successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/preferences.php": {
+      "get": {
+        "tags": ["Preferences"],
+        "summary": "Get user preferences",
+        "description": "Retrieve user preferences including language, theme, and notification settings.",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["get"]
+            }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "email"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User preferences",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Preferences"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Preferences"],
+        "summary": "Update user preferences",
+        "description": "Update user preferences.",
+        "parameters": [
+          {
+            "name": "action",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["set"]
+            }
+          },
+          {
+            "name": "email",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "email"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Preferences"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Preferences updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "SubscriptionStatus": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "example": "starter"
+              },
+              "name": {
+                "type": "string",
+                "example": "Starter"
+              },
+              "price": {
+                "type": "number",
+                "example": 499
+              },
+              "limits": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "subscription": {
+            "type": "object",
+            "properties": {
+              "email": {
+                "type": "string"
+              },
+              "plan_id": {
+                "type": "string"
+              },
+              "status": {
+                "type": "string",
+                "enum": ["active", "cancelled", "expired"]
+              },
+              "expires_at": {
+                "type": "string",
+                "format": "date-time"
+              }
+            }
+          },
+          "usage": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            }
+          }
+        }
+      },
+      "UsageResponse": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "integer"
+        },
+        "example": {
+          "workflow_runs": 150,
+          "ai_conversations": 45,
+          "file_conversions": 12
+        }
+      },
+      "LimitCheck": {
+        "type": "object",
+        "properties": {
+          "allowed": {
+            "type": "boolean",
+            "description": "Whether the user can perform this action"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum allowed for this metric (-1 = unlimited)"
+          },
+          "used": {
+            "type": "integer",
+            "description": "Current usage count"
+          },
+          "remaining": {
+            "type": "integer",
+            "description": "Remaining quota (-1 = unlimited)"
+          }
+        }
+      },
+      "Preferences": {
+        "type": "object",
+        "properties": {
+          "language": {
+            "type": "string",
+            "example": "en"
+          },
+          "theme": {
+            "type": "string",
+            "enum": ["light", "dark", "system"],
+            "example": "dark"
+          },
+          "notifications": {
+            "type": "boolean",
+            "example": true
+          },
+          "compactMode": {
+            "type": "boolean",
+            "example": false
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  postgres-dwh:
+    image: postgres:15
+    container_name: data_warehouse
+    restart: unless-stopped
+    ports:
+      - "5001:5432"
+    environment:
+      POSTGRES_DB: datawarehouse
+      POSTGRES_USER: dwh_user
+      POSTGRES_PASSWORD: ${DWH_PASSWORD}
+      POSTGRES_INITDB_ARGS: "-E UTF8"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - data_stack
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dwh_user -d datawarehouse"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+
+networks:
+  data_stack:
+    driver: bridge

@@ -1,0 +1,256 @@
+{
+  "name": "AutoBiz - Email Campaigns",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autobiz/send-campaign",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "campaign-webhook",
+      "name": "Launch Campaign",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "campaign-id",
+              "name": "campaignId",
+              "value": "=CMP-{{ $now.format('yyyyMMdd') }}-{{ $randomInt(1000, 9999) }}",
+              "type": "string"
+            },
+            {
+              "id": "launched-at",
+              "name": "launchedAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "generate-campaign-id",
+      "name": "Generate Campaign ID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CRM_API_URL }}/contacts?list={{ $json.listId }}&status=subscribed",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "fetch-recipients",
+      "name": "Fetch Recipients",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Prepare campaign for sending\nconst campaign = $('Generate Campaign ID').first().json;\nconst recipientsData = $input.first().json;\nconst recipients = recipientsData.contacts || [];\n\n// Generate personalized emails\nconst emails = recipients.map(contact => {\n  // Replace merge tags in subject and body\n  let subject = campaign.subject;\n  let body = campaign.body;\n  \n  const mergeTags = {\n    '{{first_name}}': contact.firstName || contact.name?.split(' ')[0] || 'there',\n    '{{last_name}}': contact.lastName || contact.name?.split(' ').slice(1).join(' ') || '',\n    '{{name}}': contact.name || 'there',\n    '{{email}}': contact.email,\n    '{{company}}': contact.company || '',\n    '{{unsubscribe_link}}': `${process.env.APP_URL}/unsubscribe?email=${encodeURIComponent(contact.email)}&campaign=${campaign.campaignId}`\n  };\n  \n  for (const [tag, value] of Object.entries(mergeTags)) {\n    subject = subject.replace(new RegExp(tag, 'gi'), value);\n    body = body.replace(new RegExp(tag, 'gi'), value);\n  }\n  \n  return {\n    contactId: contact.id,\n    email: contact.email,\n    name: contact.name,\n    subject: subject,\n    body: body,\n    status: 'pending'\n  };\n});\n\nreturn {\n  ...campaign,\n  totalRecipients: recipients.length,\n  emails: emails\n};"
+      },
+      "id": "prepare-emails",
+      "name": "Prepare Emails",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        910,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/campaigns",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"campaignId\": \"{{ $json.campaignId }}\",\n  \"name\": \"{{ $json.name }}\",\n  \"subject\": \"{{ $json.subject }}\",\n  \"listId\": \"{{ $json.listId }}\",\n  \"totalRecipients\": {{ $json.totalRecipients }},\n  \"status\": \"sending\",\n  \"launchedAt\": \"{{ $json.launchedAt }}\"\n}",
+        "options": {}
+      },
+      "id": "save-campaign",
+      "name": "Save Campaign",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1130,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "emails",
+        "options": {}
+      },
+      "id": "split-emails",
+      "name": "Split Emails",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1350,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $json.email }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "html": "={{ $json.body }}\n<br><br>\n<p style=\"font-size: 12px; color: #888; text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee;\">\nYou're receiving this because you subscribed to our updates.<br>\n<a href=\"{{ $env.APP_URL }}/unsubscribe?email={{ encodeURIComponent($json.email) }}\">Unsubscribe</a>\n</p>",
+        "options": {}
+      },
+      "id": "send-email",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1570,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/campaigns/{{ $('Generate Campaign ID').first().json.campaignId }}/sends",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contactId\": \"{{ $json.contactId }}\",\n  \"email\": \"{{ $json.email }}\",\n  \"sentAt\": \"{{ $now.toISO() }}\",\n  \"status\": \"sent\"\n}",
+        "options": {}
+      },
+      "id": "log-send",
+      "name": "Log Send",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1790,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"campaignId\": \"{{ $('Generate Campaign ID').first().json.campaignId }}\",\n  \"totalRecipients\": {{ $('Prepare Emails').first().json.totalRecipients }},\n  \"status\": \"sending\"\n}",
+        "options": {}
+      },
+      "id": "campaign-response",
+      "name": "Campaign Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1350,
+        500
+      ]
+    }
+  ],
+  "connections": {
+    "Launch Campaign": {
+      "main": [
+        [
+          {
+            "node": "Generate Campaign ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Campaign ID": {
+      "main": [
+        [
+          {
+            "node": "Fetch Recipients",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Recipients": {
+      "main": [
+        [
+          {
+            "node": "Prepare Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Emails": {
+      "main": [
+        [
+          {
+            "node": "Save Campaign",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Campaign": {
+      "main": [
+        [
+          {
+            "node": "Split Emails",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Campaign Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Emails": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email": {
+      "main": [
+        [
+          {
+            "node": "Log Send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

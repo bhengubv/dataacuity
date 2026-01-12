@@ -1,0 +1,394 @@
+================================================================================
+CIRCLE OS SPECIFICATION
+Chapter 12: Age-Adaptive Modes
+================================================================================
+
+Document: 12_age_modes.txt
+Version: 1.0
+Date: December 2025
+Status: Foundation
+
+================================================================================
+1. PHILOSOPHY
+================================================================================
+
+"Ages 8 to 80"
+
+A phone should adapt to its user, not force users to adapt to it.
+Three modes serve different needs while sharing the same privacy foundation.
+
+================================================================================
+2. MODE OVERVIEW
+================================================================================
+
+| Mode     | Target    | Focus                        |
+|----------|-----------|------------------------------|
+| Standard | 13+       | Full features, full control  |
+| Kid      | 8-12      | Safety, simplicity, limits   |
+| Elder    | 60+       | Clarity, accessibility, help |
+
+All modes share:
+- Same security foundation
+- Same privacy protections
+- Same data encryption
+- Ability to switch modes
+
+================================================================================
+3. STANDARD MODE
+================================================================================
+
+3.1 OVERVIEW
+------------
+Full-featured Circle OS experience.
+
+TARGET: Ages 13+, tech-comfortable users
+
+3.2 FEATURES
+------------
+- Full app access
+- Full settings access
+- All privacy controls available
+- Standard UI sizing
+- All gestures enabled
+- No content filtering (by default)
+
+3.3 UI CHARACTERISTICS
+----------------------
+- Standard icon size (48dp touch targets)
+- Standard text size (14sp body)
+- Full gesture navigation
+- Standard notification density
+- All quick settings available
+
+================================================================================
+4. KID MODE
+================================================================================
+
+4.1 OVERVIEW
+------------
+Safe, supervised environment for children.
+
+TARGET: Ages 8-12
+
+4.2 PARENTAL CONTROLS
+---------------------
+PARENT PIN:
+- Required to exit Kid Mode
+- Required to change settings
+- Required to install apps
+- 6+ digit PIN separate from child's PIN
+
+APP MANAGEMENT:
+- Parent approves each app
+- Curated "safe apps" list
+- App requests sent to parent
+- Parent can remotely approve/deny
+
+4.3 CONTENT FILTERING
+---------------------
+BROWSER:
+- Safe search enforced
+- Explicit content blocked
+- Custom blocklist option
+- HTTPS-only (no mixed content)
+
+CIRCLE STORE:
+- Age-appropriate apps only
+- Mature content hidden
+
+SYSTEM:
+- No access to Developer Options
+- No sideloading
+- No system modification
+
+4.4 SCREEN TIME
+---------------
+DAILY LIMITS:
+- Parent sets total screen time
+- Per-app limits optional
+- Warnings before limit reached
+- Grace period option
+
+SCHEDULE:
+- Bedtime (device locks at set time)
+- School hours (limited during school)
+- Exceptions for emergency calls
+
+BREAKS:
+- Reminder to take breaks
+- Optional activity prompts
+
+4.5 LOCATION & SAFETY
+---------------------
+LOCATION SHARING:
+- Share location with family circle (parent-defined)
+- Parent can see child's location
+- Child can see parent's location (optional)
+
+EMERGENCY:
+- Emergency contact always callable
+- SOS button on lock screen
+- Emergency sends location to parent
+
+CONTACTS:
+- Parent-approved contacts only
+- Unknown numbers blocked (optional)
+
+4.6 KID MODE UI
+---------------
+HOME SCREEN:
+- Larger icons (64dp)
+- Fewer apps visible
+- Colorful, friendly design
+- No news/content widgets
+
+NAVIGATION:
+- Simple navigation bar (back, home)
+- No gesture navigation
+- Clear labels on everything
+
+NOTIFICATIONS:
+- Limited notifications
+- No ads (ever)
+- Parent can filter apps
+
+4.7 COMMUNICATION
+-----------------
+MESSAGING:
+- Parent-approved contacts only
+- Optional message monitoring
+- Link/attachment warnings
+
+CALLS:
+- Parent-approved numbers
+- Emergency always available
+- Call log visible to parent (optional)
+
+================================================================================
+5. ELDER MODE
+================================================================================
+
+5.1 OVERVIEW
+------------
+Simplified, accessible interface for older adults.
+
+TARGET: Ages 60+, those wanting simplicity
+
+5.2 UI ADAPTATIONS
+------------------
+TEXT:
+- Large text (18sp+ body)
+- High contrast
+- Clear, simple fonts
+- No italic or thin weights
+
+ICONS:
+- Extra large (72dp)
+- Clear, realistic icons
+- Labels always visible
+- High contrast colors
+
+TOUCH TARGETS:
+- Minimum 72dp
+- Extra spacing
+- Forgiveness for imprecise taps
+
+5.3 SIMPLIFIED HOME
+-------------------
+HOME SCREEN:
+- 6-9 large app buttons (3x3 max)
+- Essential apps only
+- Phone, Messages, Camera, Photos, Contacts, Settings
+- Optional: Weather, Clock
+
+NO:
+- Widgets
+- App drawer
+- Multiple pages (unless explicitly enabled)
+
+5.4 SIMPLIFIED NAVIGATION
+-------------------------
+NAVIGATION:
+- Large Back / Home / Recents buttons
+- No gesture navigation
+- Haptic feedback on press
+- Clear visual feedback
+
+BACK BEHAVIOR:
+- Always goes to previous screen
+- Home always goes home
+- Consistent, predictable
+
+5.5 SIMPLIFIED SETTINGS
+-----------------------
+SETTINGS:
+- Only essential settings visible
+- Large text throughout
+- Clear descriptions
+- "Advanced" hidden by default
+
+QUICK ACCESS:
+- Font size
+- Brightness
+- Volume
+- WiFi on/off
+- Do Not Disturb
+
+5.6 CALLING
+-----------
+PHONE APP:
+- Large dialer buttons
+- Favorites at top
+- Recent calls with large names
+- One-tap calling to favorites
+
+DURING CALL:
+- Very large end call button
+- Speaker button prominent
+- Simple layout
+
+5.7 MESSAGING
+-------------
+MESSAGES:
+- Large text input
+- Simple send button
+- Voice message option
+- Large reply button
+
+KEYBOARD:
+- Large keys
+- High contrast
+- Voice input prominent
+
+5.8 EMERGENCY FEATURES
+----------------------
+EMERGENCY BUTTON:
+- Optional: On home screen
+- Large, red, unmistakable
+- One-tap emergency call
+
+LOCK SCREEN:
+- Emergency contact visible
+- Medical info accessible (if configured)
+
+FALL DETECTION (Circle native hardware):
+- Detect potential falls
+- Auto-call emergency contact
+- Configurable sensitivity
+
+5.9 REMOTE HELP
+---------------
+FAMILY ASSISTANCE:
+- Trusted family member can see screen (with permission)
+- Remote help via video call
+- Guided assistance feature
+
+SETUP:
+- Requires explicit consent
+- Can be disabled anytime
+- Session-based (not always on)
+
+================================================================================
+6. MODE SWITCHING
+================================================================================
+
+6.1 STANDARD ↔ KID
+------------------
+TO KID MODE:
+- Settings > Modes > Kid Mode
+- Set up parent PIN
+- Configure restrictions
+- Enable
+
+FROM KID MODE:
+- Enter parent PIN
+- Confirm switch
+- Parent controls disabled
+
+6.2 STANDARD ↔ ELDER
+--------------------
+TO ELDER MODE:
+- Settings > Modes > Elder Mode
+- Preview changes
+- Apply
+
+FROM ELDER MODE:
+- Settings > Modes > Standard
+- Confirm
+
+TRANSITION:
+- All data preserved
+- App layout may change
+- Settings preserved
+
+6.3 KID ↔ ELDER
+---------------
+Via Standard Mode:
+- Exit current mode
+- Enter new mode
+
+Direct switch requires parent PIN (from Kid Mode)
+
+================================================================================
+7. IMPLEMENTATION
+================================================================================
+
+7.1 SYSTEM FLAGS
+----------------
+System properties:
+- persist.circle.mode = standard|kid|elder
+- persist.circle.kid.parent_pin_hash
+- persist.circle.kid.restrictions
+- persist.circle.elder.text_scale
+
+7.2 LAUNCHER VARIANTS
+---------------------
+Three launcher configurations:
+- circle.launcher.standard
+- circle.launcher.kid
+- circle.launcher.elder
+
+Same APK, different configurations.
+
+7.3 SETTINGS PROFILES
+---------------------
+Settings app adapts:
+- Different menu items per mode
+- Different defaults per mode
+- Shared underlying preferences
+
+7.4 RESOURCE OVERLAYS
+---------------------
+Runtime Resource Overlays (RRO):
+- Different dimensions per mode
+- Different colors per mode
+- Applied at boot based on mode
+
+================================================================================
+8. SUMMARY
+================================================================================
+
+STANDARD MODE:
+- Full features
+- Full control
+- For capable users
+
+KID MODE:
+- Safe environment
+- Parental oversight
+- Age-appropriate content
+
+ELDER MODE:
+- Simplified interface
+- Large, clear elements
+- Focus on essentials
+
+ALL MODES:
+- Same privacy foundation
+- Same security
+- Same encrypted storage
+- Switchable anytime
+
+================================================================================
+END OF CHAPTER 12
+================================================================================

@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  airbyte-db:
+    image: postgres:13
+    container_name: airbyte_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: airbyte
+      POSTGRES_PASSWORD: ${AIRBYTE_DB_PASSWORD}
+      POSTGRES_DB: airbyte
+    volumes:
+      - airbyte_db:/var/lib/postgresql/data
+    networks:
+      - data_stack
+
+  airbyte-server:
+    image: airbyte/server:latest
+    container_name: airbyte_server
+    restart: unless-stopped
+    environment:
+      DATABASE_USER: airbyte
+      DATABASE_PASSWORD: ${AIRBYTE_DB_PASSWORD}
+      DATABASE_HOST: airbyte-db
+      DATABASE_PORT: 5432
+      DATABASE_DB: airbyte
+    depends_on:
+      - airbyte-db
+    networks:
+      - data_stack
+
+  airbyte-webapp:
+    image: airbyte/webapp:latest
+    container_name: airbyte_webapp
+    restart: unless-stopped
+    ports:
+      - "5002:80"
+    depends_on:
+      - airbyte-server
+    networks:
+      - data_stack
+
+  airbyte-worker:
+    image: airbyte/worker:latest
+    container_name: airbyte_worker
+    restart: unless-stopped
+    environment:
+      DATABASE_USER: airbyte
+      DATABASE_PASSWORD: ${AIRBYTE_DB_PASSWORD}
+      DATABASE_HOST: airbyte-db
+      DATABASE_PORT: 5432
+      DATABASE_DB: airbyte
+    depends_on:
+      - airbyte-server
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - data_stack
+
+volumes:
+  airbyte_db:
+
+networks:
+  data_stack:
+    external: true

@@ -1,0 +1,3 @@
+brain.dataacuity.co.za {
+    reverse_proxy ai_brain_webui:8080
+}

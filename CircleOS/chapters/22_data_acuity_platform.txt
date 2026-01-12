@@ -1,0 +1,1116 @@
+================================================================================
+CHAPTER 22: DATA ACUITY THREAT INTELLIGENCE PLATFORM
+================================================================================
+"Turn every attack into community defense."
+
+Data Acuity (dataacuity.co.za) is the backend intelligence platform that
+receives anonymized threat data from Circle OS devices, correlates it,
+and provides threat feeds back to the community.
+
+================================================================================
+22.1 PLATFORM OVERVIEW
+================================================================================
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     DATA ACUITY PLATFORM                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                    API GATEWAY                          │   │
+│  │         (rate limiting, auth, routing)                  │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│          ┌───────────────────┼───────────────────┐              │
+│          │                   │                   │              │
+│          ▼                   ▼                   ▼              │
+│  ┌───────────────┐  ┌───────────────┐  ┌───────────────┐       │
+│  │    INTAKE     │  │   ANALYSIS    │  │  DISTRIBUTION │       │
+│  │   SERVICE     │  │    ENGINE     │  │    SERVICE    │       │
+│  └───────────────┘  └───────────────┘  └───────────────┘       │
+│          │                   │                   │              │
+│          └───────────────────┼───────────────────┘              │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │                    DATA LAYER                           │   │
+│  │                                                         │   │
+│  │  PostgreSQL    Redis    S3/Object    Elasticsearch      │   │
+│  │  (primary)     (cache)  (samples)    (search)           │   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+TECH STACK:
+```
+Language:       C# / .NET 8 (aligns with The Geek Network stack)
+API:            ASP.NET Core Web API
+Database:       PostgreSQL 16
+Cache:          Redis 7
+Search:         Elasticsearch 8
+Object Storage: S3-compatible (Minio or cloud)
+Queue:          RabbitMQ or Redis Streams
+Hosting:        Docker containers (The Geek Network infrastructure)
+```
+
+================================================================================
+22.2 DATABASE SCHEMA
+================================================================================
+
+```sql
+-- ============================================================
+-- CORE THREAT INTELLIGENCE TABLES
+-- ============================================================
+
+-- Indicators of Compromise (IOCs)
+CREATE TABLE iocs (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    type            VARCHAR(20) NOT NULL,    -- ip, domain, hash, url, ja3
+    value           TEXT NOT NULL,
+    normalized      TEXT NOT NULL,           -- Lowercase, trimmed
+    threat_type     VARCHAR(50),             -- c2, malware, phishing, tracker
+    severity        VARCHAR(20) NOT NULL,    -- low, medium, high, critical
+    confidence      INTEGER DEFAULT 50,      -- 0-100
+    first_seen      TIMESTAMP WITH TIME ZONE NOT NULL,
+    last_seen       TIMESTAMP WITH TIME ZONE NOT NULL,
+    reports_count   INTEGER DEFAULT 1,
+    campaign_id     UUID REFERENCES campaigns(id),
+    source          VARCHAR(50),             -- community, abusech, manual
+    metadata        JSONB,                   -- Extra data
+    created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+    CONSTRAINT unique_ioc UNIQUE (type, normalized)
+);
+
+CREATE INDEX idx_iocs_type ON iocs(type);
+CREATE INDEX idx_iocs_threat_type ON iocs(threat_type);
+CREATE INDEX idx_iocs_severity ON iocs(severity);
+CREATE INDEX idx_iocs_last_seen ON iocs(last_seen);
+CREATE INDEX idx_iocs_campaign ON iocs(campaign_id);
+CREATE INDEX idx_iocs_value_gin ON iocs USING gin(normalized gin_trgm_ops);
+
+-- Campaigns (attributed threat groups)
+CREATE TABLE campaigns (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name            VARCHAR(100) NOT NULL UNIQUE,  -- e.g., DESERT_SHADOW
+    display_name    VARCHAR(200),
+    actor_type      VARCHAR(50),             -- state, criminal, unknown
+    description     TEXT,
+    targets         TEXT[],                  -- journalists, activists, etc.
+    target_regions  VARCHAR(2)[],            -- ISO country codes
+    first_seen      TIMESTAMP WITH TIME ZONE,
+    last_active     TIMESTAMP WITH TIME ZONE,
+    attribution     TEXT,                    -- Who we think it is
+    confidence      INTEGER DEFAULT 50,
+    public          BOOLEAN DEFAULT FALSE,   -- Published to feed
+    created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Malware samples
+CREATE TABLE malware_samples (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sha256          VARCHAR(64) NOT NULL UNIQUE,
+    sha1            VARCHAR(40),
+    md5             VARCHAR(32),
+    file_type       VARCHAR(50),             -- apk, exe, pdf
+    file_size       BIGINT,
+    file_name       TEXT,
+    package_name    TEXT,                    -- For APKs
+    malware_family  VARCHAR(100),
+    threat_type     VARCHAR(50),
+    severity        VARCHAR(20),
+    yara_matches    TEXT[],
+    first_seen      TIMESTAMP WITH TIME ZONE NOT NULL,
+    reports_count   INTEGER DEFAULT 1,
+    campaign_id     UUID REFERENCES campaigns(id),
+    sample_path     TEXT,                    -- S3 path if we have sample
+    analysis        JSONB,                   -- Detailed analysis
+    created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+CREATE INDEX idx_samples_sha256 ON malware_samples(sha256);
+CREATE INDEX idx_samples_family ON malware_samples(malware_family);
+CREATE INDEX idx_samples_campaign ON malware_samples(campaign_id);
+
+-- ============================================================
+-- THREAT REPORTS (from Circle OS devices)
+-- ============================================================
+
+CREATE TABLE threat_reports (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    received_at     TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    schema_version  VARCHAR(10),
+    report_type     VARCHAR(50),             -- threat_intel, malware, c2
+    country_code    VARCHAR(2),              -- Reporter's country
+    timestamp_day   DATE,                    -- Fuzzed timestamp
+
+    -- Denormalized for quick access
+    primary_ioc_type    VARCHAR(20),
+    primary_ioc_value   TEXT,
+    threat_type         VARCHAR(50),
+    severity            VARCHAR(20),
+    confidence          REAL,
+
+    -- Full report
+    report_data     JSONB NOT NULL,
+
+    -- Processing status
+    processed       BOOLEAN DEFAULT FALSE,
+    processed_at    TIMESTAMP WITH TIME ZONE,
+
+    -- Linking
+    iocs_extracted  UUID[],                  -- IDs of IOCs created/updated
+    campaign_id     UUID REFERENCES campaigns(id)
+);
+
+CREATE INDEX idx_reports_received ON threat_reports(received_at);
+CREATE INDEX idx_reports_country ON threat_reports(country_code);
+CREATE INDEX idx_reports_processed ON threat_reports(processed);
+CREATE INDEX idx_reports_type ON threat_reports(threat_type);
+
+-- ============================================================
+-- CANARY SYSTEM
+-- ============================================================
+
+CREATE TABLE canary_tokens (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    type            VARCHAR(20) NOT NULL,    -- email, phone, document, dns
+    value           TEXT NOT NULL UNIQUE,    -- The canary itself
+    device_hash     VARCHAR(64) NOT NULL,    -- Hashed device ID
+    created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    triggered       BOOLEAN DEFAULT FALSE,
+    trigger_count   INTEGER DEFAULT 0
+);
+
+CREATE INDEX idx_canaries_value ON canary_tokens(value);
+CREATE INDEX idx_canaries_device ON canary_tokens(device_hash);
+
+CREATE TABLE canary_triggers (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    canary_id       UUID REFERENCES canary_tokens(id) NOT NULL,
+    triggered_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    source_ip       INET,
+    user_agent      TEXT,
+    referrer        TEXT,
+    headers         JSONB,
+    geo_country     VARCHAR(2),
+    geo_city        VARCHAR(100),
+    notified        BOOLEAN DEFAULT FALSE
+);
+
+CREATE INDEX idx_triggers_canary ON canary_triggers(canary_id);
+CREATE INDEX idx_triggers_time ON canary_triggers(triggered_at);
+
+-- ============================================================
+-- IOC RELATIONSHIPS
+-- ============================================================
+
+CREATE TABLE ioc_relationships (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ioc_a           UUID REFERENCES iocs(id) NOT NULL,
+    ioc_b           UUID REFERENCES iocs(id) NOT NULL,
+    relationship    VARCHAR(50) NOT NULL,    -- same_campaign, same_infra, resolves_to
+    confidence      INTEGER DEFAULT 50,
+    evidence        TEXT,
+    created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+
+    CONSTRAINT unique_relationship UNIQUE (ioc_a, ioc_b, relationship)
+);
+
+CREATE INDEX idx_relations_a ON ioc_relationships(ioc_a);
+CREATE INDEX idx_relations_b ON ioc_relationships(ioc_b);
+
+-- ============================================================
+-- FEED MANAGEMENT
+-- ============================================================
+
+CREATE TABLE feed_versions (
+    id              SERIAL PRIMARY KEY,
+    version         VARCHAR(50) NOT NULL UNIQUE,  -- 2026-01-10-001
+    generated_at    TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    iocs_count      INTEGER,
+    campaigns_count INTEGER,
+    file_path       TEXT,                    -- S3 path to feed file
+    checksum        VARCHAR(64)
+);
+
+-- ============================================================
+-- EXTERNAL FEED SOURCES
+-- ============================================================
+
+CREATE TABLE external_sources (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name            VARCHAR(100) NOT NULL UNIQUE,
+    url             TEXT,
+    type            VARCHAR(50),             -- abusech, phishtank, etc.
+    enabled         BOOLEAN DEFAULT TRUE,
+    last_sync       TIMESTAMP WITH TIME ZONE,
+    sync_interval   INTERVAL DEFAULT '1 hour',
+    iocs_count      INTEGER DEFAULT 0
+);
+
+-- ============================================================
+-- STATISTICS & ANALYTICS
+-- ============================================================
+
+CREATE TABLE daily_stats (
+    date            DATE PRIMARY KEY,
+    reports_received    INTEGER DEFAULT 0,
+    iocs_created       INTEGER DEFAULT 0,
+    iocs_updated       INTEGER DEFAULT 0,
+    unique_countries   INTEGER DEFAULT 0,
+    unique_threats     INTEGER DEFAULT 0,
+    canary_triggers    INTEGER DEFAULT 0,
+    stats_json         JSONB
+);
+
+-- ============================================================
+-- API ACCESS (for paid customers)
+-- ============================================================
+
+CREATE TABLE api_keys (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    key_hash        VARCHAR(64) NOT NULL UNIQUE,  -- SHA256 of API key
+    name            VARCHAR(200),
+    organization    VARCHAR(200),
+    tier            VARCHAR(20) DEFAULT 'free',   -- free, pro, enterprise
+    rate_limit      INTEGER DEFAULT 100,          -- Requests per hour
+    enabled         BOOLEAN DEFAULT TRUE,
+    created_at      TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    expires_at      TIMESTAMP WITH TIME ZONE,
+    last_used       TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TABLE api_usage (
+    id              BIGSERIAL PRIMARY KEY,
+    api_key_id      UUID REFERENCES api_keys(id),
+    endpoint        VARCHAR(100),
+    timestamp       TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    response_code   INTEGER,
+    response_time   INTEGER                       -- Milliseconds
+);
+
+CREATE INDEX idx_usage_key ON api_usage(api_key_id);
+CREATE INDEX idx_usage_time ON api_usage(timestamp);
+```
+
+================================================================================
+22.3 API ENDPOINTS
+================================================================================
+
+BASE URL: https://api.dataacuity.co.za/v1
+
+THREAT SUBMISSION (Circle OS devices):
+```
+POST /threat/submit
+Content-Type: application/json
+
+Request: ThreatReport (see Chapter 21)
+Response:
+{
+    "status": "accepted",
+    "report_id": "rpt_abc123",
+    "known_threat": true,
+    "campaign": "DESERT_SHADOW",
+    "community_protected": 47832
+}
+
+Rate limit: 100/hour per IP (no auth required)
+```
+
+THREAT FEED (Circle OS devices):
+```
+GET /threat/feed
+If-Modified-Since: <datetime>
+X-Circle-Version: 1.0.0
+
+Response:
+{
+    "version": "2026-01-10-001",
+    "generated": "2026-01-10T12:00:00Z",
+    "indicators": { ... },
+    "campaigns": [ ... ]
+}
+
+Rate limit: 1000/hour per IP
+Cache: 5 minutes
+```
+
+CANARY REGISTRATION:
+```
+POST /canary/register
+Content-Type: application/json
+
+Request:
+{
+    "type": "email",
+    "device_hash": "sha256:abc..."
+}
+
+Response:
+{
+    "canary_id": "can_xyz789",
+    "value": "alert-x7k2m@canary.circelos.org",
+    "tracking_url": "https://canary.circelos.org/t/x7k2m"
+}
+```
+
+CANARY TRIGGER (internal, from canary servers):
+```
+POST /canary/trigger
+X-Internal-Key: <internal_key>
+
+Request:
+{
+    "canary_value": "alert-x7k2m@canary.circelos.org",
+    "source_ip": "41.x.x.x",
+    "user_agent": "...",
+    "timestamp": "..."
+}
+
+Response:
+{
+    "status": "recorded",
+    "device_notified": true
+}
+```
+
+PUBLIC STATISTICS:
+```
+GET /stats/public
+
+Response:
+{
+    "contributing_devices": 47832,
+    "countries_covered": 34,
+    "total_iocs": 142847,
+    "active_campaigns": 12,
+    "last_24h": {
+        "reports_received": 1247,
+        "new_iocs": 34,
+        "threats_blocked": 12847
+    }
+}
+
+Cache: 15 minutes
+```
+
+IOC LOOKUP (API customers):
+```
+GET /ioc/lookup?type=domain&value=evil.com
+Authorization: Bearer <api_key>
+
+Response:
+{
+    "found": true,
+    "ioc": {
+        "type": "domain",
+        "value": "evil.com",
+        "threat_type": "c2",
+        "severity": "critical",
+        "campaign": "DESERT_SHADOW",
+        "first_seen": "2026-01-05",
+        "confidence": 95
+    }
+}
+```
+
+BULK IOC LOOKUP (API customers):
+```
+POST /ioc/bulk-lookup
+Authorization: Bearer <api_key>
+Content-Type: application/json
+
+Request:
+{
+    "indicators": [
+        {"type": "domain", "value": "evil1.com"},
+        {"type": "ip", "value": "185.234.x.x"},
+        {"type": "hash", "value": "sha256:abc..."}
+    ]
+}
+
+Response:
+{
+    "results": [
+        {"found": true, "ioc": {...}},
+        {"found": false},
+        {"found": true, "ioc": {...}}
+    ]
+}
+```
+
+CAMPAIGN DETAILS (API customers):
+```
+GET /campaign/DESERT_SHADOW
+Authorization: Bearer <api_key>
+
+Response:
+{
+    "id": "DESERT_SHADOW",
+    "actor_type": "state",
+    "description": "...",
+    "targets": ["journalists", "activists"],
+    "regions": ["ZA", "KE"],
+    "iocs": [...],
+    "timeline": [...],
+    "attribution": "..."
+}
+```
+
+================================================================================
+22.4 SERVICE IMPLEMENTATIONS
+================================================================================
+
+INTAKE SERVICE:
+```csharp
+// Services/IntakeService.cs
+
+public class IntakeService : IIntakeService
+{
+    private readonly IDbContext _db;
+    private readonly IAnalysisQueue _queue;
+    private readonly ILogger<IntakeService> _logger;
+
+    public async Task<SubmitResponse> ProcessReport(ThreatReportDto report)
+    {
+        // Validate schema
+        ValidateReport(report);
+
+        // Store raw report
+        var reportId = await _db.ThreatReports.Insert(new ThreatReport
+        {
+            SchemaVersion = report.SchemaVersion,
+            ReportType = report.ReportType,
+            CountryCode = report.Country,
+            TimestampDay = report.Timestamp.Date,
+            ReportData = JsonSerializer.Serialize(report),
+            Processed = false
+        });
+
+        // Queue for analysis
+        await _queue.Enqueue(new AnalysisJob
+        {
+            ReportId = reportId,
+            Priority = GetPriority(report)
+        });
+
+        // Quick check if known threat
+        var knownThreat = await CheckKnownThreat(report);
+
+        return new SubmitResponse
+        {
+            Status = "accepted",
+            ReportId = reportId.ToString(),
+            KnownThreat = knownThreat.IsKnown,
+            Campaign = knownThreat.CampaignName,
+            CommunityProtected = await GetProtectedCount()
+        };
+    }
+}
+```
+
+ANALYSIS ENGINE:
+```csharp
+// Services/AnalysisEngine.cs
+
+public class AnalysisEngine : BackgroundService
+{
+    protected override async Task ExecuteAsync(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            var job = await _queue.Dequeue(ct);
+            if (job != null)
+            {
+                await ProcessJob(job);
+            }
+        }
+    }
+
+    private async Task ProcessJob(AnalysisJob job)
+    {
+        var report = await _db.ThreatReports.GetById(job.ReportId);
+        var data = JsonSerializer.Deserialize<ThreatReportDto>(report.ReportData);
+
+        // Extract IOCs
+        var iocs = ExtractIOCs(data);
+
+        // Deduplicate and update
+        foreach (var ioc in iocs)
+        {
+            await UpsertIOC(ioc);
+        }
+
+        // Correlate with existing data
+        await CorrelateIOCs(iocs);
+
+        // Check for campaign patterns
+        var campaign = await IdentifyCampaign(iocs);
+        if (campaign != null)
+        {
+            await LinkToCampaign(iocs, campaign);
+        }
+
+        // Mark processed
+        await _db.ThreatReports.MarkProcessed(job.ReportId, iocs.Select(i => i.Id));
+    }
+
+    private async Task UpsertIOC(IOCDto ioc)
+    {
+        var existing = await _db.IOCs.FindByTypeAndValue(ioc.Type, ioc.Value);
+
+        if (existing != null)
+        {
+            // Update existing
+            existing.LastSeen = DateTime.UtcNow;
+            existing.ReportsCount++;
+            existing.Confidence = CalculateConfidence(existing);
+            await _db.IOCs.Update(existing);
+        }
+        else
+        {
+            // Insert new
+            await _db.IOCs.Insert(new IOC
+            {
+                Type = ioc.Type,
+                Value = ioc.Value,
+                Normalized = NormalizeValue(ioc.Type, ioc.Value),
+                ThreatType = ioc.ThreatType,
+                Severity = ioc.Severity,
+                FirstSeen = DateTime.UtcNow,
+                LastSeen = DateTime.UtcNow,
+                ReportsCount = 1,
+                Source = "community"
+            });
+        }
+    }
+}
+```
+
+FEED GENERATOR:
+```csharp
+// Services/FeedGenerator.cs
+
+public class FeedGenerator : IFeedGenerator
+{
+    public async Task<ThreatFeed> GenerateFeed(DateTime? since = null)
+    {
+        var feed = new ThreatFeed
+        {
+            Version = GenerateVersion(),
+            Generated = DateTime.UtcNow
+        };
+
+        // Get IOCs (optionally filtered by last update)
+        var query = _db.IOCs.AsQueryable();
+        if (since.HasValue)
+        {
+            query = query.Where(i => i.UpdatedAt > since.Value);
+        }
+
+        // Only include high-confidence, recent IOCs
+        query = query
+            .Where(i => i.Confidence >= 70)
+            .Where(i => i.LastSeen > DateTime.UtcNow.AddDays(-30))
+            .OrderByDescending(i => i.Severity)
+            .ThenByDescending(i => i.Confidence);
+
+        var iocs = await query.ToListAsync();
+
+        feed.Indicators = new FeedIndicators
+        {
+            Domains = iocs.Where(i => i.Type == "domain").Select(ToFeedItem).ToList(),
+            IPs = iocs.Where(i => i.Type == "ip").Select(ToFeedItem).ToList(),
+            Hashes = iocs.Where(i => i.Type == "hash").Select(ToFeedItem).ToList()
+        };
+
+        // Get active campaigns
+        feed.Campaigns = await _db.Campaigns
+            .Where(c => c.Public)
+            .Where(c => c.LastActive > DateTime.UtcNow.AddDays(-90))
+            .Select(ToCampaignSummary)
+            .ToListAsync();
+
+        return feed;
+    }
+}
+```
+
+================================================================================
+22.5 EXTERNAL FEED INTEGRATION
+================================================================================
+
+SUPPORTED SOURCES:
+```csharp
+// Services/ExternalFeedSync.cs
+
+public class ExternalFeedSync : BackgroundService
+{
+    private readonly List<IFeedSource> _sources = new()
+    {
+        new AbuseCHFeed(),           // abuse.ch (malware, botnets)
+        new PhishTankFeed(),         // PhishTank (phishing)
+        new DisconnectFeed(),        // Disconnect.me (trackers)
+        new ExodusPrivacyFeed(),     // Exodus (Android trackers)
+        new MISPFeed(),              // MISP instances
+        new URLhausFeed(),           // URLhaus (malware URLs)
+        new ThreatFoxFeed()          // ThreatFox (IOCs)
+    };
+
+    protected override async Task ExecuteAsync(CancellationToken ct)
+    {
+        while (!ct.IsCancellationRequested)
+        {
+            foreach (var source in _sources)
+            {
+                if (await ShouldSync(source))
+                {
+                    await SyncSource(source);
+                }
+            }
+            await Task.Delay(TimeSpan.FromMinutes(15), ct);
+        }
+    }
+
+    private async Task SyncSource(IFeedSource source)
+    {
+        _logger.LogInformation("Syncing {Source}", source.Name);
+
+        var iocs = await source.FetchIOCs();
+
+        foreach (var ioc in iocs)
+        {
+            await _db.IOCs.Upsert(new IOC
+            {
+                Type = ioc.Type,
+                Value = ioc.Value,
+                ThreatType = ioc.ThreatType,
+                Severity = ioc.Severity,
+                Source = source.Name,
+                FirstSeen = ioc.FirstSeen ?? DateTime.UtcNow,
+                LastSeen = DateTime.UtcNow
+            });
+        }
+
+        await _db.ExternalSources.UpdateLastSync(source.Name, iocs.Count);
+    }
+}
+```
+
+================================================================================
+22.6 CANARY INFRASTRUCTURE
+================================================================================
+
+EMAIL CANARY SERVER:
+```csharp
+// Services/CanaryEmailServer.cs
+
+// Using MailKit/MimeKit for SMTP server
+public class CanaryEmailServer
+{
+    public void HandleIncomingEmail(MimeMessage message)
+    {
+        var toAddress = message.To.FirstOrDefault()?.ToString();
+
+        // Check if this is a canary
+        var canary = await _db.CanaryTokens.FindByValue(toAddress);
+        if (canary == null) return;
+
+        // Record trigger
+        var trigger = new CanaryTrigger
+        {
+            CanaryId = canary.Id,
+            TriggeredAt = DateTime.UtcNow,
+            SourceIp = GetSenderIP(message),
+            Headers = ExtractHeaders(message)
+        };
+        await _db.CanaryTriggers.Insert(trigger);
+
+        // Update canary
+        canary.Triggered = true;
+        canary.TriggerCount++;
+        await _db.CanaryTokens.Update(canary);
+
+        // Notify device
+        await NotifyDevice(canary.DeviceHash, trigger);
+    }
+}
+```
+
+DOCUMENT BEACON HANDLER:
+```csharp
+// Controllers/CanaryController.cs
+
+[Route("t/{trackingId}/{filename}")]
+public async Task<IActionResult> TrackBeacon(string trackingId, string filename)
+{
+    var canary = await _db.CanaryTokens.FindByTrackingId(trackingId);
+    if (canary == null) return NotFound();
+
+    // Record trigger
+    var trigger = new CanaryTrigger
+    {
+        CanaryId = canary.Id,
+        TriggeredAt = DateTime.UtcNow,
+        SourceIp = GetClientIP(),
+        UserAgent = Request.Headers.UserAgent,
+        Referrer = Request.Headers.Referer,
+        Headers = ExtractHeaders(Request.Headers)
+    };
+
+    // Add GeoIP
+    trigger.GeoCountry = await _geoip.GetCountry(trigger.SourceIp);
+    trigger.GeoCity = await _geoip.GetCity(trigger.SourceIp);
+
+    await _db.CanaryTriggers.Insert(trigger);
+
+    // Update canary
+    canary.Triggered = true;
+    canary.TriggerCount++;
+    await _db.CanaryTokens.Update(canary);
+
+    // Notify device via push
+    await _pushService.NotifyCanaryTrigger(canary.DeviceHash, trigger);
+
+    // Return 1x1 transparent GIF
+    return File(TransparentGif, "image/gif");
+}
+```
+
+DNS CANARY SERVER:
+```csharp
+// Services/CanaryDnsServer.cs
+
+// Using ARSoft.Tools.Net for DNS server
+public class CanaryDnsServer
+{
+    public DnsMessage OnQuery(DnsMessage query)
+    {
+        var name = query.Questions[0].Name.ToString();
+
+        // Check if canary subdomain
+        if (name.EndsWith(".dns.canary.circelos.org"))
+        {
+            var trackingId = name.Split('.')[0];
+            RecordDnsTrigger(trackingId, query.ClientAddress);
+        }
+
+        // Return NXDOMAIN (domain doesn't exist)
+        return query.CreateResponseInstance();
+    }
+}
+```
+
+================================================================================
+22.7 PUSH NOTIFICATIONS
+================================================================================
+
+DEVICE NOTIFICATION SERVICE:
+```csharp
+// Services/DeviceNotificationService.cs
+
+public class DeviceNotificationService
+{
+    // We don't store device tokens (privacy).
+    // Instead, devices poll periodically or use anonymous push.
+
+    public async Task NotifyCanaryTrigger(string deviceHash, CanaryTrigger trigger)
+    {
+        // Store notification in queue
+        await _db.PendingNotifications.Insert(new Notification
+        {
+            DeviceHash = deviceHash,
+            Type = "canary_trigger",
+            Data = JsonSerializer.Serialize(trigger),
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddDays(7)
+        });
+
+        // Devices poll /notifications/poll?hash=<device_hash>
+    }
+
+    public async Task<List<Notification>> PollNotifications(string deviceHash)
+    {
+        var notifications = await _db.PendingNotifications
+            .Where(n => n.DeviceHash == deviceHash)
+            .Where(n => n.ExpiresAt > DateTime.UtcNow)
+            .OrderBy(n => n.CreatedAt)
+            .Take(10)
+            .ToListAsync();
+
+        // Mark as delivered
+        foreach (var n in notifications)
+        {
+            n.DeliveredAt = DateTime.UtcNow;
+        }
+        await _db.SaveChangesAsync();
+
+        return notifications;
+    }
+}
+```
+
+================================================================================
+22.8 BUSINESS TIERS
+================================================================================
+
+API TIERS:
+```csharp
+public enum ApiTier
+{
+    Community,    // Free - Feed access only
+    Professional, // R500/mo - Real-time feed, API (1000 calls/day)
+    Enterprise,   // R5000/mo - Full API, campaign reports, custom alerts
+    Government    // Custom - Full access, attribution support, consulting
+}
+
+public class RateLimits
+{
+    public static readonly Dictionary<ApiTier, int> HourlyLimits = new()
+    {
+        { ApiTier.Community, 100 },
+        { ApiTier.Professional, 1000 },
+        { ApiTier.Enterprise, 10000 },
+        { ApiTier.Government, 100000 }
+    };
+}
+```
+
+SDPKT INTEGRATION:
+```csharp
+// Services/SdpktIntegration.cs
+
+public class SdpktIntegration
+{
+    private readonly HttpClient _sdpktClient;
+
+    // Pay relay rewards to devices
+    public async Task PayRelayReward(string walletId, decimal amount, string reason)
+    {
+        await _sdpktClient.PostAsync("/api/wallet/credit", new
+        {
+            wallet_id = walletId,
+            amount = amount,
+            currency = "ZAR",
+            reason = reason,
+            source = "circle_relay_reward"
+        });
+    }
+
+    // Process subscription payments
+    public async Task ProcessApiSubscription(string customerId, ApiTier tier)
+    {
+        var amount = tier switch
+        {
+            ApiTier.Professional => 500m,
+            ApiTier.Enterprise => 5000m,
+            _ => 0m
+        };
+
+        if (amount > 0)
+        {
+            await _sdpktClient.PostAsync("/api/subscription/charge", new
+            {
+                customer_id = customerId,
+                amount = amount,
+                product = $"dataacuity_{tier.ToString().ToLower()}"
+            });
+        }
+    }
+}
+```
+
+================================================================================
+22.9 FILE STRUCTURE
+================================================================================
+
+```
+DataAcuity/
+├── src/
+│   ├── DataAcuity.Api/                    # ASP.NET Core Web API
+│   │   ├── Controllers/
+│   │   │   ├── ThreatController.cs        # /threat/* endpoints
+│   │   │   ├── CanaryController.cs        # /canary/* endpoints
+│   │   │   ├── IocController.cs           # /ioc/* endpoints
+│   │   │   ├── CampaignController.cs      # /campaign/* endpoints
+│   │   │   └── StatsController.cs         # /stats/* endpoints
+│   │   ├── Middleware/
+│   │   │   ├── RateLimitingMiddleware.cs
+│   │   │   └── ApiKeyAuthMiddleware.cs
+│   │   ├── Program.cs
+│   │   └── appsettings.json
+│   │
+│   ├── DataAcuity.Core/                   # Domain logic
+│   │   ├── Entities/
+│   │   │   ├── IOC.cs
+│   │   │   ├── Campaign.cs
+│   │   │   ├── ThreatReport.cs
+│   │   │   ├── CanaryToken.cs
+│   │   │   └── ...
+│   │   ├── Services/
+│   │   │   ├── IntakeService.cs
+│   │   │   ├── AnalysisEngine.cs
+│   │   │   ├── FeedGenerator.cs
+│   │   │   ├── CorrelationEngine.cs
+│   │   │   └── ...
+│   │   └── Interfaces/
+│   │
+│   ├── DataAcuity.Infrastructure/         # Data access
+│   │   ├── Data/
+│   │   │   ├── DataAcuityDbContext.cs
+│   │   │   └── Migrations/
+│   │   ├── Repositories/
+│   │   └── ExternalFeeds/
+│   │       ├── AbuseCHFeed.cs
+│   │       ├── PhishTankFeed.cs
+│   │       └── ...
+│   │
+│   └── DataAcuity.Canary/                 # Canary servers
+│       ├── EmailServer/
+│       ├── DnsServer/
+│       └── WebBeaconHandler/
+│
+├── tests/
+│   ├── DataAcuity.UnitTests/
+│   └── DataAcuity.IntegrationTests/
+│
+├── docker/
+│   ├── Dockerfile
+│   └── docker-compose.yml
+│
+├── scripts/
+│   ├── init-db.sql
+│   └── seed-data.sql
+│
+└── docs/
+    ├── api.md
+    └── deployment.md
+```
+
+================================================================================
+22.10 DOCKER DEPLOYMENT
+================================================================================
+
+```yaml
+# docker-compose.yml
+
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "5000:80"
+    environment:
+      - ConnectionStrings__Default=Host=db;Database=dataacuity;Username=app;Password=${DB_PASSWORD}
+      - Redis__Connection=redis:6379
+      - ASPNETCORE_ENVIRONMENT=Production
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:16
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      - POSTGRES_DB=dataacuity
+      - POSTGRES_USER=app
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redisdata:/data
+
+  canary-email:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.canary-email
+    ports:
+      - "25:25"
+
+  canary-dns:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.canary-dns
+    ports:
+      - "53:53/udp"
+
+  elasticsearch:
+    image: elasticsearch:8.11.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+
+volumes:
+  pgdata:
+  redisdata:
+  esdata:
+```
+
+================================================================================
+22.11 MONITORING & ALERTS
+================================================================================
+
+PROMETHEUS METRICS:
+```csharp
+// Metrics exposed at /metrics
+
+public static class Metrics
+{
+    public static readonly Counter ReportsReceived = Prometheus.Metrics
+        .CreateCounter("dataacuity_reports_received_total", "Total threat reports received");
+
+    public static readonly Counter IocsCreated = Prometheus.Metrics
+        .CreateCounter("dataacuity_iocs_created_total", "Total IOCs created");
+
+    public static readonly Gauge ActiveCampaigns = Prometheus.Metrics
+        .CreateGauge("dataacuity_active_campaigns", "Number of active campaigns");
+
+    public static readonly Counter CanaryTriggers = Prometheus.Metrics
+        .CreateCounter("dataacuity_canary_triggers_total", "Total canary triggers");
+
+    public static readonly Histogram ApiLatency = Prometheus.Metrics
+        .CreateHistogram("dataacuity_api_latency_seconds", "API response latency");
+}
+```
+
+================================================================================
+22.12 INTEGRATION WITH THE GEEK NETWORK
+================================================================================
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    THE GEEK NETWORK                             │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────┐     ┌─────────────┐     ┌─────────────┐       │
+│  │  CIRCLE OS  │────▶│ DATA ACUITY │────▶│   SLEPTON   │       │
+│  │  (Sensors)  │     │  (Intel)    │     │  (Delivery) │       │
+│  └─────────────┘     └──────┬──────┘     └─────────────┘       │
+│                             │                                   │
+│                             ▼                                   │
+│                      ┌─────────────┐                            │
+│                      │   SDPKT     │                            │
+│                      │  (Payments) │                            │
+│                      └─────────────┘                            │
+│                                                                 │
+│  INTEGRATION POINTS:                                            │
+│  • SDPKT: Relay rewards, API subscriptions                      │
+│  • SleptOn: App distribution, threat feed delivery              │
+│  • Bruh!: Consumer threat dashboard                             │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+================================================================================
+END OF CHAPTER 22
+================================================================================

@@ -1,0 +1,329 @@
+/* DataAcuity Waitlist Page Styles */
+
+.waitlist-page {
+    min-height: calc(100vh - var(--nav-height));
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+.waitlist-container {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+/* Header */
+.waitlist-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.waitlist-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, var(--primary) 0%, #5856d6 100%);
+    color: white;
+    padding: 0.5rem 1.25rem;
+    border-radius: 2rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.waitlist-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0 0 1rem 0;
+    background: linear-gradient(135deg, var(--text-primary) 0%, var(--primary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.waitlist-subtitle {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+/* Position Card */
+.waitlist-position-card {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2.5rem;
+    text-align: center;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border-color);
+}
+
+.position-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.position-label {
+    font-size: 0.875rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.position-number {
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--primary);
+    line-height: 1;
+}
+
+.position-meta {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.5rem;
+    color: var(--text-tertiary);
+    font-size: 0.875rem;
+}
+
+.email-badge {
+    background: var(--bg-secondary);
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-family: monospace;
+    font-size: 0.8rem;
+}
+
+/* Features Section */
+.waitlist-features {
+    margin-bottom: 2.5rem;
+}
+
+.waitlist-features h2 {
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    color: var(--text-primary);
+}
+
+.feature-categories {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+}
+
+.feature-category {
+    background: var(--bg-card);
+    border-radius: 16px;
+    padding: 1.5rem;
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.feature-category:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.category-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.feature-category h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    color: var(--text-primary);
+}
+
+.feature-category > p {
+    font-size: 0.875rem;
+    color: var(--text-tertiary);
+    margin: 0 0 1rem 0;
+}
+
+.feature-category .feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.feature-category .feature-list li {
+    padding: 0.375rem 0;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.feature-category .feature-list li::before {
+    content: '✓';
+    color: var(--success);
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
+/* Timeline */
+.waitlist-timeline {
+    margin-bottom: 2.5rem;
+}
+
+.waitlist-timeline h2 {
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    color: var(--text-primary);
+}
+
+.timeline-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.timeline-step {
+    display: flex;
+    gap: 1rem;
+    position: relative;
+    padding-bottom: 2rem;
+}
+
+.timeline-step:last-child {
+    padding-bottom: 0;
+}
+
+.timeline-step::before {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 44px;
+    width: 2px;
+    height: calc(100% - 44px);
+    background: var(--border-color);
+}
+
+.timeline-step:last-child::before {
+    display: none;
+}
+
+.timeline-step.completed::before {
+    background: var(--success);
+}
+
+.step-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--bg-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.timeline-step.completed .step-icon {
+    background: var(--success);
+    color: white;
+}
+
+.step-content h4 {
+    margin: 0 0 0.25rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.step-content p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--text-tertiary);
+}
+
+/* Contact */
+.waitlist-contact {
+    text-align: center;
+    padding: 2rem;
+    background: var(--bg-card);
+    border-radius: 16px;
+    margin-bottom: 2rem;
+    border: 1px solid var(--border-color);
+}
+
+.waitlist-contact p {
+    margin: 0 0 1rem 0;
+    color: var(--text-secondary);
+}
+
+.waitlist-contact a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.waitlist-contact a:hover {
+    text-decoration: underline;
+}
+
+.social-links {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.social-link {
+    padding: 0.5rem 1rem;
+    background: var(--bg-secondary);
+    border-radius: 0.5rem;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+
+.social-link:hover {
+    background: var(--primary);
+    color: white;
+    text-decoration: none;
+}
+
+/* Actions */
+.waitlist-actions {
+    text-align: center;
+}
+
+/* Responsive - Mobile First */
+@media (min-width: 768px) {
+    .waitlist-header h1 {
+        font-size: 2.5rem;
+    }
+
+    .waitlist-subtitle {
+        font-size: 1.125rem;
+    }
+
+    .position-number {
+        font-size: 4rem;
+    }
+
+    .feature-categories {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+
+    .position-meta {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+    }
+}

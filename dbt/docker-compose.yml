@@ -1,0 +1,24 @@
+services:
+  dbt:
+    image: ghcr.io/dbt-labs/dbt-postgres:1.7.latest
+    container_name: dbt_transform
+    restart: unless-stopped
+    working_dir: /usr/app
+    env_file:
+      - .env
+    volumes:
+      - ./dbt_project/dbt_project:/usr/app
+      - ./profiles.yml:/root/.dbt/profiles.yml
+    networks:
+      - data-warehouse_data_stack
+    entrypoint: ["/bin/bash"]
+    command: ["-c", "sleep infinity"]
+    healthcheck:
+      test: ["CMD", "dbt", "--version"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+
+networks:
+  data-warehouse_data_stack:
+    external: true

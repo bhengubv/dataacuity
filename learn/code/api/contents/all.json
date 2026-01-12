@@ -1,0 +1,71 @@
+{
+  "content": [
+    {
+      "content": null,
+      "created": "2025-12-08T23:26:11.306170Z",
+      "format": null,
+      "hash": null,
+      "hash_algorithm": null,
+      "last_modified": "2025-12-08T23:19:04.366769Z",
+      "mimetype": null,
+      "name": "03_Guessing_Game.ipynb",
+      "path": "03_Guessing_Game.ipynb",
+      "size": 4347,
+      "type": "notebook",
+      "writable": true
+    },
+    {
+      "content": null,
+      "created": "2025-12-08T23:26:11.305171Z",
+      "format": null,
+      "hash": null,
+      "hash_algorithm": null,
+      "last_modified": "2025-12-08T23:18:02.506719Z",
+      "mimetype": null,
+      "name": "01_Hello_Python.ipynb",
+      "path": "01_Hello_Python.ipynb",
+      "size": 2397,
+      "type": "notebook",
+      "writable": true
+    },
+    {
+      "content": null,
+      "created": "2025-12-08T23:26:11.308171Z",
+      "format": null,
+      "hash": null,
+      "hash_algorithm": null,
+      "last_modified": "2025-12-08T23:19:48.617805Z",
+      "mimetype": null,
+      "name": "04_Adventure_Story.ipynb",
+      "path": "04_Adventure_Story.ipynb",
+      "size": 6823,
+      "type": "notebook",
+      "writable": true
+    },
+    {
+      "content": null,
+      "created": "2025-12-08T23:26:11.306170Z",
+      "format": null,
+      "hash": null,
+      "hash_algorithm": null,
+      "last_modified": "2025-12-08T23:18:34.900745Z",
+      "mimetype": null,
+      "name": "02_Turtle_Drawing.ipynb",
+      "path": "02_Turtle_Drawing.ipynb",
+      "size": 4623,
+      "type": "notebook",
+      "writable": true
+    }
+  ],
+  "created": "2025-12-08T23:26:11.308171Z",
+  "format": "json",
+  "hash": null,
+  "hash_algorithm": null,
+  "last_modified": "2025-12-08T23:26:11.308171Z",
+  "mimetype": null,
+  "name": "",
+  "path": "",
+  "size": null,
+  "type": "directory",
+  "writable": true
+}

@@ -1,0 +1,346 @@
+{
+  "name": "AutoBiz - Data Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 2
+            }
+          ]
+        }
+      },
+      "id": "sync-schedule",
+      "name": "Sync Every 2 Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.CRM_API_URL }}/sync/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "check-sync-status",
+      "name": "Check Sync Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Determine what needs syncing\nconst status = $input.first().json;\nconst now = new Date();\nconst syncTasks = [];\n\n// Check each integration\nconst integrations = [\n  { id: 'crm', name: 'CRM', endpoint: 'crm', priority: 'high' },\n  { id: 'accounting', name: 'Accounting', endpoint: 'accounting', priority: 'high' },\n  { id: 'inventory', name: 'Inventory', endpoint: 'inventory', priority: 'medium' },\n  { id: 'email', name: 'Email', endpoint: 'email', priority: 'medium' },\n  { id: 'calendar', name: 'Calendar', endpoint: 'calendar', priority: 'low' }\n];\n\nfor (const int of integrations) {\n  const lastSync = status[int.id]?.lastSync ? new Date(status[int.id].lastSync) : null;\n  const hoursSinceSync = lastSync ? (now - lastSync) / (1000 * 60 * 60) : 999;\n  \n  // Sync thresholds based on priority\n  const thresholds = { high: 2, medium: 4, low: 8 };\n  const threshold = thresholds[int.priority] || 4;\n  \n  if (hoursSinceSync >= threshold) {\n    syncTasks.push({\n      ...int,\n      lastSync: lastSync?.toISOString() || 'never',\n      hoursSinceSync: Math.round(hoursSinceSync),\n      status: 'pending'\n    });\n  }\n}\n\n// Sort by priority\nconst priorityOrder = { high: 0, medium: 1, low: 2 };\nsyncTasks.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);\n\nreturn { syncTasks, taskCount: syncTasks.length, startedAt: now.toISOString() };"
+      },
+      "id": "determine-syncs",
+      "name": "Determine Syncs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-tasks",
+              "leftValue": "={{ $json.taskCount }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "has-sync-tasks",
+      "name": "Has Sync Tasks?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        910,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "syncTasks",
+        "options": {}
+      },
+      "id": "split-syncs",
+      "name": "Split Sync Tasks",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1130,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/sync/{{ $json.endpoint }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"lastSync\": \"{{ $json.lastSync }}\",\n  \"fullSync\": {{ $json.hoursSinceSync > 24 }}\n}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "run-sync",
+      "name": "Run Sync",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1350,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Log sync result\nconst task = $('Split Sync Tasks').first().json;\nconst result = $input.first().json;\n\nreturn {\n  integrationId: task.id,\n  integrationName: task.name,\n  syncedAt: new Date().toISOString(),\n  recordsProcessed: result.recordsProcessed || 0,\n  recordsCreated: result.recordsCreated || 0,\n  recordsUpdated: result.recordsUpdated || 0,\n  errors: result.errors || [],\n  success: !result.error,\n  duration: result.duration || 0\n};"
+      },
+      "id": "log-sync-result",
+      "name": "Log Sync Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1570,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/sync/logs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "save-sync-log",
+      "name": "Save Sync Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1790,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-errors",
+              "leftValue": "={{ $json.errors?.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "check-errors",
+      "name": "Has Errors?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2010,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $env.OWNER_EMAIL }}",
+        "subject": "=Sync Error: {{ $json.integrationName }}",
+        "emailType": "html",
+        "html": "=<h2 style=\"color: #FF3B30;\">Data Sync Error</h2>\n<p>There was an error syncing <strong>{{ $json.integrationName }}</strong>:</p>\n<ul>\n{{ $json.errors.map(e => '<li>' + e + '</li>').join('') }}\n</ul>\n<p><strong>Details:</strong></p>\n<ul>\n<li>Records processed: {{ $json.recordsProcessed }}</li>\n<li>Records created: {{ $json.recordsCreated }}</li>\n<li>Records updated: {{ $json.recordsUpdated }}</li>\n</ul>\n<p><a href=\"{{ $env.CRM_URL }}/admin/sync\" style=\"background: #007AFF; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;\">View Sync Logs</a></p>",
+        "options": {}
+      },
+      "id": "alert-sync-error",
+      "name": "Alert Sync Error",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2230,
+        100
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "sync-success",
+      "name": "Sync Success",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2230,
+        300
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "no-sync-needed",
+      "name": "No Sync Needed",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1130,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Sync Every 2 Hours": {
+      "main": [
+        [
+          {
+            "node": "Check Sync Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Sync Status": {
+      "main": [
+        [
+          {
+            "node": "Determine Syncs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Determine Syncs": {
+      "main": [
+        [
+          {
+            "node": "Has Sync Tasks?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Sync Tasks?": {
+      "main": [
+        [
+          {
+            "node": "Split Sync Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Sync Needed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Sync Tasks": {
+      "main": [
+        [
+          {
+            "node": "Run Sync",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Sync": {
+      "main": [
+        [
+          {
+            "node": "Log Sync Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Sync Result": {
+      "main": [
+        [
+          {
+            "node": "Save Sync Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Sync Log": {
+      "main": [
+        [
+          {
+            "node": "Has Errors?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Errors?": {
+      "main": [
+        [
+          {
+            "node": "Alert Sync Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sync Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

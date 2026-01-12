@@ -1,0 +1,631 @@
+================================================================================
+CIRCLE OS SPECIFICATION
+Chapter 04: Privacy Framework
+================================================================================
+
+Document: 04_privacy.txt
+Version: 1.0
+Date: December 2025
+Status: Foundation
+
+================================================================================
+PHILOSOPHY
+================================================================================
+
+Privacy is sovereignty, not isolation.
+
+The Privacy Framework ensures:
+- Users KNOW what apps do with their data
+- Users CONTROL what apps can access
+- Users can freely CHOOSE to share with communities they trust
+
+We protect privacy so users can participate in community on their own terms.
+
+================================================================================
+1. PERMISSION MODEL
+================================================================================
+
+1.1 NETWORK PERMISSION
+----------------------
+The single most important privacy feature in Circle OS.
+
+BEHAVIOR
+- Apps have NO network access by default
+- Must request "Network" permission like camera or mic
+- User sees: "App wants to access the Internet"
+- Can be granted, denied, or "Ask every time"
+
+WHY THIS MATTERS
+- Most data exfiltration requires network
+- Stock Android grants network by default
+- This single change breaks most tracking
+
+IMPLEMENTATION
+- Netfilter rules per-UID
+- Default DROP for app UIDs
+- Whitelist on permission grant
+- VPN routing for granular control
+
+
+1.2 SCOPED STORAGE
+------------------
+Apps see only what users explicitly share.
+
+BEHAVIOR
+- No access to shared storage by default
+- App requests access to specific files/folders
+- User picks files via system picker
+- App receives access ONLY to selected items
+
+NO MORE
+- "Give me access to all your photos"
+- Background scanning of storage
+- Accessing files from other apps
+
+IMPLEMENTATION
+- Storage Access Framework enforced
+- No legacy storage mode
+- MediaStore access requires permission per media type
+
+
+1.3 SCOPED CONTACTS
+-------------------
+Share specific contacts, not your entire address book.
+
+BEHAVIOR
+- "Contacts" permission grants ZERO contacts by default
+- User can add specific contacts to app's scope
+- App only sees scoped contacts
+- Background: app cannot enumerate contacts
+
+EXAMPLE
+User installs new messaging app:
+1. App requests contacts permission
+2. User grants permission
+3. User adds 5 contacts to app's scope
+4. App sees only those 5 contacts
+5. User can add more later via Settings
+
+IMPLEMENTATION
+- Custom contacts provider wrapper
+- Per-app contact visibility table
+- System UI for scoping
+
+
+1.4 SENSOR PERMISSIONS
+----------------------
+Explicit control over all sensors.
+
+NEW PERMISSIONS (not in stock Android)
+- ACCELEROMETER
+- GYROSCOPE
+- BAROMETER
+- MAGNETOMETER
+- STEP_COUNTER
+
+WHY
+- Accelerometer can detect typing patterns
+- Gyroscope can fingerprint devices
+- Combined sensors reveal activity patterns
+
+IMPLEMENTATION
+- HAL wrapper intercepts sensor access
+- Permission check before data delivery
+- Return zeros if denied
+
+
+1.5 CLIPBOARD ACCESS
+--------------------
+No silent clipboard reading.
+
+BEHAVIOR
+- Apps cannot read clipboard in background
+- Clipboard access requires explicit user paste action
+- Notification when app reads clipboard
+- Auto-clear clipboard option (configurable timer)
+
+IMPLEMENTATION
+- ClipboardManager wrapper
+- Foreground activity check
+- Toast notification on access
+
+
+1.6 CAMERA & MICROPHONE
+-----------------------
+Standard permissions with Circle enhancements.
+
+ENHANCEMENTS
+- Status bar indicator when in use (mandatory, cannot hide)
+- Notification with app name while active
+- Hardware kill switch support (Circle native hardware)
+- Quick Settings tile to block all access temporarily
+
+
+1.7 LOCATION
+------------
+Granular location control.
+
+OPTIONS
+- Precise location
+- Approximate location (city-level)
+- No location
+- One-time access
+
+BACKGROUND LOCATION
+- Separate permission from foreground
+- Reminder notifications when background access used
+- Auto-revoke if unused for 30 days
+
+
+1.8 PERMISSION AUTO-REVOKE
+--------------------------
+Unused permissions automatically removed.
+
+BEHAVIOR
+- If app not used for 30 days, permissions revoked
+- User notified of revocations
+- Can mark apps as "don't auto-revoke"
+- Re-request required on next use
+
+================================================================================
+2. PRIVACY DASHBOARD
+================================================================================
+
+2.1 OVERVIEW SCREEN
+-------------------
+At-a-glance privacy status.
+
+DISPLAYS
+- Permission usage last 24h / 7d / 30d
+- Top apps by permission usage
+- Recent permission requests
+- Privacy score (aggregate)
+
+VISUAL
+- Timeline showing when sensors accessed
+- Bar charts per permission type
+- Drill-down to individual apps
+
+
+2.2 PER-APP PRIVACY REPORT
+--------------------------
+Detailed view of single app behavior.
+
+DISPLAYS
+- All permissions held
+- Permission usage history (timestamped)
+- Network activity (domains contacted)
+- Data accessed (files, contacts, etc.)
+- Background activity
+- Privacy score with breakdown
+
+ACTIONS
+- Revoke any permission
+- Adjust scopes (contacts, storage)
+- Block app network access
+- Uninstall
+
+
+2.3 PERMISSION USAGE LOG
+------------------------
+Complete audit trail.
+
+LOGGED EVENTS
+- Permission granted/denied
+- Permission used (with timestamp)
+- Network connections made
+- Data accessed (files by path, contacts by ID)
+- Background wakeups
+
+RETENTION
+- 30 days default
+- Exportable (JSON format)
+- User can clear at any time
+
+PRIVACY
+- Logs stored locally only
+- Encrypted with device key
+- Not synced to any cloud
+
+
+2.4 REAL-TIME INDICATORS
+------------------------
+Moment-to-moment awareness.
+
+STATUS BAR
+- Colored dots for active permissions
+  🟢 Location
+  🟠 Microphone  
+  🔴 Camera
+  🔵 Network (new!)
+
+NOTIFICATION
+- Persistent notification during background access
+- "AppName is using your location in background"
+- Tap to view or revoke
+
+================================================================================
+3. PRIVACY MANAGER SERVICE
+================================================================================
+
+3.1 ARCHITECTURE
+----------------
+System service managing all privacy controls.
+
+COMPONENTS
+- PrivacyManagerService (system server)
+- PrivacyContentProvider (permission scopes)
+- PrivacyRulesEngine (policy enforcement)
+- PrivacyLogger (audit trail)
+- PrivacyUI (settings integration)
+
+IPC
+- Apps request permissions via standard API
+- Privacy Manager intercepts and enforces
+- Transparent to apps (they see standard Android behavior)
+
+
+3.2 POLICY ENFORCEMENT
+----------------------
+How rules are applied.
+
+ENFORCEMENT POINTS
+- Activity Manager (app launch restrictions)
+- Package Manager (permission grants)
+- Content Providers (data access)
+- Network Stack (connectivity)
+- Sensor HAL (sensor access)
+
+PRIORITY
+1. System hardcoded rules (cannot bypass)
+2. User-configured rules
+3. Default rules (secure defaults)
+
+
+3.3 PRIVACY RULES ENGINE
+------------------------
+Flexible policy system.
+
+RULE TYPES
+- Allow (permission granted)
+- Deny (permission denied)
+- Fake (return empty/fake data)
+- Ask (prompt user each time)
+- Log (allow but log access)
+
+FAKE DATA
+- Empty contacts list instead of error
+- Fake IMEI/device ID
+- Generic location instead of error
+- Prevents apps from detecting denial
+
+================================================================================
+4. APP TRANSPARENCY
+================================================================================
+
+4.1 NETWORK TRAFFIC VISIBILITY
+------------------------------
+Users see all connections.
+
+FEATURES
+- Per-app list of domains contacted
+- Connection count and data volume
+- Categorization (analytics, ads, functional)
+- Block specific domains per app
+
+IMPLEMENTATION
+- DNS query logging (local only)
+- Connection tracking via netfilter
+- No MITM (privacy preserved)
+
+
+4.2 TRACKING DETECTION
+----------------------
+Automatic identification of trackers.
+
+DATABASES
+- Exodus Privacy tracker database
+- EasyList / EasyPrivacy
+- Custom Circle tracker list
+
+DISPLAY
+- "This app contains 5 known trackers"
+- List of tracker names and purposes
+- Option to block tracker domains
+
+
+4.3 PRIVACY SCORES
+------------------
+At-a-glance app trustworthiness.
+
+SCORING FACTORS
+- Permissions requested (fewer = better)
+- Permissions used (less frequent = better)
+- Trackers detected (fewer = better)
+- Network activity (less = better)
+- Open source bonus
+- Permission scope usage (uses scoped = better)
+
+DISPLAY
+- 0-100 score
+- Color coded (green/yellow/red)
+- Breakdown available
+- Shown in Circle Store
+
+
+4.4 PRIVACY LABELS
+------------------
+Clear disclosure (like nutrition labels).
+
+CATEGORIES
+- Data Collected
+- Data Shared
+- Tracking
+- Third-Party SDKs
+
+SOURCE
+- App manifest declarations
+- Automated analysis
+- Community reports
+
+ENFORCEMENT
+- Apps in Circle Store must have labels
+- Mismatch = warning to users
+
+================================================================================
+5. DATA MINIMIZATION
+================================================================================
+
+5.1 ADVERTISING ID
+------------------
+No persistent advertising identifier.
+
+IMPLEMENTATION
+- Advertising ID returns zeros by default
+- Optional: per-app randomized ID
+- No cross-app tracking identifier
+
+COMPATIBILITY
+- Apps requesting Ad ID get zeros
+- Most apps handle gracefully
+- Those that don't: their problem
+
+
+5.2 DEVICE IDENTIFIERS
+----------------------
+No hardware ID access for apps.
+
+BLOCKED
+- IMEI (returns fake)
+- Serial number (returns fake)
+- MAC address (returns randomized)
+- SIM serial (blocked)
+- Build serial (returns generic)
+
+ALLOWED
+- Android ID (per-app, resets on reinstall)
+- Instance ID (per-app, user-resettable)
+
+
+5.3 ANALYTICS BLOCKING
+----------------------
+No silent analytics.
+
+IMPLEMENTATION
+- Known analytics domains in blocklist
+- Apps cannot reach analytics servers
+- No Firebase Analytics
+- No Crashlytics (unless user opts in per app)
+- No AppsFlyer, Adjust, etc.
+
+USER CHOICE
+- Can enable analytics per app if they want
+- Must be explicit opt-in
+
+
+5.4 CLIPBOARD CLEARING
+----------------------
+Prevent clipboard data persistence.
+
+OPTIONS
+- Clear after 1 minute (default)
+- Clear after 5 minutes
+- Clear on screen lock
+- Manual clear only
+
+SENSITIVE DETECTION
+- Patterns that look like passwords
+- Patterns that look like credit cards
+- Auto-clear faster for sensitive content
+
+================================================================================
+6. CROSS-APP PROTECTION
+================================================================================
+
+6.1 INTENT FIREWALL
+-------------------
+Control app-to-app communication.
+
+VISIBILITY
+- User can see which apps communicate
+- Log of intent deliveries
+- Option to block specific intent routes
+
+PROTECTION
+- Sensitive broadcasts restricted
+- Custom intents logged
+- User can break undesired app connections
+
+
+6.2 CONTENT PROVIDER ISOLATION
+------------------------------
+Apps cannot query each other's data.
+
+IMPLEMENTATION
+- No exported content providers by default
+- Explicit grant required
+- Grants are visible in Privacy Dashboard
+- Revocable at any time
+
+
+6.3 CROSS-PROFILE ISOLATION
+---------------------------
+Work/personal boundary enforced.
+
+FEATURES
+- Work profile fully isolated
+- No data leakage between profiles
+- Separate encryption keys
+- Separate permission states
+
+================================================================================
+7. COMMUNITY PARTICIPATION
+================================================================================
+
+7.1 PRIVACY-PRESERVING SHARING
+------------------------------
+Share with communities without surveillance.
+
+FEATURES
+- Share files without platform seeing contents
+- Group messaging without server-side access
+- Community features without profile building
+
+IMPLEMENTATION
+- End-to-end encryption default for Circle apps
+- No metadata collection
+- Local-first sync options
+
+
+7.2 STOKVEL INTEGRATION
+-----------------------
+Private community financial circles.
+
+FEATURES  
+- Group membership private (no cloud storage)
+- Transaction history local to group
+- No reporting to third parties
+- No advertising profiling
+
+IMPLEMENTATION
+- Peer-to-peer sync within group
+- Encrypted group ledger
+- No central server sees data
+
+
+7.3 FAMILY SHARING
+------------------
+Share with family without platform surveillance.
+
+FEATURES
+- Share location with family (family sees, platform doesn't)
+- Share photos with family (E2E encrypted)
+- Parental controls without cloud profiles
+
+================================================================================
+8. TRANSPARENCY TO USER
+================================================================================
+
+8.1 PLAIN LANGUAGE
+------------------
+No tech jargon in privacy UI.
+
+EXAMPLES
+- "This app wants to see all your photos" (not "storage permission")
+- "This app contacted Facebook 47 times today"
+- "This app knows where you are right now"
+
+PRINCIPLES
+- Assume no technical knowledge
+- Explain consequences, not mechanisms
+- Actionable information
+
+
+8.2 JUST-IN-TIME EDUCATION
+--------------------------
+Teach users as they encounter situations.
+
+EXAMPLES
+- First permission request: explain what it means
+- First network permission: explain why Circle requires it
+- First background location: explain risks
+
+IMPLEMENTATION
+- Contextual explanations
+- Links to learn more
+- Don't overwhelm (progressive disclosure)
+
+
+8.3 PRIVACY TIPS
+----------------
+Proactive improvement suggestions.
+
+EXAMPLES
+- "3 apps haven't been used in 30 days but still have permissions"
+- "You could reduce tracking by revoking Ad ID access"
+- "This app has a privacy score of 23 - consider alternatives"
+
+================================================================================
+9. DATA EXPORT & PORTABILITY
+================================================================================
+
+9.1 FULL DATA EXPORT
+--------------------
+Users own their data.
+
+EXPORTABLE
+- All photos and media
+- All contacts
+- All messages (Circle apps)
+- All app data (where supported)
+- Permission audit logs
+- Privacy reports
+
+FORMAT
+- Standard formats (JSON, VCF, JPEG, etc.)
+- Machine readable
+- Self-contained archive
+
+
+9.2 GDPR-STYLE RIGHTS
+---------------------
+Even though we're not in EU, we adopt the principles.
+
+RIGHTS
+- Right to access (see all your data)
+- Right to portability (export your data)
+- Right to deletion (delete your data)
+- Right to rectification (correct your data)
+
+IMPLEMENTATION
+- All Circle services comply
+- Encourage third-party apps to comply
+- Label apps that don't support export
+
+================================================================================
+10. SUMMARY: PRIVACY COMMITMENTS
+================================================================================
+
+USERS WILL ALWAYS KNOW:
+- What permissions apps have
+- When permissions are being used
+- What data apps have accessed
+- What network connections apps make
+- What trackers are in their apps
+
+USERS WILL ALWAYS CONTROL:
+- What permissions to grant
+- Scope of permissions (specific contacts, files)
+- Network access per app
+- Data retention
+- What to share with whom
+
+USERS WILL NEVER BE:
+- Tracked without knowledge
+- Profiled without consent
+- Locked out of their own data
+- Forced to trade privacy for functionality
+
+================================================================================
+END OF CHAPTER 04
+================================================================================

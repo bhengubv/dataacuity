@@ -1,0 +1,486 @@
+================================================================================
+CIRCLE OS SPECIFICATION
+Chapter 05: Target Hardware
+================================================================================
+
+Document: 05_hardware.txt
+Version: 1.0
+Date: December 2025
+Status: Foundation
+
+================================================================================
+1. HARDWARE STRATEGY
+================================================================================
+
+1.1 PHILOSOPHY
+--------------
+Circle OS runs on:
+1. Existing devices (accessibility)
+2. Circle native hardware (aspiration)
+
+We never require new hardware. We always provide the best experience on
+Circle hardware.
+
+
+1.2 SUPPORT TIERS
+-----------------
+TIER 1: REFERENCE DEVICES
+- Circle native hardware (when available)
+- Google Pixel devices (GrapheneOS parity)
+- Full security features
+- First to receive updates
+
+TIER 2: OFFICIALLY SUPPORTED
+- Treble-compatible devices with unlocked bootloaders
+- Full feature set
+- Security caveats documented
+- Regular updates
+
+TIER 3: COMMUNITY SUPPORTED
+- Devices requiring exploit boot
+- Best-effort features
+- Security limitations documented
+- Updates depend on community maintainers
+
+================================================================================
+2. REFERENCE DEVICE: HUAWEI P30 LITE
+================================================================================
+
+2.1 WHY P30 LITE
+----------------
+- Widely owned in target markets (Africa, SEA)
+- Challenging: locked bootloader, Huawei restrictions
+- Affordable on secondary market (~R1,500)
+- Representative of real-world constraints
+- If it works here, it works anywhere
+
+2.2 SPECIFICATIONS
+------------------
+MODEL: MAR-LX1M / MAR-LX1A / MAR-LX2
+
+PROCESSOR: HiSilicon Kirin 710
+- 4x Cortex-A73 @ 2.2GHz
+- 4x Cortex-A53 @ 1.7GHz
+- Mali-G51 MP4 GPU
+- ARM64 architecture
+
+MEMORY: 4GB / 6GB RAM (variant dependent)
+
+STORAGE: 128GB internal + microSD
+
+DISPLAY:
+- 6.15" IPS LCD
+- 2312 x 1080 (FHD+)
+- 415 PPI
+
+BATTERY: 3340mAh
+
+CONNECTIVITY:
+- WiFi 802.11 a/b/g/n/ac
+- Bluetooth 4.2
+- NFC (some variants)
+- USB-C 2.0
+- Dual SIM
+
+SENSORS:
+- Fingerprint (rear)
+- Accelerometer
+- Gyroscope
+- Proximity
+- Compass
+
+2.3 BOOT METHOD
+---------------
+Huawei locked bootloaders post-2019. Options:
+
+OPTION A: HISUITE/TESTPOINT
+- Hardware testpoint access
+- Requires disassembly
+- One-time process
+- Not user-friendly but reliable
+
+OPTION B: POTATONV UNLOCK
+- Software-based unlock tool
+- Device-specific compatibility
+- Community maintained
+
+OPTION C: DC-UNLOCKER
+- Paid service (~$4)
+- Reliable
+- No hardware modification
+
+CIRCLE OS APPROACH:
+- Document all methods
+- Provide step-by-step guides
+- Recommend based on user comfort level
+- Never require methods that risk bricking
+
+2.4 PARTITION LAYOUT
+--------------------
+STOCK HUAWEI (EMUI):
+| Partition      | Size    | Purpose                |
+|----------------|---------|------------------------|
+| boot           | 64MB    | Kernel + ramdisk       |
+| recovery       | 64MB    | Recovery environment   |
+| system         | 4GB     | Android system         |
+| vendor         | 512MB   | HAL binaries           |
+| product        | 512MB   | Product overlay        |
+| userdata       | ~115GB  | User data              |
+
+CIRCLE OS DUAL BOOT:
+| Partition      | Size    | Purpose                |
+|----------------|---------|------------------------|
+| boot           | 64MB    | Circle kernel          |
+| boot_b         | 64MB    | Android kernel (backup)|
+| recovery       | 64MB    | Circle recovery        |
+| system         | 4GB     | Circle OS system       |
+| system_b       | 4GB     | Android system         |
+| vendor         | 512MB   | Shared vendor HAL      |
+| userdata       | ~107GB  | Shared user data       |
+
+Note: Shared userdata requires careful filesystem handling
+
+2.5 KERNEL SOURCE
+-----------------
+Huawei provides kernel source (GPL compliance):
+- https://consumer.huawei.com/en/opensource/
+- Search: MAR-LX1M
+
+BASE: Linux 4.9.x (Android common kernel)
+
+CIRCLE FORK:
+- Backport security patches
+- Add Circle-specific drivers
+- Hardening patches (where possible on 4.9)
+
+LIMITATIONS:
+- Cannot upgrade to mainline (too many Kirin-specific changes)
+- Some hardening features require newer kernel
+- Document limitations clearly
+
+================================================================================
+3. REFERENCE DEVICE: CIRCLE NATIVE
+================================================================================
+
+3.1 OVERVIEW
+------------
+Full-featured reference hardware with:
+- RISC-V processor (open architecture)
+- NearLink connectivity (ecosystem play)
+- Modular design (sustainability)
+- Hardware security (Tier 1 security)
+
+3.2 SPECIFICATIONS (TARGET)
+---------------------------
+PROCESSOR: RISC-V XuanTie C920 or equivalent
+- 4+ cores
+- 2.0GHz+
+- GPU: Vulkan-capable
+
+MEMORY: 8GB LPDDR5
+
+STORAGE: 128GB UFS 3.1 + microSD
+
+DISPLAY:
+- 6.67" LTPO AMOLED
+- 2400 x 1080 (FHD+)
+- 1-120Hz adaptive
+
+BATTERY: 6000mAh (modular)
+
+CONNECTIVITY:
+- NearLink SLE/SLB
+- WiFi 7
+- Bluetooth 5.4
+- 5G-A Sub-6GHz
+- USB-C 3.2
+
+SECURITY HARDWARE:
+- Secure element for key storage
+- Hardware attestation support
+- Verified boot support
+
+MODULARITY:
+- 5 user-replaceable modules
+- Tool-free replacement
+- Magnetic pogo connections
+
+3.3 KERNEL
+----------
+TARGET: Linux 6.x LTS (mainline)
+
+ADVANTAGES:
+- Modern security features
+- RISC-V native support
+- Full hardening capability
+- Long-term support
+
+DRIVERS:
+- NearLink: Custom driver required
+- Display: Standard DRM/KMS
+- Camera: V4L2
+- Modem: Qualcomm QMI or similar
+
+================================================================================
+4. TREBLE-COMPATIBLE DEVICES
+================================================================================
+
+4.1 WHAT IS TREBLE
+------------------
+Android 8.0+ introduced Project Treble:
+- Separation of vendor and system
+- Standardized HAL interface
+- Generic System Image (GSI) possible
+
+BENEFIT FOR CIRCLE OS:
+- Single system image for many devices
+- Vendor HAL reused from stock Android
+- Dramatically easier porting
+
+4.2 REQUIREMENTS
+----------------
+For Tier 2 support:
+- Android 8.0+ originally
+- Unlockable bootloader
+- Working Treble implementation
+- Kernel source available
+- Active community or maintainer
+
+4.3 TESTED DEVICES
+------------------
+Initial target list (to be validated):
+
+SAMSUNG:
+- Galaxy A series (A52, A53, A54)
+- Galaxy S10 series (Exynos)
+- Galaxy Note 10 series (Exynos)
+
+XIAOMI:
+- Redmi Note series (8, 9, 10, 11)
+- POCO F series
+- Mi 9, Mi 10 series
+
+ONEPLUS:
+- OnePlus 6/6T
+- OnePlus 7/7T series
+- OnePlus 8 series
+
+GOOGLE:
+- Pixel 3 and later (Tier 1 potential)
+
+MOTOROLA:
+- Moto G series
+
+4.4 GSI BUILD
+-------------
+Circle OS provides:
+- ARM64 GSI (most devices)
+- ARM32_BINDER64 GSI (older devices)
+- Both A-only and A/B partition layouts
+
+INSTALLATION:
+1. Unlock bootloader
+2. Flash Circle GSI via fastboot
+3. Flash Circle boot image
+4. Reboot
+
+================================================================================
+5. MINIMUM SPECIFICATIONS
+================================================================================
+
+5.1 HARD REQUIREMENTS
+---------------------
+PROCESSOR:
+- ARM64 or RISC-V 64-bit
+- 1.4GHz+ (quad-core)
+
+MEMORY:
+- 3GB RAM minimum
+- 4GB RAM recommended
+
+STORAGE:
+- 32GB minimum
+- 64GB recommended
+
+DISPLAY:
+- 720p minimum
+- Touch screen
+
+CONNECTIVITY:
+- WiFi
+- Cellular (for phone features)
+
+5.2 SOFT REQUIREMENTS
+---------------------
+Missing these = degraded experience, not failure:
+
+- Bluetooth (some features disabled)
+- NFC (payment features disabled)
+- Fingerprint (PIN-only unlock)
+- GPS (network location only)
+- Gyroscope (some UI effects disabled)
+
+5.3 PERFORMANCE TARGETS
+-----------------------
+On minimum spec device (P30 Lite, 4GB):
+
+BOOT TIME:
+- Cold boot to lock screen: <30 seconds
+- Unlock to launcher: <2 seconds
+
+MEMORY:
+- System idle: <1.5GB
+- With 3 apps open: <2.5GB
+
+BATTERY:
+- Screen-on time: ≥6 hours
+- Idle drain: <2% per hour
+
+APP LAUNCH:
+- System apps: <1 second
+- Third-party apps: <2 seconds
+
+================================================================================
+6. DEVICE TREE STRUCTURE
+================================================================================
+
+6.1 REPOSITORY LAYOUT
+---------------------
+/device/
+├── circle/
+│   └── common/           # Shared Circle device config
+├── huawei/
+│   └── mar/              # P30 Lite (codename: mar)
+│       ├── BoardConfig.mk
+│       ├── device.mk
+│       ├── fstab.mar
+│       ├── init.mar.rc
+│       ├── overlay/
+│       └── sepolicy/
+├── google/
+│   └── redfin/           # Pixel 5 example
+└── generic/
+    ├── arm64/            # Treble GSI ARM64
+    └── riscv64/          # Treble GSI RISC-V
+
+6.2 DEVICE CONFIGURATION
+------------------------
+Each device provides:
+
+BoardConfig.mk:
+- Kernel configuration
+- Partition sizes
+- Architecture settings
+- Security options
+
+device.mk:
+- Packages to include
+- Properties to set
+- Feature flags
+- HAL selections
+
+fstab:
+- Partition mount points
+- Encryption settings
+- Mount options
+
+init.rc:
+- Device-specific init scripts
+- Service definitions
+- Property triggers
+
+sepolicy:
+- Device-specific SELinux rules
+- HAL labeling
+
+overlay:
+- Resource overrides
+- Feature configuration
+
+================================================================================
+7. DUAL BOOT IMPLEMENTATION
+================================================================================
+
+7.1 BOOT FLOW
+-------------
+Power on → Bootloader → Boot selection → Load kernel → Init
+
+BOOT SELECTION OPTIONS:
+A) Physical key combo (Volume down + Power)
+B) Boot menu (GRUB-like selection)
+C) Last-booted (default after timeout)
+
+7.2 SHARED DATA
+---------------
+User data partition shared between Circle OS and Android:
+
+STORAGE LAYOUT:
+/data/
+├── android/           # Android-specific
+│   ├── data/
+│   └── media/
+├── circle/            # Circle-specific
+│   ├── data/
+│   └── media/
+└── shared/            # Accessible by both
+    ├── DCIM/
+    ├── Documents/
+    ├── Download/
+    ├── Music/
+    └── Pictures/
+
+ACCESS RULES:
+- Circle can read shared/* (user's existing files)
+- Circle can write to shared/* (new files accessible from Android)
+- Circle cannot read android/* (privacy)
+- Android cannot read circle/* (protection)
+
+IMPLEMENTATION:
+- BindFS mounts for access control
+- Filesystem permissions enforced
+- Different encryption keys per OS (future enhancement)
+
+7.3 SLOT MANAGEMENT
+-------------------
+A/B slot usage:
+
+SLOT A: Circle OS
+- circle_boot
+- circle_system
+- circle_vendor (if needed)
+
+SLOT B: Android (original)
+- boot_backup (original Android kernel)
+- system_backup (or leave original)
+
+SWITCHING:
+- Circle Settings: "Boot to Android"
+- Sets bootloader flag
+- Reboots to other slot
+
+================================================================================
+8. SUMMARY
+================================================================================
+
+REFERENCE DEVICE (CHALLENGING): Huawei P30 Lite
+- Proves Circle OS works on difficult hardware
+- Locked bootloader requires unlock process
+- 4GB RAM tests performance optimization
+- Large existing user base in target markets
+
+REFERENCE DEVICE (OPTIMAL): Circle Native Hardware
+- Full security features
+- Best user experience
+- Demonstrates what's possible
+- Aspiration for users
+
+BROAD SUPPORT: Treble GSI
+- Single image for many devices
+- Lower maintenance burden
+- Community can add devices
+
+MINIMUM SPECS: 4GB RAM, 64GB storage, ARM64/RISC-V
+
+================================================================================
+END OF CHAPTER 05
+================================================================================

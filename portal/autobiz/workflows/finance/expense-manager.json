@@ -1,0 +1,226 @@
+{
+  "name": "AutoBiz - Expense Manager",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "autobiz/log-expense",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "expense-webhook",
+      "name": "Log Expense",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "expense-id",
+              "name": "expenseId",
+              "value": "=EXP-{{ $now.format('yyyyMMdd') }}-{{ $randomInt(1000, 9999) }}",
+              "type": "string"
+            },
+            {
+              "id": "logged-at",
+              "name": "loggedAt",
+              "value": "={{ $now.toISO() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "generate-expense-id",
+      "name": "Generate Expense ID",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Categorize and process expense\nconst expense = $input.first().json;\nconst amount = parseFloat(expense.amount) || 0;\n\n// Auto-categorize based on vendor/description if not specified\nlet category = expense.category;\nif (!category) {\n  const desc = (expense.description || '').toLowerCase();\n  const vendor = (expense.vendor || '').toLowerCase();\n  \n  if (desc.includes('fuel') || desc.includes('petrol') || vendor.includes('shell') || vendor.includes('engen')) {\n    category = 'fuel';\n  } else if (desc.includes('office') || desc.includes('stationery')) {\n    category = 'office_supplies';\n  } else if (desc.includes('travel') || desc.includes('uber') || desc.includes('flight')) {\n    category = 'travel';\n  } else if (desc.includes('software') || desc.includes('subscription')) {\n    category = 'software';\n  } else if (desc.includes('meal') || desc.includes('lunch') || desc.includes('dinner')) {\n    category = 'meals';\n  } else if (desc.includes('marketing') || desc.includes('advertising') || desc.includes('ads')) {\n    category = 'marketing';\n  } else {\n    category = 'other';\n  }\n}\n\n// Calculate VAT if applicable\nconst vatRate = expense.vatIncluded ? 15 : 0;\nconst vatAmount = expense.vatIncluded ? (amount * vatRate / (100 + vatRate)) : 0;\nconst netAmount = amount - vatAmount;\n\n// Flag for approval if over threshold\nconst approvalThreshold = parseFloat(expense.approvalThreshold) || 5000;\nconst requiresApproval = amount >= approvalThreshold;\n\nreturn {\n  ...expense,\n  amount: amount,\n  category: category,\n  vatAmount: vatAmount.toFixed(2),\n  netAmount: netAmount.toFixed(2),\n  requiresApproval: requiresApproval,\n  status: requiresApproval ? 'pending_approval' : 'approved'\n};"
+      },
+      "id": "process-expense",
+      "name": "Process Expense",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        690,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_API_URL }}/expenses",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"expenseId\": \"{{ $json.expenseId }}\",\n  \"description\": \"{{ $json.description }}\",\n  \"vendor\": \"{{ $json.vendor }}\",\n  \"amount\": {{ $json.amount }},\n  \"netAmount\": {{ $json.netAmount }},\n  \"vatAmount\": {{ $json.vatAmount }},\n  \"category\": \"{{ $json.category }}\",\n  \"expenseDate\": \"{{ $json.expenseDate || $json.loggedAt }}\",\n  \"submittedBy\": \"{{ $json.submittedBy }}\",\n  \"receiptUrl\": \"{{ $json.receiptUrl || '' }}\",\n  \"status\": \"{{ $json.status }}\",\n  \"loggedAt\": \"{{ $json.loggedAt }}\"\n}",
+        "options": {}
+      },
+      "id": "save-expense",
+      "name": "Save Expense",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        910,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "needs-approval",
+              "leftValue": "={{ $json.requiresApproval }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-approval",
+      "name": "Needs Approval?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1130,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $env.BUSINESS_EMAIL }}",
+        "toEmail": "={{ $env.OWNER_EMAIL }}",
+        "subject": "=Expense Approval Required: R{{ $json.amount.toFixed(2) }} - {{ $json.description }}",
+        "emailType": "html",
+        "html": "=<h2>Expense Approval Required</h2>\n<p>An expense above the approval threshold has been submitted:</p>\n<table style=\"width: 100%; border-collapse: collapse;\">\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Expense ID:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee;\">{{ $json.expenseId }}</td></tr>\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Description:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee;\">{{ $json.description }}</td></tr>\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Vendor:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee;\">{{ $json.vendor }}</td></tr>\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Amount:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee;\">R{{ $json.amount.toFixed(2) }}</td></tr>\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Category:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee;\">{{ $json.category }}</td></tr>\n<tr><td style=\"padding: 10px; border-bottom: 1px solid #eee;\"><strong>Submitted By:</strong></td><td style=\"padding: 10px; border-bottom: 1px solid #eee;\">{{ $json.submittedBy }}</td></tr>\n</table>\n<p style=\"margin-top: 20px;\">\n<a href=\"{{ $env.CRM_URL }}/expenses/{{ $json.expenseId }}/approve\" style=\"background: #34C759; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin-right: 10px;\">Approve</a>\n<a href=\"{{ $env.CRM_URL }}/expenses/{{ $json.expenseId }}/reject\" style=\"background: #FF3B30; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;\">Reject</a>\n</p>",
+        "options": {}
+      },
+      "id": "request-approval",
+      "name": "Request Approval",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1350,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"expenseId\": \"{{ $json.expenseId }}\",\n  \"amount\": {{ $json.amount }},\n  \"category\": \"{{ $json.category }}\",\n  \"status\": \"{{ $json.status }}\",\n  \"requiresApproval\": {{ $json.requiresApproval }}\n}",
+        "options": {}
+      },
+      "id": "expense-response",
+      "name": "Expense Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1570,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Log Expense": {
+      "main": [
+        [
+          {
+            "node": "Generate Expense ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Expense ID": {
+      "main": [
+        [
+          {
+            "node": "Process Expense",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Expense": {
+      "main": [
+        [
+          {
+            "node": "Save Expense",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Expense": {
+      "main": [
+        [
+          {
+            "node": "Needs Approval?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs Approval?": {
+      "main": [
+        [
+          {
+            "node": "Request Approval",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Expense Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request Approval": {
+      "main": [
+        [
+          {
+            "node": "Expense Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

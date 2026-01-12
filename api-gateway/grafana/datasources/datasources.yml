@@ -1,0 +1,29 @@
+apiVersion: 1
+
+datasources:
+  # PostgreSQL for API analytics
+  - name: API Gateway PostgreSQL
+    type: postgres
+    access: proxy
+    url: gateway-db:5432
+    database: api_gateway
+    user: gateway
+    secureJsonData:
+      password: ${GATEWAY_DB_PASSWORD}
+    jsonData:
+      sslmode: disable
+      maxOpenConns: 10
+      maxIdleConns: 10
+      connMaxLifetime: 14400
+    isDefault: true
+
+  # Prometheus for real-time metrics
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: false
+    jsonData:
+      httpMethod: POST
+      manageAlerts: true
+      prometheusType: Prometheus

@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Building Pages - Web Studio</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --bg: #0f172a;
+            --bg-card: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--warning) 0%, var(--primary) 100%);
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .header h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .header p { opacity: 0.9; }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .lesson-nav {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background: var(--bg-card);
+            color: var(--text);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            text-decoration: none;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .nav-btn:hover { background: var(--primary); }
+        .nav-btn.active { background: var(--warning); color: #000; }
+
+        .step {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .step-number {
+            background: var(--warning);
+            color: #000;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .step h2 { font-size: 1.5rem; }
+        .step p { color: var(--text-muted); margin-bottom: 1rem; }
+
+        .tip-box {
+            background: rgba(6, 182, 212, 0.1);
+            border-left: 4px solid var(--secondary);
+            padding: 1rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1rem 0;
+        }
+
+        .tip-box strong { color: var(--secondary); }
+
+        .success-box {
+            background: rgba(16, 185, 129, 0.1);
+            border-left: 4px solid var(--success);
+            padding: 1rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1rem 0;
+        }
+
+        .success-box strong { color: var(--success); }
+
+        .layout-demo {
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+
+        .layout-header {
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem;
+            text-align: center;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+        }
+
+        .layout-main {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .layout-sidebar {
+            background: var(--secondary);
+            color: white;
+            padding: 1rem 0.5rem;
+            text-align: center;
+            border-radius: 4px;
+            width: 30%;
+        }
+
+        .layout-content {
+            background: var(--bg-card);
+            padding: 1rem;
+            border-radius: 4px;
+            flex: 1;
+        }
+
+        .layout-footer {
+            background: var(--warning);
+            color: #000;
+            padding: 0.5rem;
+            text-align: center;
+            border-radius: 4px;
+        }
+
+        .page-list {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin: 1rem 0;
+        }
+
+        .page-item {
+            background: var(--bg);
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .page-item.active {
+            border-color: var(--primary);
+            background: rgba(99,102,241,0.1);
+        }
+
+        .btn {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+
+        .btn:hover { background: var(--primary-dark); }
+        .btn-success { background: var(--success); }
+
+        .certificate {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        .certificate h3 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        footer a { color: var(--secondary); }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>Building Complete Pages</h1>
+        <p>Create layouts, add pages, and publish your website!</p>
+    </header>
+
+    <div class="container">
+        <nav class="lesson-nav">
+            <a href="01-getting-started.html" class="nav-btn">1. Getting Started</a>
+            <a href="02-adding-content.html" class="nav-btn">2. Adding Content</a>
+            <a href="03-styling-basics.html" class="nav-btn">3. Styling</a>
+            <a href="04-building-pages.html" class="nav-btn active">4. Building Pages</a>
+            <a href="../" class="nav-btn">Back to Learn</a>
+        </nav>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">1</div>
+                <h2>Understanding Layouts</h2>
+            </div>
+            <p>
+                A layout is how you arrange things on your page. Most websites have these parts:
+            </p>
+
+            <div class="layout-demo">
+                <div class="layout-header">Header (Logo & Navigation)</div>
+                <div class="layout-main">
+                    <div class="layout-sidebar">Sidebar</div>
+                    <div class="layout-content">
+                        <strong>Main Content</strong>
+                        <p style="font-size: 0.8rem; margin-top: 0.5rem;">This is where your important stuff goes!</p>
+                    </div>
+                </div>
+                <div class="layout-footer">Footer (Contact info, links)</div>
+            </div>
+
+            <div class="tip-box">
+                <strong>Common Layouts:</strong>
+                <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+                    <li>Header + Content + Footer (most simple)</li>
+                    <li>Header + Sidebar + Content + Footer (for blogs)</li>
+                    <li>Full-width sections (for landing pages)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">2</div>
+                <h2>Using Flexbox for Layouts</h2>
+            </div>
+            <p>
+                Flexbox is a super powerful way to arrange things! It makes boxes line up nicely.
+            </p>
+
+            <p><strong>How to use Flexbox:</strong></p>
+            <ol style="margin-left: 1.5rem; color: var(--text-muted);">
+                <li>Add a Box element to your page</li>
+                <li>Select it and go to the Style Panel</li>
+                <li>Find "Display" and change it to "Flex"</li>
+                <li>Now things inside will line up in a row!</li>
+            </ol>
+
+            <div class="tip-box">
+                <strong>Flexbox Settings:</strong>
+                <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+                    <li><strong>Direction:</strong> Row (side by side) or Column (stacked)</li>
+                    <li><strong>Justify:</strong> How to spread things out horizontally</li>
+                    <li><strong>Align:</strong> How to position things vertically</li>
+                    <li><strong>Gap:</strong> Space between items</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">3</div>
+                <h2>Adding More Pages</h2>
+            </div>
+            <p>
+                Websites often have multiple pages! Like Home, About, Contact, etc.
+            </p>
+
+            <div class="page-list">
+                <div class="page-item active">Home</div>
+                <div class="page-item">About</div>
+                <div class="page-item">Gallery</div>
+                <div class="page-item">Contact</div>
+            </div>
+
+            <p><strong>How to add a new page:</strong></p>
+            <ol style="margin-left: 1.5rem; color: var(--text-muted);">
+                <li>Look for the Pages panel (usually on the left)</li>
+                <li>Click the "+" or "New Page" button</li>
+                <li>Give your page a name (like "about" or "contact")</li>
+                <li>Start building on your new page!</li>
+            </ol>
+
+            <div class="tip-box">
+                <strong>Linking Pages:</strong> Use Link elements or Buttons to connect your pages! Set the link to the page path (like "/about" or "/contact").
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">4</div>
+                <h2>Creating a Navigation Menu</h2>
+            </div>
+            <p>
+                A navigation menu helps visitors find their way around your website!
+            </p>
+
+            <p><strong>How to build a nav menu:</strong></p>
+            <ol style="margin-left: 1.5rem; color: var(--text-muted);">
+                <li>Add a Box element at the top of your page</li>
+                <li>Set it to display: flex with direction: row</li>
+                <li>Add Link elements inside for each page</li>
+                <li>Style them to look like buttons or tabs</li>
+                <li>Copy this to all your pages!</li>
+            </ol>
+
+            <div class="tip-box">
+                <strong>Pro Tip:</strong> In Web Studio, you can create "components" that you reuse across pages. Your nav menu is perfect for this!
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">5</div>
+                <h2>Preview and Test</h2>
+            </div>
+            <p>
+                Before showing your website to the world, always test it!
+            </p>
+
+            <p><strong>How to preview:</strong></p>
+            <ol style="margin-left: 1.5rem; color: var(--text-muted);">
+                <li>Click the "Preview" button (usually at the top)</li>
+                <li>Your website opens in a new tab</li>
+                <li>Test all your links and buttons</li>
+                <li>Try it on different screen sizes (phone, tablet, computer)</li>
+            </ol>
+
+            <div class="tip-box">
+                <strong>Test Checklist:</strong>
+                <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+                    <li>Do all links work?</li>
+                    <li>Can you read all the text?</li>
+                    <li>Do images load properly?</li>
+                    <li>Does it look good on your phone?</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">6</div>
+                <h2>Final Project: Build Your Own Website!</h2>
+            </div>
+            <p>
+                Now it's time to put everything together! Create a complete website with these pages:
+            </p>
+
+            <ol style="margin-left: 1.5rem; color: var(--text-muted);">
+                <li style="margin-bottom: 0.5rem;">
+                    <strong>Home Page</strong> - Welcome message, what your site is about
+                </li>
+                <li style="margin-bottom: 0.5rem;">
+                    <strong>About Page</strong> - Tell visitors about yourself or your topic
+                </li>
+                <li style="margin-bottom: 0.5rem;">
+                    <strong>Gallery Page</strong> - Show pictures of things you like
+                </li>
+                <li style="margin-bottom: 0.5rem;">
+                    <strong>Contact Page</strong> - How people can reach you
+                </li>
+            </ol>
+
+            <p style="margin-top: 1rem;"><strong>Remember to include:</strong></p>
+            <ul style="margin-left: 1.5rem; color: var(--text-muted);">
+                <li>A navigation menu on every page</li>
+                <li>Consistent colors and style</li>
+                <li>At least one image per page</li>
+                <li>Working links between pages</li>
+            </ul>
+        </div>
+
+        <div class="certificate">
+            <h3>Congratulations!</h3>
+            <p>You've completed the Web Studio basics!</p>
+            <p style="font-size: 0.9rem; margin-top: 1rem; opacity: 0.9;">
+                You now know how to build websites using drag-and-drop! Keep practicing and creating amazing things!
+            </p>
+        </div>
+
+        <div class="success-box">
+            <strong>What's Next?</strong>
+            <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+                <li>Explore more advanced components in Web Studio</li>
+                <li>Learn about responsive design (making sites work on all devices)</li>
+                <li>Try the Python tutorials to learn text-based coding!</li>
+                <li>Build websites for friends and family</li>
+            </ul>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 2rem; flex-wrap: wrap; gap: 1rem;">
+            <a href="03-styling-basics.html" class="btn" style="background: var(--bg-card);">Previous: Styling</a>
+            <a href="https://sandbox.dataacuity.co.za" target="_blank" class="btn btn-success">Open Web Studio</a>
+            <a href="../" class="btn">Back to Learn Hub</a>
+        </div>
+    </div>
+
+    <footer>
+        <p>Made with love by <a href="https://dataacuity.co.za">DataAcuity</a></p>
+    </footer>
+</body>
+</html>

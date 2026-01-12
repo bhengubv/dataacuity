@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adding Content - Web Studio</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --bg: #0f172a;
+            --bg-card: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--secondary) 0%, var(--primary) 100%);
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .header h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .header p { opacity: 0.9; }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .lesson-nav {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background: var(--bg-card);
+            color: var(--text);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            text-decoration: none;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .nav-btn:hover { background: var(--primary); }
+        .nav-btn.active { background: var(--secondary); }
+
+        .step {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .step-number {
+            background: var(--secondary);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .step h2 { font-size: 1.5rem; }
+        .step p { color: var(--text-muted); margin-bottom: 1rem; }
+
+        .tip-box {
+            background: rgba(6, 182, 212, 0.1);
+            border-left: 4px solid var(--secondary);
+            padding: 1rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1rem 0;
+        }
+
+        .tip-box strong { color: var(--secondary); }
+
+        .challenge-box {
+            background: rgba(99, 102, 241, 0.1);
+            border-left: 4px solid var(--primary);
+            padding: 1rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1rem 0;
+        }
+
+        .challenge-box strong { color: var(--primary); }
+
+        .component-demo {
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .demo-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .demo-heading {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--text);
+        }
+
+        .demo-text {
+            color: var(--text-muted);
+            margin: 0.5rem 0;
+        }
+
+        .demo-button {
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            border: none;
+            display: inline-block;
+            margin-top: 0.5rem;
+        }
+
+        .btn {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+
+        .btn:hover { background: var(--primary-dark); }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        footer a { color: var(--secondary); }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>Adding Content to Your Page</h1>
+        <p>Learn to add text, images, and buttons!</p>
+    </header>
+
+    <div class="container">
+        <nav class="lesson-nav">
+            <a href="01-getting-started.html" class="nav-btn">1. Getting Started</a>
+            <a href="02-adding-content.html" class="nav-btn active">2. Adding Content</a>
+            <a href="03-styling-basics.html" class="nav-btn">3. Styling</a>
+            <a href="04-building-pages.html" class="nav-btn">4. Building Pages</a>
+            <a href="../" class="nav-btn">Back to Learn</a>
+        </nav>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">1</div>
+                <h2>Headings - Big Titles</h2>
+            </div>
+            <p>
+                Headings are the big, bold titles on your page. They tell visitors what each section is about!
+            </p>
+
+            <div class="component-demo">
+                <div class="demo-label">What a Heading looks like:</div>
+                <div class="demo-heading">This is a Heading!</div>
+            </div>
+
+            <p><strong>How to add a Heading:</strong></p>
+            <ol style="margin-left: 1.5rem; color: var(--text-muted);">
+                <li>Find "Heading" in the left panel</li>
+                <li>Drag it onto your canvas</li>
+                <li>Double-click to type your own text</li>
+            </ol>
+
+            <div class="tip-box">
+                <strong>Pro Tip:</strong> Headings come in different sizes! H1 is the biggest (for main titles), H2 is medium, and H3 is smaller. You can change this in the style panel!
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">2</div>
+                <h2>Text - Paragraphs and Words</h2>
+            </div>
+            <p>
+                Text elements are for writing paragraphs - the regular text that tells your story!
+            </p>
+
+            <div class="component-demo">
+                <div class="demo-label">What Text looks like:</div>
+                <div class="demo-text">This is regular text. You can write as much as you want here! It's perfect for describing things, telling stories, or sharing information with your visitors.</div>
+            </div>
+
+            <p><strong>How to add Text:</strong></p>
+            <ol style="margin-left: 1.5rem; color: var(--text-muted);">
+                <li>Find "Paragraph" or "Text" in the left panel</li>
+                <li>Drag it under your heading</li>
+                <li>Double-click and start typing!</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">3</div>
+                <h2>Images - Pictures and Photos</h2>
+            </div>
+            <p>
+                Images make your website fun and colorful! You can add photos, drawings, or any picture you like.
+            </p>
+
+            <div class="component-demo">
+                <div class="demo-label">Images can be any picture:</div>
+                <div style="background: linear-gradient(45deg, #f59e0b, #ec4899, #6366f1); height: 100px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                    Your Image Here!
+                </div>
+            </div>
+
+            <p><strong>How to add an Image:</strong></p>
+            <ol style="margin-left: 1.5rem; color: var(--text-muted);">
+                <li>Find "Image" in the left panel</li>
+                <li>Drag it onto your canvas</li>
+                <li>Click on the image to open settings</li>
+                <li>Click "Add Image" to upload your picture</li>
+            </ol>
+
+            <div class="tip-box">
+                <strong>Tip:</strong> You can also use images from the internet by pasting a URL! Ask a parent or teacher for help finding good images.
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">4</div>
+                <h2>Buttons - Clickable Things</h2>
+            </div>
+            <p>
+                Buttons are interactive elements that visitors can click! They can go to other pages, send emails, or do other cool things.
+            </p>
+
+            <div class="component-demo">
+                <div class="demo-label">What a Button looks like:</div>
+                <span class="demo-button">Click Me!</span>
+            </div>
+
+            <p><strong>How to add a Button:</strong></p>
+            <ol style="margin-left: 1.5rem; color: var(--text-muted);">
+                <li>Find "Button" in the left panel</li>
+                <li>Drag it onto your canvas</li>
+                <li>Double-click to change the text</li>
+                <li>Use the settings panel to add a link</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">5</div>
+                <h2>Boxes - Containers for Grouping</h2>
+            </div>
+            <p>
+                Boxes are invisible containers that help you organize things! They're like frames that hold other elements together.
+            </p>
+
+            <div class="component-demo">
+                <div class="demo-label">A Box containing other elements:</div>
+                <div style="border: 2px dashed rgba(255,255,255,0.3); padding: 1rem; border-radius: 8px;">
+                    <div class="demo-heading" style="font-size: 1.2rem;">Inside a Box!</div>
+                    <div class="demo-text">This text is also inside the same box.</div>
+                    <span class="demo-button" style="font-size: 0.9rem;">Button in box</span>
+                </div>
+            </div>
+
+            <div class="tip-box">
+                <strong>Why use Boxes?</strong> Boxes help you:
+                <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+                    <li>Group related things together</li>
+                    <li>Create layouts (like columns)</li>
+                    <li>Add backgrounds and borders to sections</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">6</div>
+                <h2>Challenge: Build Your About Me Page!</h2>
+            </div>
+
+            <div class="challenge-box">
+                <strong>Challenge Time!</strong> Create a simple "About Me" page using what you learned:
+            </div>
+
+            <ol style="margin-left: 1.5rem; color: var(--text-muted);">
+                <li style="margin-bottom: 0.5rem;">Add a big heading: "About Me" or your name</li>
+                <li style="margin-bottom: 0.5rem;">Add an image (maybe a picture you like!)</li>
+                <li style="margin-bottom: 0.5rem;">Add a paragraph about yourself</li>
+                <li style="margin-bottom: 0.5rem;">Add a button that says "My Favorite Things"</li>
+            </ol>
+
+            <p style="margin-top: 1rem;">
+                Don't worry about making it look perfect - we'll learn how to style everything in the next lesson!
+            </p>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 2rem; flex-wrap: wrap; gap: 1rem;">
+            <a href="01-getting-started.html" class="btn" style="background: var(--bg-card);">Previous: Getting Started</a>
+            <a href="03-styling-basics.html" class="btn">Next: Styling Basics</a>
+        </div>
+    </div>
+
+    <footer>
+        <p>Made with love by <a href="https://dataacuity.co.za">DataAcuity</a></p>
+    </footer>
+</body>
+</html>

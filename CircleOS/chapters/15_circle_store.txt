@@ -1,0 +1,362 @@
+================================================================================
+CIRCLE OS SPECIFICATION
+Chapter 15: Circle Store & App Ecosystem
+================================================================================
+
+Document: 15_circle_store.txt
+Version: 1.0
+Date: December 2025
+Status: Foundation
+
+================================================================================
+1. PHILOSOPHY
+================================================================================
+
+Apps are welcome, surveillance isn't.
+
+Circle Store curates apps that respect users. We don't ban apps for competing
+with us. We highlight apps that prioritize privacy. We're transparent about
+apps that don't.
+
+================================================================================
+2. CIRCLE STORE OVERVIEW
+================================================================================
+
+2.1 PURPOSE
+-----------
+- Primary app distribution for Circle OS
+- Privacy-focused curation
+- Transparent privacy information
+- Safe, verified apps
+
+2.2 NOT A WALLED GARDEN
+-----------------------
+Users CAN:
+- Install from F-Droid
+- Install from Aurora Store (anonymous Play access)
+- Sideload APKs
+
+Circle Store is the RECOMMENDED source, not the ONLY source.
+
+================================================================================
+3. APP SUBMISSION
+================================================================================
+
+3.1 DEVELOPER REQUIREMENTS
+--------------------------
+TO SUBMIT:
+- Valid developer account
+- APK or AAB file
+- App description
+- Screenshots
+- Privacy policy
+- Data handling declaration
+
+3.2 REVIEW PROCESS
+------------------
+AUTOMATED:
+- Malware scan
+- Permission analysis
+- Tracker detection
+- Privacy policy parsing
+- Basic functionality test
+
+MANUAL (for featured apps):
+- Privacy review
+- Quality assessment
+- Age rating verification
+
+3.3 ACCEPTANCE CRITERIA
+-----------------------
+REQUIRED:
+- No malware
+- Functional on reference devices
+- Accurate description
+- Privacy policy provided
+
+RECOMMENDED (for featuring):
+- High privacy score
+- Good accessibility
+- Offline functionality
+- Low resource usage
+
+================================================================================
+4. PRIVACY INFORMATION
+================================================================================
+
+4.1 PRIVACY SCORE
+-----------------
+0-100 score visible on listing:
+
+FACTORS:
+| Factor                 | Weight |
+|-----------------------|--------|
+| Permissions requested | 25%    |
+| Trackers detected     | 25%    |
+| Network activity      | 20%    |
+| Open source bonus     | 15%    |
+| Privacy policy quality| 15%    |
+
+DISPLAY:
+- Color coded (green/yellow/red)
+- Breakdown available
+- Comparison to alternatives
+
+4.2 PRIVACY LABELS
+------------------
+Similar to nutrition labels:
+
+DATA COLLECTED:
+- Location
+- Contacts
+- Photos
+- Usage data
+- etc.
+
+DATA SHARED:
+- With advertisers
+- With analytics
+- With third parties
+
+TRACKING:
+- Cross-app tracking
+- Cross-site tracking
+
+4.3 TRACKER DISCLOSURE
+----------------------
+If trackers detected:
+
+"This app contains 5 trackers:"
+- Facebook Analytics
+- Google Firebase
+- Crashlytics
+- etc.
+
+SOURCE: Exodus Privacy database + Circle analysis
+
+================================================================================
+5. APP CATEGORIES
+================================================================================
+
+5.1 STANDARD CATEGORIES
+-----------------------
+- Communication
+- Social
+- Productivity
+- Finance
+- Entertainment
+- Games
+- Health
+- Education
+- Travel
+- Utilities
+- etc.
+
+5.2 SPECIAL COLLECTIONS
+-----------------------
+PRIVACY PICKS:
+- High privacy score apps
+- Curated recommendations
+- Alternative to popular apps
+
+OPEN SOURCE:
+- Apps with source available
+- Verifiable privacy claims
+
+OFFLINE CAPABLE:
+- Works without internet
+- For connectivity-challenged users
+
+ELDER-FRIENDLY:
+- Good accessibility
+- Simple interfaces
+
+KID-SAFE:
+- Age-appropriate
+- Parent-approved potential
+
+================================================================================
+6. UPDATES
+================================================================================
+
+6.1 UPDATE DELIVERY
+-------------------
+- Background updates (configurable)
+- Delta updates where possible
+- WiFi preference option
+- Update all button
+
+6.2 UPDATE POLICY
+-----------------
+AUTOMATIC:
+- Security updates: Auto-install (configurable)
+- Feature updates: Notify, user installs
+
+MANUAL:
+- User can disable auto-updates
+- Update notifications always shown
+
+6.3 VERSION HISTORY
+-------------------
+For each app:
+- Changelog visible
+- Permission changes highlighted
+- Previous versions available (optional)
+
+================================================================================
+7. MONETIZATION
+================================================================================
+
+7.1 FREE APPS
+-------------
+- No payment required
+- May have in-app purchases
+- May have ads (disclosed)
+
+7.2 PAID APPS
+-------------
+- One-time purchase
+- Payment via Circle account or external processor
+- Refund policy (24 hours)
+
+7.3 IN-APP PURCHASES
+--------------------
+- Clearly disclosed
+- Parental controls available
+- Purchase history visible
+
+7.4 SUBSCRIPTIONS
+-----------------
+- Subscription terms clear
+- Easy cancellation
+- Reminder before renewal
+
+================================================================================
+8. ALTERNATIVE SOURCES
+================================================================================
+
+8.1 F-DROID
+-----------
+INTEGRATION:
+- F-Droid client pre-installed
+- Repository enabled by default
+- Updates via F-Droid
+
+PURPOSE:
+- Open source apps
+- Privacy-focused alternatives
+- Community maintained
+
+8.2 AURORA STORE
+----------------
+INTEGRATION:
+- Available in Circle Store
+- Anonymous Play Store access
+
+PURPOSE:
+- Access Play Store apps without Google account
+- Free apps only (without account)
+- Privacy-preserving
+
+8.3 SIDELOADING
+---------------
+ENABLED BY:
+- Settings > Apps > Unknown sources
+- Warning shown
+- Per-source permission
+
+SAFEGUARDS:
+- Malware scan on install
+- Permission review
+- Warning for no-store apps
+
+================================================================================
+9. DEVELOPER PORTAL
+================================================================================
+
+9.1 FEATURES
+------------
+- App submission
+- Analytics (privacy-preserving)
+- Crash reports (opt-in by users)
+- Update management
+- User feedback
+
+9.2 ANALYTICS AVAILABLE
+-----------------------
+Aggregate, privacy-preserving:
+- Install counts
+- Active installs
+- Uninstall rate
+- Ratings summary
+- Country distribution
+
+NOT AVAILABLE:
+- Individual user data
+- Device identifiers
+- Usage patterns
+
+9.3 DEVELOPER FEES
+------------------
+TO BE DETERMINED
+
+PHILOSOPHY:
+- Low barrier to entry
+- Sustainable for Circle Foundation
+- Fair to developers
+
+================================================================================
+10. CONTENT POLICY
+================================================================================
+
+10.1 PROHIBITED
+---------------
+- Malware
+- Spyware
+- Scams
+- Hate speech apps
+- Illegal content
+- Child exploitation
+
+10.2 RESTRICTED
+---------------
+- Gambling (age-gated)
+- Mature content (age-gated)
+- Violence (age-rated)
+
+10.3 APPEALS
+------------
+Rejected apps can appeal:
+- Explain rejection reason
+- Developer can respond
+- Human review of appeal
+
+================================================================================
+11. SUMMARY
+================================================================================
+
+CIRCLE STORE:
+- Privacy-focused curation
+- Transparent privacy info
+- Safe, verified apps
+- Not exclusive (sideloading allowed)
+
+PRIVACY TRANSPARENCY:
+- Privacy score (0-100)
+- Privacy labels
+- Tracker disclosure
+- Permission details
+
+ALTERNATIVES:
+- F-Droid (open source)
+- Aurora Store (anonymous Play)
+- Direct sideload
+
+DEVELOPER-FRIENDLY:
+- Clear submission process
+- Fair policies
+- Privacy-preserving analytics
+
+================================================================================
+END OF CHAPTER 15
+================================================================================

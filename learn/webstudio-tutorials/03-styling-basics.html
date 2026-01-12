@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Styling Basics - Web Studio</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #06b6d4;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --bg: #0f172a;
+            --bg-card: #1e293b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--success) 0%, var(--secondary) 100%);
+            padding: 2rem;
+            text-align: center;
+        }
+
+        .header h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+        .header p { opacity: 0.9; }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .lesson-nav {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background: var(--bg-card);
+            color: var(--text);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            text-decoration: none;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .nav-btn:hover { background: var(--primary); }
+        .nav-btn.active { background: var(--success); }
+
+        .step {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .step-number {
+            background: var(--success);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .step h2 { font-size: 1.5rem; }
+        .step p { color: var(--text-muted); margin-bottom: 1rem; }
+
+        .tip-box {
+            background: rgba(6, 182, 212, 0.1);
+            border-left: 4px solid var(--secondary);
+            padding: 1rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1rem 0;
+        }
+
+        .tip-box strong { color: var(--secondary); }
+
+        .demo-row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin: 1rem 0;
+        }
+
+        .demo-box {
+            background: var(--bg);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .color-demo {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin: 1rem 0;
+        }
+
+        .color-swatch {
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+
+        .spacing-demo {
+            background: var(--bg);
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .spacing-demo .inner {
+            background: var(--primary);
+            color: white;
+            padding: 0.5rem;
+            text-align: center;
+            border-radius: 4px;
+        }
+
+        .font-demo {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+
+        .btn {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+
+        .btn:hover { background: var(--primary-dark); }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+        }
+
+        footer a { color: var(--secondary); }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>Styling Your Website</h1>
+        <p>Make things colorful, big, small, and beautiful!</p>
+    </header>
+
+    <div class="container">
+        <nav class="lesson-nav">
+            <a href="01-getting-started.html" class="nav-btn">1. Getting Started</a>
+            <a href="02-adding-content.html" class="nav-btn">2. Adding Content</a>
+            <a href="03-styling-basics.html" class="nav-btn active">3. Styling</a>
+            <a href="04-building-pages.html" class="nav-btn">4. Building Pages</a>
+            <a href="../" class="nav-btn">Back to Learn</a>
+        </nav>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">1</div>
+                <h2>The Style Panel</h2>
+            </div>
+            <p>
+                When you click on any element, the Style Panel appears on the right side. This is where the magic happens!
+            </p>
+            <p>
+                The Style Panel lets you change everything about how your element looks - colors, sizes, spacing, and more!
+            </p>
+
+            <div class="tip-box">
+                <strong>Remember:</strong> Click on the element you want to change first, then use the Style Panel to make changes. Your changes will only affect the element you selected!
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">2</div>
+                <h2>Colors - Make It Pop!</h2>
+            </div>
+            <p>
+                Colors make your website fun and eye-catching! You can change:
+            </p>
+            <ul style="margin-left: 1.5rem; color: var(--text-muted); margin-bottom: 1rem;">
+                <li><strong>Text Color</strong> - The color of words</li>
+                <li><strong>Background Color</strong> - The color behind things</li>
+                <li><strong>Border Color</strong> - The color of outlines</li>
+            </ul>
+
+            <div class="color-demo">
+                <div class="color-swatch" style="background: #ef4444;">Red</div>
+                <div class="color-swatch" style="background: #f59e0b;">Orange</div>
+                <div class="color-swatch" style="background: #eab308;">Yellow</div>
+                <div class="color-swatch" style="background: #22c55e;">Green</div>
+                <div class="color-swatch" style="background: #06b6d4;">Cyan</div>
+                <div class="color-swatch" style="background: #3b82f6;">Blue</div>
+                <div class="color-swatch" style="background: #8b5cf6;">Purple</div>
+                <div class="color-swatch" style="background: #ec4899;">Pink</div>
+            </div>
+
+            <p><strong>How to change colors:</strong></p>
+            <ol style="margin-left: 1.5rem; color: var(--text-muted);">
+                <li>Click on an element</li>
+                <li>Find "Color" or "Background" in the Style Panel</li>
+                <li>Click the color box to open the color picker</li>
+                <li>Choose your favorite color!</li>
+            </ol>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">3</div>
+                <h2>Size - Big and Small</h2>
+            </div>
+            <p>
+                You can make things bigger or smaller! This is called changing the "size".
+            </p>
+
+            <div class="demo-row">
+                <div class="demo-box">
+                    <span style="font-size: 0.8rem;">Small Text</span>
+                </div>
+                <div class="demo-box">
+                    <span style="font-size: 1rem;">Normal Text</span>
+                </div>
+                <div class="demo-box">
+                    <span style="font-size: 1.5rem;">Big Text</span>
+                </div>
+                <div class="demo-box">
+                    <span style="font-size: 2rem;">Huge!</span>
+                </div>
+            </div>
+
+            <p><strong>Size options:</strong></p>
+            <ul style="margin-left: 1.5rem; color: var(--text-muted);">
+                <li><strong>Font Size</strong> - How big the letters are</li>
+                <li><strong>Width</strong> - How wide something is</li>
+                <li><strong>Height</strong> - How tall something is</li>
+            </ul>
+
+            <div class="tip-box">
+                <strong>Tip:</strong> You can use different units for sizes! "px" means pixels (like 24px), "%" means percent of the container (like 50%), and "rem" is relative to the base font size.
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">4</div>
+                <h2>Spacing - Room to Breathe</h2>
+            </div>
+            <p>
+                Spacing makes things look clean and organized. There are two types:
+            </p>
+
+            <p><strong>Padding</strong> - Space INSIDE an element</p>
+            <div class="spacing-demo" style="padding: 2rem;">
+                <div class="inner">Lots of padding around me!</div>
+            </div>
+
+            <p><strong>Margin</strong> - Space OUTSIDE an element</p>
+            <div class="spacing-demo" style="padding: 0.5rem;">
+                <div class="inner" style="margin: 1.5rem;">I have margin pushing things away!</div>
+            </div>
+
+            <div class="tip-box">
+                <strong>Easy Way to Remember:</strong>
+                <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+                    <li>Padding = Space inside (like stuffing in a pillow)</li>
+                    <li>Margin = Space outside (like a fence around a house)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">5</div>
+                <h2>Borders - Outline Your Elements</h2>
+            </div>
+            <p>
+                Borders are lines around your elements. They can make things stand out!
+            </p>
+
+            <div class="demo-row">
+                <div class="demo-box" style="border: 2px solid white;">
+                    Solid border
+                </div>
+                <div class="demo-box" style="border: 2px dashed white;">
+                    Dashed border
+                </div>
+                <div class="demo-box" style="border: 4px double white;">
+                    Double border
+                </div>
+            </div>
+
+            <p><strong>Border options:</strong></p>
+            <ul style="margin-left: 1.5rem; color: var(--text-muted);">
+                <li><strong>Border Width</strong> - How thick the line is</li>
+                <li><strong>Border Style</strong> - Solid, dashed, or dotted</li>
+                <li><strong>Border Color</strong> - What color the line is</li>
+                <li><strong>Border Radius</strong> - How round the corners are!</li>
+            </ul>
+
+            <div class="demo-row">
+                <div class="demo-box" style="border: 2px solid var(--primary); border-radius: 0;">
+                    No radius (sharp)
+                </div>
+                <div class="demo-box" style="border: 2px solid var(--primary); border-radius: 8px;">
+                    Small radius
+                </div>
+                <div class="demo-box" style="border: 2px solid var(--primary); border-radius: 50%;">
+                    Full circle!
+                </div>
+            </div>
+        </div>
+
+        <div class="step">
+            <div class="step-header">
+                <div class="step-number">6</div>
+                <h2>Try It: Style Your About Me Page!</h2>
+            </div>
+            <p>
+                Go back to the "About Me" page you created and make it look amazing:
+            </p>
+
+            <ol style="margin-left: 1.5rem; color: var(--text-muted);">
+                <li style="margin-bottom: 0.5rem;">Change your heading color to your favorite color</li>
+                <li style="margin-bottom: 0.5rem;">Give your image rounded corners (border radius)</li>
+                <li style="margin-bottom: 0.5rem;">Add a colorful background to your button</li>
+                <li style="margin-bottom: 0.5rem;">Add some padding around everything to give it space</li>
+                <li style="margin-bottom: 0.5rem;">Try adding a border to a box element</li>
+            </ol>
+
+            <div class="tip-box">
+                <strong>Challenge:</strong> Can you make your page match your favorite colors? Try picking a "color theme" - like all blue and white, or rainbow colors!
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; margin-top: 2rem; flex-wrap: wrap; gap: 1rem;">
+            <a href="02-adding-content.html" class="btn" style="background: var(--bg-card);">Previous: Adding Content</a>
+            <a href="04-building-pages.html" class="btn">Next: Building Pages</a>
+        </div>
+    </div>
+
+    <footer>
+        <p>Made with love by <a href="https://dataacuity.co.za">DataAcuity</a></p>
+    </footer>
+</body>
+</html>
