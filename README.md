@@ -1,5 +1,8 @@
 # DataAcuity Platform
 
+[![CI](https://github.com/bhengubv/dataacuity/actions/workflows/ci.yml/badge.svg)](https://github.com/bhengubv/dataacuity/actions/workflows/ci.yml)
+[![Release](https://github.com/bhengubv/dataacuity/actions/workflows/release.yml/badge.svg)](https://github.com/bhengubv/dataacuity/actions/workflows/release.yml)
+
 A comprehensive, privacy-first integrated platform consisting of 20+ interconnected services for financial markets, geospatial mapping, workflow automation, analytics, and threat intelligence.
 
 **Domain:** `dataacuity.co.za`
