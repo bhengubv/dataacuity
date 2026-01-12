@@ -36,7 +36,7 @@ jobs:
         run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
       - name: Build and push Maps API
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: maps
           file: maps/api/Dockerfile
@@ -49,7 +49,7 @@ jobs:
         continue-on-error: true
 
       - name: Build and push API Gateway
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: api-gateway
           file: api-gateway/Dockerfile.internal
