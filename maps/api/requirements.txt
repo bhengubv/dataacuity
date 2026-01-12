@@ -3,7 +3,7 @@ uvicorn[standard]==0.40.0
 sqlalchemy==2.0.45
 geoalchemy2==0.18.1
 psycopg2-binary==2.9.11
-redis==5.0.1
+redis==7.1.0
 pydantic==2.12.5
 python-dotenv==1.2.1
 shapely==2.1.2
