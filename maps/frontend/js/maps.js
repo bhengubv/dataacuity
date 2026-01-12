@@ -356,7 +356,7 @@ window.switchMode = switchMode;
 // Initialization
 // ============================================
 
-document.addEventListener('DOMContentLoaded', () => {
+function startApp() {
     // Critical path - required for initial render
     initMap();
     initTimeline();
@@ -390,7 +390,15 @@ document.addEventListener('DOMContentLoaded', () => {
         initReportsLayer();
         initLeaderboard();
     }, { timeout: 2000 });
-});
+}
+
+// Handle both cases: script loaded before or after DOMContentLoaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startApp);
+} else {
+    // DOM already loaded, start immediately
+    startApp();
+}
 
 // ============================================
 // URL Management for SEO
@@ -880,43 +888,107 @@ function makePanelDraggable(panel, dragHandle, storageKey) {
 }
 
 function initMap() {
-    const savedOrientation = ORIENTATIONS[state.orientation] || ORIENTATIONS['north-up'];
-    const savedStyle = MAP_STYLES[state.mapStyle] || MAP_STYLES['voyager'];
-
-    // Build style - either vector JSON or raster tiles
-    let mapStyle;
-    if (savedStyle.url) {
-        mapStyle = savedStyle.url;
-    } else {
-        mapStyle = buildRasterStyle(savedStyle);
+    // Check if MapLibre is loaded
+    if (typeof maplibregl === 'undefined') {
+        console.error('[initMap] MapLibre GL JS not loaded yet, retrying...');
+        setTimeout(initMap, 100);
+        return;
     }
 
-    state.map = new maplibregl.Map({
-        container: 'map',
-        style: mapStyle,
-        center: MAP_CONFIG.center,
-        zoom: MAP_CONFIG.zoom,
-        minZoom: MAP_CONFIG.minZoom,
-        maxZoom: MAP_CONFIG.maxZoom,
-        bearing: savedOrientation.bearing
-    });
+    // Check WebGL support manually
+    function isWebGLSupported() {
+        try {
+            const canvas = document.createElement('canvas');
+            return !!(canvas.getContext('webgl') || canvas.getContext('experimental-webgl'));
+        } catch (e) {
+            return false;
+        }
+    }
 
-    state.map.addControl(new maplibregl.NavigationControl(), 'top-left');
-    state.map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
+    if (!isWebGLSupported()) {
+        console.error('[initMap] WebGL not supported');
+        const mapContainer = document.getElementById('map');
+        if (mapContainer) {
+            mapContainer.innerHTML = `
+                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:2rem;text-align:center;color:#666;">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <h3 style="margin:1rem 0 0.5rem;color:#333;">WebGL Not Supported</h3>
+                    <p style="margin:0;max-width:300px;">Your browser or device doesn't support WebGL, which is required for interactive maps.</p>
+                    <p style="margin:1rem 0;font-size:0.875rem;">Try updating your browser or enabling hardware acceleration in settings.</p>
+                </div>
+            `;
+        }
+        return;
+    }
 
-    // Create hover popup for labels
-    state.hoverPopup = new maplibregl.Popup({
-        closeButton: false,
-        closeOnClick: false,
-        className: 'hover-label-popup'
-    });
+    try {
+        const savedOrientation = ORIENTATIONS[state.orientation] || ORIENTATIONS['north-up'];
+        const savedStyle = MAP_STYLES[state.mapStyle] || MAP_STYLES['voyager'];
 
-    state.map.on('load', () => {
-        loadPlacesForYear(state.currentYear);
-        setupMapClickHandler();
-        checkForSharedRoute();
-        setupTransitMapListeners();
-    });
+        // Build style - either vector JSON or raster tiles
+        let mapStyle;
+        if (savedStyle.url) {
+            mapStyle = savedStyle.url;
+        } else {
+            mapStyle = buildRasterStyle(savedStyle);
+        }
+
+        state.map = new maplibregl.Map({
+            container: 'map',
+            style: mapStyle,
+            center: MAP_CONFIG.center,
+            zoom: MAP_CONFIG.zoom,
+            minZoom: MAP_CONFIG.minZoom,
+            maxZoom: MAP_CONFIG.maxZoom,
+            bearing: savedOrientation.bearing,
+            failIfMajorPerformanceCaveat: false  // Allow software rendering on mobile
+        });
+
+        // Handle map errors
+        state.map.on('error', (e) => {
+            console.error('[Map Error]', e.error?.message || e.message || 'Unknown error');
+        });
+
+        state.map.addControl(new maplibregl.NavigationControl(), 'top-left');
+        state.map.addControl(new maplibregl.ScaleControl(), 'bottom-left');
+
+        // Create hover popup for labels
+        state.hoverPopup = new maplibregl.Popup({
+            closeButton: false,
+            closeOnClick: false,
+            className: 'hover-label-popup'
+        });
+
+        state.map.on('load', () => {
+            loadPlacesForYear(state.currentYear);
+            setupMapClickHandler();
+            checkForSharedRoute();
+            setupTransitMapListeners();
+        });
+    } catch (error) {
+        console.error('[initMap] Failed to initialize map:', error);
+        const mapContainer = document.getElementById('map');
+        if (mapContainer) {
+            mapContainer.innerHTML = `
+                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:2rem;text-align:center;color:#666;">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <h3 style="margin:1rem 0 0.5rem;color:#333;">Map Failed to Load</h3>
+                    <p style="margin:0;max-width:300px;">${escapeHtml(error.message || 'An error occurred while loading the map.')}</p>
+                    <button onclick="location.reload()" style="margin-top:1rem;padding:0.5rem 1rem;background:#0ea5e9;color:white;border:none;border-radius:0.5rem;cursor:pointer;">
+                        Reload Page
+                    </button>
+                </div>
+            `;
+        }
+    }
 }
 
 // Build a raster tile style for non-vector providers
@@ -2622,11 +2694,13 @@ function createRoutingPanel() {
                 <div class="waypoint-input" data-index="0">
                     <span class="waypoint-label">A</span>
                     <input type="text" placeholder="Start location..." class="waypoint-search" data-index="0">
+                    <button class="btn-my-location" onclick="useMyLocation(0)" title="Use my current location">📍</button>
                     <button class="btn-remove-waypoint hidden" onclick="removeWaypoint(0)">&times;</button>
                 </div>
                 <div class="waypoint-input" data-index="1">
                     <span class="waypoint-label">B</span>
                     <input type="text" placeholder="End location..." class="waypoint-search" data-index="1">
+                    <button class="btn-my-location" onclick="useMyLocation(1)" title="Use my current location">📍</button>
                     <button class="btn-remove-waypoint hidden" onclick="removeWaypoint(1)">&times;</button>
                 </div>
             </div>
@@ -2878,6 +2952,7 @@ function addWaypoint() {
     waypointDiv.innerHTML = `
         <span class="waypoint-label">${labels[index] || '+'}</span>
         <input type="text" placeholder="Add stop..." class="waypoint-search" data-index="${index}">
+        <button class="btn-my-location" onclick="useMyLocation(${index})" title="Use my current location">📍</button>
         <button class="btn-remove-waypoint" onclick="removeWaypoint(${index})">&times;</button>
     `;
 
@@ -2889,6 +2964,69 @@ function addWaypoint() {
         list.querySelectorAll('.btn-remove-waypoint').forEach(btn => btn.classList.remove('hidden'));
     }
 }
+
+// Use GPS location for waypoint
+async function useMyLocation(index) {
+    const btn = document.querySelector(`.waypoint-input[data-index="${index}"] .btn-my-location`);
+    const input = document.querySelector(`.waypoint-search[data-index="${index}"]`);
+
+    if (!navigator.geolocation) {
+        showError('Geolocation is not supported by your browser');
+        return;
+    }
+
+    // Show loading state
+    if (btn) btn.innerHTML = '⏳';
+    if (input) input.placeholder = 'Getting location...';
+
+    try {
+        const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 60000
+            });
+        });
+
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        // Try to get address via reverse geocoding
+        let locationName = 'My Location';
+        try {
+            const response = await fetch(`${API_BASE}/reverse-geocode?lat=${lat}&lng=${lng}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.address) {
+                    locationName = data.address.split(',').slice(0, 2).join(', ');
+                }
+            }
+        } catch (e) {
+            console.warn('Reverse geocode failed, using default name');
+        }
+
+        // Select this as the waypoint
+        selectWaypoint(index, lng, lat, locationName);
+
+        // Center map on location
+        state.map.flyTo({ center: [lng, lat], zoom: 14 });
+
+        showSuccess('Location detected');
+
+    } catch (error) {
+        let message = 'Could not get your location';
+        if (error.code === 1) message = 'Location access denied. Please enable location permissions.';
+        else if (error.code === 2) message = 'Location unavailable. Please try again.';
+        else if (error.code === 3) message = 'Location request timed out. Please try again.';
+
+        showError(message);
+        if (input) input.placeholder = index === 0 ? 'Start location...' : 'End location...';
+    } finally {
+        if (btn) btn.innerHTML = '📍';
+    }
+}
+
+window.useMyLocation = useMyLocation;
 
 function removeWaypoint(index) {
     const list = document.getElementById('waypoints-list');

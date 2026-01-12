@@ -1635,6 +1635,30 @@ body[data-mode="transit"] #btn-leaderboard {
     display: none;
 }
 
+.btn-my-location {
+    width: 32px;
+    height: 32px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xs);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+}
+
+.btn-my-location:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
+}
+
+.btn-my-location:active {
+    transform: scale(0.95);
+}
+
 .waypoint-dropdown {
     position: absolute;
     top: 100%;

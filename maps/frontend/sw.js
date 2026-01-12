@@ -1,7 +1,7 @@
 // DataAcuity Maps Service Worker
-// Version: 1.1.0 - Performance optimizations
+// Version: 1.3.0 - GPS location for routing
 
-const CACHE_NAME = 'dataacuity-maps-v2';
+const CACHE_NAME = 'dataacuity-maps-v4';
 const TILE_CACHE_NAME = 'dataacuity-tiles-v1';
 const API_CACHE_NAME = 'dataacuity-api-v1';
 
