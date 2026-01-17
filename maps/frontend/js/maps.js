@@ -6825,6 +6825,362 @@ function navigateToEvent(eventId) {
 window.navigateToEvent = navigateToEvent;
 
 // ============================================
+// Phase 2: EV Charging (M35)
+// ============================================
+
+function openEVPanel() {
+    document.getElementById('ev-panel').classList.add('active');
+    loadEVChargers();
+    toggleMenu(false);
+}
+window.openEVPanel = openEVPanel;
+
+function closeEVPanel() {
+    document.getElementById('ev-panel').classList.remove('active');
+}
+window.closeEVPanel = closeEVPanel;
+
+async function loadEVChargers() {
+    const list = document.getElementById('ev-list');
+    list.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Loading chargers...</div>';
+
+    if (!userLocation) {
+        list.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Enable location to find chargers</div>';
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/ev/chargers?lat=${userLocation.lat}&lng=${userLocation.lng}&radius=10000`);
+        const data = await res.json();
+
+        if (data.chargers && data.chargers.length > 0) {
+            list.innerHTML = data.chargers.map(charger => `
+                <div class="ev-station">
+                    <div class="ev-station-header">
+                        <div class="ev-station-icon">🔌</div>
+                        <div class="ev-station-name">${escapeHtml(charger.name)}</div>
+                        <div class="ev-station-distance">${formatDistanceShort(charger.distance)}</div>
+                    </div>
+                    <div class="ev-connectors">
+                        ${charger.connectors.map(c => `<span class="ev-connector">${c.type} (${c.count})</span>`).join('')}
+                        ${charger.power_kw ? `<span class="ev-connector ev-power">${charger.power_kw} kW</span>` : ''}
+                    </div>
+                    <button class="ev-navigate" onclick="navigateToCharger(${charger.lat}, ${charger.lng}, '${escapeHtml(charger.name)}')">Navigate</button>
+                </div>
+            `).join('');
+        } else {
+            list.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No EV chargers found nearby</div>';
+        }
+    } catch (e) {
+        list.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Error loading chargers</div>';
+    }
+}
+
+function navigateToCharger(lat, lng, name) {
+    closeEVPanel();
+    getDirections(lat, lng);
+}
+window.navigateToCharger = navigateToCharger;
+
+function formatDistanceShort(meters) {
+    if (meters < 1000) return `${Math.round(meters)}m`;
+    return `${(meters / 1000).toFixed(1)}km`;
+}
+
+// ============================================
+// Phase 2: Parking (M36)
+// ============================================
+
+function openParkingPanel() {
+    document.getElementById('parking-panel').classList.add('active');
+    loadParkingSpots();
+    toggleMenu(false);
+}
+window.openParkingPanel = openParkingPanel;
+
+function closeParkingPanel() {
+    document.getElementById('parking-panel').classList.remove('active');
+}
+window.closeParkingPanel = closeParkingPanel;
+
+async function loadParkingSpots() {
+    const list = document.getElementById('parking-list');
+    list.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Finding parking...</div>';
+
+    if (!userLocation) {
+        list.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Enable location to find parking</div>';
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/parking/nearby?lat=${userLocation.lat}&lng=${userLocation.lng}&radius=1000`);
+        const data = await res.json();
+
+        if (data.parking && data.parking.length > 0) {
+            list.innerHTML = data.parking.map(spot => `
+                <div class="parking-spot" onclick="navigateToParking(${spot.lat}, ${spot.lng})">
+                    <div class="parking-icon">${spot.covered ? '🏢' : '🅿️'}</div>
+                    <div class="parking-info">
+                        <div class="parking-name">${escapeHtml(spot.name)}</div>
+                        <div class="parking-details">
+                            ${spot.capacity ? `<span class="parking-capacity">${spot.capacity} spots</span>` : ''}
+                            ${spot.fee ? '<span class="parking-fee">Paid</span>' : '<span style="color: #4CAF50;">Free</span>'}
+                            <span>${spot.type}</span>
+                        </div>
+                    </div>
+                    <div class="parking-distance">${formatDistanceShort(spot.distance)}</div>
+                </div>
+            `).join('');
+        } else {
+            list.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">No parking found nearby</div>';
+        }
+    } catch (e) {
+        list.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Error finding parking</div>';
+    }
+}
+
+function navigateToParking(lat, lng) {
+    closeParkingPanel();
+    getDirections(lat, lng);
+}
+window.navigateToParking = navigateToParking;
+
+// ============================================
+// Phase 2: Food Delivery (M38)
+// ============================================
+
+function openDeliveryPanel(restaurantName = null) {
+    document.getElementById('delivery-panel').classList.add('active');
+    loadDeliveryOptions(restaurantName);
+    toggleMenu(false);
+}
+window.openDeliveryPanel = openDeliveryPanel;
+
+function closeDeliveryPanel() {
+    document.getElementById('delivery-panel').classList.remove('active');
+}
+window.closeDeliveryPanel = closeDeliveryPanel;
+
+async function loadDeliveryOptions(restaurantName = null) {
+    const container = document.getElementById('delivery-options');
+
+    if (!userLocation) {
+        container.innerHTML = '<div style="text-align: center; padding: 20px; color: #666;">Enable location for delivery</div>';
+        return;
+    }
+
+    try {
+        let url = `${API_BASE}/delivery/options?lat=${userLocation.lat}&lng=${userLocation.lng}`;
+        if (restaurantName) url += `&restaurant_name=${encodeURIComponent(restaurantName)}`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+
+        container.innerHTML = data.delivery_options.map(option => `
+            <div class="delivery-option" onclick="openDeliveryApp('${option.web_url}', '${option.app_scheme}')">
+                <div class="delivery-logo ${option.provider.toLowerCase().replace(/\s/g, '')}">${option.icon}</div>
+                <div class="delivery-info">
+                    <div class="delivery-name">${option.provider}</div>
+                    <div class="delivery-eta">${option.estimated_delivery || option.description}</div>
+                </div>
+                <div class="delivery-arrow">›</div>
+            </div>
+        `).join('');
+    } catch (e) {
+        container.innerHTML = `
+            <div class="delivery-option" onclick="window.open('https://www.ubereats.com/za', '_blank')">
+                <div class="delivery-logo ubereats">🍔</div>
+                <div class="delivery-info">
+                    <div class="delivery-name">Uber Eats</div>
+                    <div class="delivery-eta">20-40 min</div>
+                </div>
+                <div class="delivery-arrow">›</div>
+            </div>
+            <div class="delivery-option" onclick="window.open('https://www.mrdfood.com', '_blank')">
+                <div class="delivery-logo mrdfood">🛵</div>
+                <div class="delivery-info">
+                    <div class="delivery-name">Mr D Food</div>
+                    <div class="delivery-eta">25-45 min</div>
+                </div>
+                <div class="delivery-arrow">›</div>
+            </div>
+            <div class="delivery-option" onclick="window.open('https://food.bolt.eu/en-za/', '_blank')">
+                <div class="delivery-logo boltfood">🚗</div>
+                <div class="delivery-info">
+                    <div class="delivery-name">Bolt Food</div>
+                    <div class="delivery-eta">20-35 min</div>
+                </div>
+                <div class="delivery-arrow">›</div>
+            </div>
+        `;
+    }
+}
+
+function openDeliveryApp(webUrl, appScheme) {
+    // Try app first, fallback to web
+    if (appScheme && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        window.location.href = appScheme;
+        setTimeout(() => {
+            window.open(webUrl, '_blank');
+        }, 500);
+    } else {
+        window.open(webUrl, '_blank');
+    }
+    closeDeliveryPanel();
+}
+window.openDeliveryApp = openDeliveryApp;
+
+// ============================================
+// Phase 2: Restaurant Reservations (M37)
+// ============================================
+
+function openReservations(restaurantId, restaurantName, lat, lng) {
+    const options = [
+        { name: 'Dineplan', url: `https://www.dineplan.com/search?q=${encodeURIComponent(restaurantName)}` },
+        { name: 'OpenTable', url: `https://www.opentable.com/s?term=${encodeURIComponent(restaurantName)}&covers=2` },
+        { name: 'EatOut', url: `https://www.eatout.co.za/search/?s=${encodeURIComponent(restaurantName)}` }
+    ];
+
+    // For now, open Dineplan (most popular in SA)
+    window.open(options[0].url, '_blank');
+    showToast('Opening reservations...');
+}
+window.openReservations = openReservations;
+
+// ============================================
+// Phase 2: Traffic Predictions (M39)
+// ============================================
+
+async function showTrafficPrediction(lat, lng) {
+    const badge = document.getElementById('traffic-prediction');
+
+    try {
+        const res = await fetch(`${API_BASE}/traffic/predict?lat=${lat}&lng=${lng}`);
+        const data = await res.json();
+
+        const prediction = data.prediction;
+        const indicator = document.getElementById('traffic-indicator');
+        const level = document.getElementById('traffic-level');
+        const delay = document.getElementById('traffic-delay');
+        const suggestion = document.getElementById('traffic-suggestion');
+
+        // Set indicator color
+        indicator.className = 'traffic-indicator ' + prediction.expected_congestion;
+
+        // Set level text
+        const levelText = {
+            'low': 'Light Traffic',
+            'moderate': 'Moderate Traffic',
+            'heavy': 'Heavy Traffic'
+        };
+        level.textContent = levelText[prediction.expected_congestion] || 'Traffic';
+
+        // Set delay text
+        if (prediction.delay_factor > 1) {
+            const delayPercent = Math.round((prediction.delay_factor - 1) * 100);
+            delay.textContent = `+${delayPercent}% travel time`;
+        } else {
+            delay.textContent = 'No delays expected';
+        }
+
+        // Set suggestion if available
+        if (data.suggestions && data.suggestions.length > 0) {
+            suggestion.textContent = `Better: ${data.suggestions[0].time}`;
+            suggestion.style.display = 'block';
+        } else {
+            suggestion.style.display = 'none';
+        }
+
+        badge.classList.add('show');
+
+        // Hide after 10 seconds
+        setTimeout(() => {
+            badge.classList.remove('show');
+        }, 10000);
+    } catch (e) {
+        console.log('Traffic prediction error:', e);
+    }
+}
+window.showTrafficPrediction = showTrafficPrediction;
+
+function hideTrafficPrediction() {
+    document.getElementById('traffic-prediction').classList.remove('show');
+}
+window.hideTrafficPrediction = hideTrafficPrediction;
+
+// ============================================
+// Phase 2: Live Traffic Layer (M33)
+// ============================================
+
+let trafficLayerEnabled = false;
+
+function toggleTrafficLayer() {
+    trafficLayerEnabled = !trafficLayerEnabled;
+
+    if (trafficLayerEnabled) {
+        loadTrafficLayer();
+        showToast('Traffic layer enabled');
+    } else {
+        removeTrafficLayer();
+        showToast('Traffic layer disabled');
+    }
+}
+window.toggleTrafficLayer = toggleTrafficLayer;
+
+async function loadTrafficLayer() {
+    if (!map) return;
+
+    const bounds = map.getBounds();
+    const bbox = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+
+    try {
+        const res = await fetch(`${API_BASE}/traffic/layer?bbox=${bbox}&zoom=${Math.round(map.getZoom())}`);
+        const data = await res.json();
+
+        // For now, just show a toast since we need road geometry
+        if (data.features && data.features.length > 0) {
+            showToast(`Traffic data: ${data.features.length} segments`);
+        } else {
+            showToast('No traffic data in this area');
+        }
+    } catch (e) {
+        console.log('Traffic layer error:', e);
+    }
+}
+
+function removeTrafficLayer() {
+    if (map.getLayer('traffic-flow')) {
+        map.removeLayer('traffic-flow');
+        map.removeSource('traffic-flow');
+    }
+}
+
+// ============================================
+// Phase 2: Enhanced Fuel Prices (M34)
+// ============================================
+
+async function loadFuelWithPrices() {
+    // This enhances the existing fuel panel with official prices
+    if (!userLocation) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/fuel/prices?lat=${userLocation.lat}&lng=${userLocation.lng}`);
+        const data = await res.json();
+
+        // Store for display
+        window.officialFuelPrices = data.prices;
+        window.fuelRegion = data.region;
+    } catch (e) {
+        console.log('Fuel prices error:', e);
+    }
+}
+
+// Load fuel prices on init
+if (typeof userLocation !== 'undefined' && userLocation) {
+    loadFuelWithPrices();
+}
+
+// ============================================
 // Start App
 // ============================================
 if (document.readyState === 'loading') {

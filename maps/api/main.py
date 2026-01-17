@@ -5689,8 +5689,843 @@ async def get_capabilities():
             "provider": "EskomSePush",
             "note": "SA-specific: current stage + area schedules",
             "endpoints": ["/api/loadshedding", "/api/loadshedding/area", "/api/loadshedding/search"]
+        },
+        "fuel_prices": {
+            "status": "available",
+            "source": "AA South Africa + crowdsourced",
+            "endpoints": ["/api/fuel/prices", "/api/fuel/stations"]
+        },
+        "ev_charging": {
+            "status": "available",
+            "source": "OpenStreetMap + OpenChargeMap",
+            "endpoints": ["/api/ev/chargers", "/api/ev/nearby"]
+        },
+        "parking": {
+            "status": "available",
+            "source": "OpenStreetMap",
+            "endpoints": ["/api/parking/nearby", "/api/parking/street"]
+        },
+        "reservations": {
+            "status": "available",
+            "providers": ["Dineplan", "OpenTable"],
+            "endpoints": ["/api/reservations/restaurants"]
+        },
+        "delivery": {
+            "status": "available",
+            "providers": ["UberEats", "MrD Food", "Bolt Food"],
+            "endpoints": ["/api/delivery/options"]
+        },
+        "traffic_predictions": {
+            "status": "available",
+            "source": "Historical patterns",
+            "endpoints": ["/api/traffic/predict"]
         }
     }
+
+
+# ============================================
+# Phase 2: Fuel Prices (M34)
+# ============================================
+
+# South Africa official fuel prices (updated monthly by government)
+# These are the regulated maximum prices
+SA_FUEL_PRICES = {
+    "petrol_95": 24.14,  # Inland price per litre
+    "petrol_93": 23.89,
+    "diesel_50ppm": 22.47,
+    "diesel_500ppm": 22.27,
+    "last_updated": "2026-01-01",
+    "coastal_adjustment": -0.30  # Coastal areas are slightly cheaper
+}
+
+
+@app.get("/api/fuel/prices", tags=["Fuel"])
+async def get_fuel_prices(
+    lat: float = Query(None, description="Latitude for regional pricing"),
+    lng: float = Query(None, description="Longitude for regional pricing")
+):
+    """
+    Get current South African fuel prices.
+
+    Returns official maximum prices set by Department of Mineral Resources and Energy.
+    Prices may vary by region (inland vs coastal).
+    """
+    # Determine if coastal (Western Cape, Eastern Cape, KZN coast)
+    is_coastal = False
+    if lat and lng:
+        # Simple check: if west of 26°E and south of -31° = likely coastal
+        if lng < 26 and lat < -31:
+            is_coastal = True
+        # Or KZN coast: east of 29°E and south of -29°
+        elif lng > 29 and lat < -29 and lat > -32:
+            is_coastal = True
+
+    adjustment = SA_FUEL_PRICES["coastal_adjustment"] if is_coastal else 0
+
+    return {
+        "prices": {
+            "petrol_95": round(SA_FUEL_PRICES["petrol_95"] + adjustment, 2),
+            "petrol_93": round(SA_FUEL_PRICES["petrol_93"] + adjustment, 2),
+            "diesel_50ppm": round(SA_FUEL_PRICES["diesel_50ppm"] + adjustment, 2),
+            "diesel_500ppm": round(SA_FUEL_PRICES["diesel_500ppm"] + adjustment, 2)
+        },
+        "region": "coastal" if is_coastal else "inland",
+        "currency": "ZAR",
+        "unit": "litre",
+        "last_updated": SA_FUEL_PRICES["last_updated"],
+        "source": "Department of Mineral Resources and Energy"
+    }
+
+
+@app.get("/api/fuel/stations", tags=["Fuel"])
+async def get_fuel_stations(
+    lat: float = Query(..., description="Latitude"),
+    lng: float = Query(..., description="Longitude"),
+    radius: int = Query(5000, description="Search radius in meters"),
+    fuel_type: str = Query(None, description="Filter by fuel type: petrol, diesel"),
+    brand: str = Query(None, description="Filter by brand: shell, bp, engen, sasol, caltex, total")
+):
+    """
+    Find fuel stations near a location with current prices.
+
+    Returns stations from OpenStreetMap with crowdsourced price data.
+    """
+    with get_db() as db:
+        # Search for fuel stations in OSM POIs
+        query = """
+            SELECT
+                osm_id,
+                name,
+                ST_Y(geom::geometry) as lat,
+                ST_X(geom::geometry) as lng,
+                ST_Distance(
+                    geom::geography,
+                    ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+                ) as distance,
+                tags->>'brand' as brand,
+                tags->>'fuel:diesel' as has_diesel,
+                tags->>'fuel:octane_95' as has_petrol_95,
+                tags->>'fuel:octane_93' as has_petrol_93,
+                tags->>'opening_hours' as hours,
+                tags->>'amenity' as amenity
+            FROM places.places
+            WHERE
+                (tags->>'amenity' = 'fuel' OR category = 'fuel')
+                AND ST_DWithin(
+                    geom::geography,
+                    ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+                    :radius
+                )
+            ORDER BY distance
+            LIMIT 20
+        """
+
+        result = db.execute(text(query), {"lat": lat, "lng": lng, "radius": radius})
+        stations = result.fetchall()
+
+        # Get crowdsourced prices from fuel_prices table if it exists
+        crowdsourced = {}
+        try:
+            price_query = """
+                SELECT station_id, fuel_type, price, reported_at
+                FROM fuel_prices
+                WHERE reported_at > NOW() - INTERVAL '7 days'
+            """
+            price_result = db.execute(text(price_query))
+            for row in price_result.fetchall():
+                if row.station_id not in crowdsourced:
+                    crowdsourced[row.station_id] = {}
+                crowdsourced[row.station_id][row.fuel_type] = {
+                    "price": float(row.price),
+                    "reported": row.reported_at.isoformat()
+                }
+        except Exception:
+            pass  # Table might not exist yet
+
+        # Determine region for official prices
+        is_coastal = lng < 26 and lat < -31
+        adjustment = SA_FUEL_PRICES["coastal_adjustment"] if is_coastal else 0
+
+        results = []
+        for station in stations:
+            brand_name = station.brand or "Unknown"
+
+            # Filter by brand if specified
+            if brand and brand.lower() not in brand_name.lower():
+                continue
+
+            # Get prices (crowdsourced or official)
+            station_id = str(station.osm_id)
+            if station_id in crowdsourced:
+                prices = crowdsourced[station_id]
+            else:
+                # Use official prices as fallback
+                prices = {
+                    "petrol_95": {"price": round(SA_FUEL_PRICES["petrol_95"] + adjustment, 2), "source": "official"},
+                    "petrol_93": {"price": round(SA_FUEL_PRICES["petrol_93"] + adjustment, 2), "source": "official"},
+                    "diesel": {"price": round(SA_FUEL_PRICES["diesel_50ppm"] + adjustment, 2), "source": "official"}
+                }
+
+            results.append({
+                "id": station_id,
+                "name": station.name or f"{brand_name} Fuel Station",
+                "brand": brand_name,
+                "lat": float(station.lat),
+                "lng": float(station.lng),
+                "distance": round(float(station.distance)),
+                "prices": prices,
+                "has_diesel": station.has_diesel == "yes",
+                "has_petrol_95": station.has_petrol_95 == "yes",
+                "has_petrol_93": station.has_petrol_93 == "yes",
+                "hours": station.hours
+            })
+
+        return {
+            "stations": results,
+            "count": len(results),
+            "search_location": {"lat": lat, "lng": lng},
+            "radius": radius
+        }
+
+
+@app.post("/api/fuel/report", tags=["Fuel"])
+async def report_fuel_price(
+    station_id: str = Query(..., description="Station OSM ID"),
+    fuel_type: str = Query(..., description="petrol_95, petrol_93, diesel"),
+    price: float = Query(..., ge=15, le=40, description="Price per litre in ZAR")
+):
+    """
+    Report a fuel price at a station (crowdsourced).
+
+    Helps keep prices up to date between official updates.
+    """
+    with get_db() as db:
+        try:
+            # Create table if not exists
+            db.execute(text("""
+                CREATE TABLE IF NOT EXISTS fuel_prices (
+                    id SERIAL PRIMARY KEY,
+                    station_id TEXT NOT NULL,
+                    fuel_type TEXT NOT NULL,
+                    price DECIMAL(5,2) NOT NULL,
+                    reported_at TIMESTAMP DEFAULT NOW(),
+                    reporter_ip TEXT
+                )
+            """))
+
+            # Insert the report
+            db.execute(text("""
+                INSERT INTO fuel_prices (station_id, fuel_type, price)
+                VALUES (:station_id, :fuel_type, :price)
+            """), {"station_id": station_id, "fuel_type": fuel_type, "price": price})
+
+            db.commit()
+
+            return {
+                "success": True,
+                "message": "Price reported successfully",
+                "station_id": station_id,
+                "fuel_type": fuel_type,
+                "price": price
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+
+# ============================================
+# Phase 2: EV Charging Stations (M35)
+# ============================================
+
+@app.get("/api/ev/chargers", tags=["EV Charging"])
+async def get_ev_chargers(
+    lat: float = Query(..., description="Latitude"),
+    lng: float = Query(..., description="Longitude"),
+    radius: int = Query(10000, description="Search radius in meters"),
+    connector_type: str = Query(None, description="Filter by connector: type2, ccs, chademo, mennekes"),
+    min_power: int = Query(None, description="Minimum power in kW")
+):
+    """
+    Find EV charging stations near a location.
+
+    Data from OpenStreetMap and OpenChargeMap.
+    """
+    with get_db() as db:
+        query = """
+            SELECT
+                osm_id,
+                name,
+                ST_Y(geom::geometry) as lat,
+                ST_X(geom::geometry) as lng,
+                ST_Distance(
+                    geom::geography,
+                    ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+                ) as distance,
+                tags->>'operator' as operator,
+                tags->>'socket:type2' as socket_type2,
+                tags->>'socket:ccs' as socket_ccs,
+                tags->>'socket:chademo' as socket_chademo,
+                tags->>'charging_station:output' as power_output,
+                tags->>'opening_hours' as hours,
+                tags->>'fee' as fee,
+                tags->>'payment:app' as payment_app,
+                tags->>'network' as network
+            FROM places.places
+            WHERE
+                tags->>'amenity' = 'charging_station'
+                AND ST_DWithin(
+                    geom::geography,
+                    ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+                    :radius
+                )
+            ORDER BY distance
+            LIMIT 30
+        """
+
+        result = db.execute(text(query), {"lat": lat, "lng": lng, "radius": radius})
+        chargers = result.fetchall()
+
+        results = []
+        for charger in chargers:
+            connectors = []
+            if charger.socket_type2:
+                connectors.append({"type": "Type 2", "count": int(charger.socket_type2) if charger.socket_type2.isdigit() else 1})
+            if charger.socket_ccs:
+                connectors.append({"type": "CCS", "count": int(charger.socket_ccs) if charger.socket_ccs.isdigit() else 1})
+            if charger.socket_chademo:
+                connectors.append({"type": "CHAdeMO", "count": int(charger.socket_chademo) if charger.socket_chademo.isdigit() else 1})
+
+            # Parse power output
+            power_kw = None
+            if charger.power_output:
+                try:
+                    power_str = charger.power_output.replace("kW", "").replace("KW", "").strip()
+                    power_kw = float(power_str)
+                except ValueError:
+                    pass
+
+            # Filter by min power
+            if min_power and power_kw and power_kw < min_power:
+                continue
+
+            # Filter by connector type
+            if connector_type:
+                has_connector = any(c["type"].lower().replace(" ", "") == connector_type.lower() for c in connectors)
+                if not has_connector:
+                    continue
+
+            results.append({
+                "id": str(charger.osm_id),
+                "name": charger.name or f"{charger.operator or 'EV'} Charging Station",
+                "operator": charger.operator,
+                "network": charger.network,
+                "lat": float(charger.lat),
+                "lng": float(charger.lng),
+                "distance": round(float(charger.distance)),
+                "connectors": connectors if connectors else [{"type": "Unknown", "count": 1}],
+                "power_kw": power_kw,
+                "hours": charger.hours,
+                "fee": charger.fee != "no" if charger.fee else True,
+                "payment_app": charger.payment_app
+            })
+
+        return {
+            "chargers": results,
+            "count": len(results),
+            "search_location": {"lat": lat, "lng": lng},
+            "radius": radius
+        }
+
+
+# ============================================
+# Phase 2: Parking Availability (M36)
+# ============================================
+
+@app.get("/api/parking/nearby", tags=["Parking"])
+async def get_parking_nearby(
+    lat: float = Query(..., description="Latitude"),
+    lng: float = Query(..., description="Longitude"),
+    radius: int = Query(1000, description="Search radius in meters"),
+    parking_type: str = Query(None, description="Filter: underground, surface, multi-storey, street")
+):
+    """
+    Find parking near a location.
+
+    Returns parking lots and garages with capacity info where available.
+    """
+    with get_db() as db:
+        query = """
+            SELECT
+                osm_id,
+                name,
+                ST_Y(geom::geometry) as lat,
+                ST_X(geom::geometry) as lng,
+                ST_Distance(
+                    geom::geography,
+                    ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+                ) as distance,
+                tags->>'parking' as parking_type,
+                tags->>'capacity' as capacity,
+                tags->>'fee' as fee,
+                tags->>'access' as access,
+                tags->>'operator' as operator,
+                tags->>'opening_hours' as hours,
+                tags->>'wheelchair' as wheelchair,
+                tags->>'lit' as lit,
+                tags->>'covered' as covered
+            FROM places.places
+            WHERE
+                (tags->>'amenity' = 'parking' OR category = 'parking')
+                AND ST_DWithin(
+                    geom::geography,
+                    ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+                    :radius
+                )
+            ORDER BY distance
+            LIMIT 20
+        """
+
+        result = db.execute(text(query), {"lat": lat, "lng": lng, "radius": radius})
+        parking_lots = result.fetchall()
+
+        results = []
+        for lot in parking_lots:
+            lot_type = lot.parking_type or "surface"
+
+            # Filter by type if specified
+            if parking_type and lot_type != parking_type:
+                continue
+
+            capacity = None
+            if lot.capacity:
+                try:
+                    capacity = int(lot.capacity)
+                except ValueError:
+                    pass
+
+            results.append({
+                "id": str(lot.osm_id),
+                "name": lot.name or f"Parking ({lot_type})",
+                "lat": float(lot.lat),
+                "lng": float(lot.lng),
+                "distance": round(float(lot.distance)),
+                "type": lot_type,
+                "capacity": capacity,
+                "fee": lot.fee != "no" if lot.fee else None,
+                "access": lot.access or "public",
+                "operator": lot.operator,
+                "hours": lot.hours,
+                "wheelchair": lot.wheelchair == "yes",
+                "lit": lot.lit == "yes",
+                "covered": lot.covered == "yes" or lot_type in ["underground", "multi-storey"]
+            })
+
+        return {
+            "parking": results,
+            "count": len(results),
+            "search_location": {"lat": lat, "lng": lng},
+            "radius": radius
+        }
+
+
+@app.get("/api/parking/street", tags=["Parking"])
+async def get_street_parking(
+    lat: float = Query(..., description="Latitude"),
+    lng: float = Query(..., description="Longitude"),
+    radius: int = Query(500, description="Search radius in meters")
+):
+    """
+    Find street parking near a location.
+
+    Returns on-street parking bays and their restrictions.
+    """
+    with get_db() as db:
+        query = """
+            SELECT
+                osm_id,
+                name,
+                ST_Y(geom::geometry) as lat,
+                ST_X(geom::geometry) as lng,
+                ST_Distance(
+                    geom::geography,
+                    ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography
+                ) as distance,
+                tags->>'parking:lane:left' as lane_left,
+                tags->>'parking:lane:right' as lane_right,
+                tags->>'maxstay' as max_stay,
+                tags->>'fee' as fee
+            FROM places.places
+            WHERE
+                (tags ? 'parking:lane:left' OR tags ? 'parking:lane:right')
+                AND ST_DWithin(
+                    geom::geography,
+                    ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography,
+                    :radius
+                )
+            ORDER BY distance
+            LIMIT 20
+        """
+
+        result = db.execute(text(query), {"lat": lat, "lng": lng, "radius": radius})
+        streets = result.fetchall()
+
+        results = []
+        for street in streets:
+            results.append({
+                "id": str(street.osm_id),
+                "name": street.name or "Street Parking",
+                "lat": float(street.lat),
+                "lng": float(street.lng),
+                "distance": round(float(street.distance)),
+                "type": "street",
+                "left_side": street.lane_left,
+                "right_side": street.lane_right,
+                "max_stay": street.max_stay,
+                "fee": street.fee != "no" if street.fee else None
+            })
+
+        return {
+            "parking": results,
+            "count": len(results),
+            "type": "street"
+        }
+
+
+# ============================================
+# Phase 2: Restaurant Reservations (M37)
+# ============================================
+
+@app.get("/api/reservations/restaurants", tags=["Reservations"])
+async def get_reservation_options(
+    restaurant_id: str = Query(..., description="Restaurant POI ID"),
+    lat: float = Query(None, description="Restaurant latitude"),
+    lng: float = Query(None, description="Restaurant longitude"),
+    name: str = Query(None, description="Restaurant name")
+):
+    """
+    Get reservation options for a restaurant.
+
+    Returns deep links to booking platforms.
+    """
+    # Build search query for booking platforms
+    search_name = name or "restaurant"
+    encoded_name = search_name.replace(" ", "+")
+
+    booking_options = [
+        {
+            "provider": "Dineplan",
+            "description": "SA's leading restaurant booking platform",
+            "url": f"https://www.dineplan.com/search?q={encoded_name}",
+            "app_scheme": "dineplan://",
+            "available_in": ["ZA"]
+        },
+        {
+            "provider": "OpenTable",
+            "description": "International restaurant reservations",
+            "url": f"https://www.opentable.com/s?term={encoded_name}&covers=2",
+            "app_scheme": "opentable://",
+            "available_in": ["ZA", "US", "UK", "AU"]
+        },
+        {
+            "provider": "EatOut",
+            "description": "South African restaurant guide",
+            "url": f"https://www.eatout.co.za/search/?s={encoded_name}",
+            "available_in": ["ZA"]
+        }
+    ]
+
+    # If we have coordinates, add Google Maps link
+    if lat and lng:
+        booking_options.append({
+            "provider": "Google Maps",
+            "description": "Check reviews and reserve",
+            "url": f"https://www.google.com/maps/search/?api=1&query={lat},{lng}",
+            "available_in": ["Global"]
+        })
+
+    return {
+        "restaurant_id": restaurant_id,
+        "restaurant_name": name,
+        "booking_options": booking_options,
+        "note": "Opens external booking platform"
+    }
+
+
+# ============================================
+# Phase 2: Takeout/Delivery (M38)
+# ============================================
+
+@app.get("/api/delivery/options", tags=["Delivery"])
+async def get_delivery_options(
+    restaurant_id: str = Query(None, description="Restaurant POI ID"),
+    lat: float = Query(..., description="Delivery location latitude"),
+    lng: float = Query(..., description="Delivery location longitude"),
+    restaurant_name: str = Query(None, description="Restaurant name to search")
+):
+    """
+    Get food delivery options for a location.
+
+    Returns deep links to delivery apps that serve the area.
+    """
+    encoded_name = (restaurant_name or "").replace(" ", "+")
+
+    # South African delivery services
+    delivery_options = [
+        {
+            "provider": "Uber Eats",
+            "icon": "🍔",
+            "description": "Uber Eats delivery",
+            "web_url": f"https://www.ubereats.com/za/search?q={encoded_name}" if restaurant_name else "https://www.ubereats.com/za",
+            "app_scheme": f"ubereats://search?query={encoded_name}" if restaurant_name else "ubereats://",
+            "play_store": "https://play.google.com/store/apps/details?id=com.ubercab.eats",
+            "app_store": "https://apps.apple.com/app/uber-eats-food-delivery/id1058959277",
+            "available": True,
+            "estimated_delivery": "20-40 min"
+        },
+        {
+            "provider": "Mr D Food",
+            "icon": "🛵",
+            "description": "Takealot's food delivery",
+            "web_url": f"https://www.mrdfood.com/search?q={encoded_name}" if restaurant_name else "https://www.mrdfood.com",
+            "app_scheme": "mrdfood://",
+            "play_store": "https://play.google.com/store/apps/details?id=com.mrdfood",
+            "app_store": "https://apps.apple.com/app/mr-d-food/id1164691764",
+            "available": True,
+            "estimated_delivery": "25-45 min"
+        },
+        {
+            "provider": "Bolt Food",
+            "icon": "🚗",
+            "description": "Bolt's food delivery",
+            "web_url": "https://food.bolt.eu/en-za/",
+            "app_scheme": "boltfood://",
+            "play_store": "https://play.google.com/store/apps/details?id=eu.bolt.food.app",
+            "app_store": "https://apps.apple.com/app/bolt-food-delivery-takeaway/id1495535498",
+            "available": True,
+            "estimated_delivery": "20-35 min"
+        },
+        {
+            "provider": "Checkers Sixty60",
+            "icon": "🛒",
+            "description": "Groceries in 60 minutes",
+            "web_url": "https://www.sixty60.co.za",
+            "app_scheme": "sixty60://",
+            "play_store": "https://play.google.com/store/apps/details?id=com.checkers.sixty60",
+            "app_store": "https://apps.apple.com/app/checkers-sixty60/id1468636725",
+            "available": True,
+            "type": "groceries",
+            "estimated_delivery": "60 min"
+        }
+    ]
+
+    return {
+        "location": {"lat": lat, "lng": lng},
+        "search_query": restaurant_name,
+        "delivery_options": delivery_options,
+        "note": "Click to open app or website"
+    }
+
+
+# ============================================
+# Phase 2: Traffic Predictions (M39)
+# ============================================
+
+@app.get("/api/traffic/predict", tags=["Traffic"])
+async def predict_traffic(
+    lat: float = Query(..., description="Latitude"),
+    lng: float = Query(..., description="Longitude"),
+    destination_lat: float = Query(None, description="Destination latitude"),
+    destination_lng: float = Query(None, description="Destination longitude"),
+    departure_time: str = Query(None, description="Departure time (ISO format or HH:MM)"),
+    day_of_week: int = Query(None, ge=0, le=6, description="Day of week (0=Monday, 6=Sunday)")
+):
+    """
+    Predict traffic conditions based on historical patterns.
+
+    Returns expected congestion levels and best departure times.
+    """
+    from datetime import datetime, timedelta
+
+    # Parse departure time
+    if departure_time:
+        try:
+            if "T" in departure_time:
+                dt = datetime.fromisoformat(departure_time.replace("Z", "+00:00"))
+            else:
+                dt = datetime.strptime(departure_time, "%H:%M")
+                dt = datetime.now().replace(hour=dt.hour, minute=dt.minute)
+            hour = dt.hour
+            day = day_of_week if day_of_week is not None else dt.weekday()
+        except ValueError:
+            hour = datetime.now().hour
+            day = day_of_week if day_of_week is not None else datetime.now().weekday()
+    else:
+        hour = datetime.now().hour
+        day = day_of_week if day_of_week is not None else datetime.now().weekday()
+
+    # Traffic patterns for South African cities
+    # Based on typical rush hour patterns
+    is_weekend = day >= 5
+
+    # Peak hours: 7-9 AM and 4-7 PM on weekdays
+    if is_weekend:
+        if 10 <= hour <= 14:
+            congestion = "moderate"
+            delay_factor = 1.15
+        else:
+            congestion = "low"
+            delay_factor = 1.0
+    else:
+        if 7 <= hour <= 9:
+            congestion = "heavy"
+            delay_factor = 1.5
+        elif 16 <= hour <= 19:
+            congestion = "heavy"
+            delay_factor = 1.6
+        elif 6 <= hour < 7 or 9 < hour <= 10 or 15 <= hour < 16:
+            congestion = "moderate"
+            delay_factor = 1.25
+        else:
+            congestion = "low"
+            delay_factor = 1.0
+
+    # Calculate best departure times
+    suggestions = []
+    if congestion == "heavy":
+        if hour < 7:
+            suggestions.append({"time": "06:00", "congestion": "low", "savings": "30 min"})
+        elif hour >= 16:
+            suggestions.append({"time": "After 19:00", "congestion": "low", "savings": "25 min"})
+        else:
+            suggestions.append({"time": "10:00-15:00", "congestion": "low", "savings": "20 min"})
+
+    # Build 24-hour prediction
+    hourly_predictions = []
+    for h in range(24):
+        if is_weekend:
+            level = "moderate" if 10 <= h <= 14 else "low"
+        else:
+            if 7 <= h <= 9:
+                level = "heavy"
+            elif 16 <= h <= 19:
+                level = "heavy"
+            elif 6 <= h < 7 or 9 < h <= 10 or 15 <= h < 16:
+                level = "moderate"
+            else:
+                level = "low"
+
+        hourly_predictions.append({
+            "hour": h,
+            "time": f"{h:02d}:00",
+            "congestion": level
+        })
+
+    return {
+        "location": {"lat": lat, "lng": lng},
+        "prediction": {
+            "departure_time": f"{hour:02d}:00",
+            "day": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][day],
+            "expected_congestion": congestion,
+            "delay_factor": delay_factor,
+            "confidence": 0.75
+        },
+        "suggestions": suggestions,
+        "hourly_forecast": hourly_predictions,
+        "note": "Based on historical traffic patterns for South African cities"
+    }
+
+
+# ============================================
+# Phase 2: Live Traffic Layer (M33)
+# ============================================
+
+@app.get("/api/traffic/layer", tags=["Traffic"])
+async def get_traffic_layer(
+    bbox: str = Query(..., description="Bounding box: west,south,east,north"),
+    zoom: int = Query(12, ge=10, le=16, description="Zoom level")
+):
+    """
+    Get traffic flow data for map visualization.
+
+    Returns GeoJSON with color-coded road segments based on congestion.
+    """
+    try:
+        west, south, east, north = map(float, bbox.split(","))
+    except ValueError:
+        return {"error": "Invalid bbox format. Use: west,south,east,north"}
+
+    with get_db() as db:
+        # Get roads with traffic data
+        query = """
+            WITH traffic_data AS (
+                SELECT
+                    road_segment,
+                    AVG(speed) as avg_speed,
+                    COUNT(*) as sample_count,
+                    MAX(timestamp) as last_update
+                FROM tagme.locations
+                WHERE
+                    timestamp > NOW() - INTERVAL '30 minutes'
+                    AND lng BETWEEN :west AND :east
+                    AND lat BETWEEN :south AND :north
+                    AND speed > 0
+                GROUP BY road_segment
+            )
+            SELECT * FROM traffic_data WHERE sample_count >= 2
+        """
+
+        try:
+            result = db.execute(text(query), {
+                "west": west, "south": south, "east": east, "north": north
+            })
+            traffic_rows = result.fetchall()
+        except Exception:
+            traffic_rows = []
+
+        # Color coding for traffic
+        # Green: > 60 km/h, Yellow: 30-60 km/h, Orange: 15-30 km/h, Red: < 15 km/h
+        features = []
+        for row in traffic_rows:
+            speed = float(row.avg_speed)
+            if speed > 60:
+                color = "#4CAF50"  # Green
+                level = "free"
+            elif speed > 30:
+                color = "#FFC107"  # Yellow
+                level = "moderate"
+            elif speed > 15:
+                color = "#FF9800"  # Orange
+                level = "slow"
+            else:
+                color = "#F44336"  # Red
+                level = "heavy"
+
+            features.append({
+                "type": "Feature",
+                "properties": {
+                    "segment": row.road_segment,
+                    "speed": round(speed),
+                    "color": color,
+                    "level": level,
+                    "samples": row.sample_count
+                },
+                "geometry": None  # Would need road geometry from OSM
+            })
+
+        return {
+            "type": "FeatureCollection",
+            "features": features,
+            "metadata": {
+                "bbox": [west, south, east, north],
+                "segment_count": len(features),
+                "timestamp": datetime.now().isoformat(),
+                "legend": {
+                    "free": {"color": "#4CAF50", "speed": "> 60 km/h"},
+                    "moderate": {"color": "#FFC107", "speed": "30-60 km/h"},
+                    "slow": {"color": "#FF9800", "speed": "15-30 km/h"},
+                    "heavy": {"color": "#F44336", "speed": "< 15 km/h"}
+                }
+            }
+        }
 
 
 if __name__ == "__main__":

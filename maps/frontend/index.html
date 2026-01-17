@@ -5272,6 +5272,373 @@
         body.dark-mode .calendar-event-hour { color: #e0e0e0; }
         body.dark-mode .calendar-event-title { color: #e0e0e0; }
         body.dark-mode .calendar-event-time { border-color: #333; }
+
+        /* ============================================
+           Phase 2: EV Charging Panel (M35)
+           ============================================ */
+        .ev-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            z-index: 500;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .ev-panel.active {
+            transform: translateX(0);
+        }
+
+        .ev-header {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .ev-back {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            margin-right: 12px;
+        }
+
+        .ev-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .ev-list {
+            padding: 16px;
+            overflow-y: auto;
+            height: calc(100% - 70px);
+        }
+
+        .ev-station {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .ev-station-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .ev-station-icon {
+            font-size: 24px;
+            margin-right: 12px;
+        }
+
+        .ev-station-name {
+            font-size: 16px;
+            font-weight: 500;
+            flex: 1;
+        }
+
+        .ev-station-distance {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .ev-connectors {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .ev-connector {
+            background: #e3f2fd;
+            color: #1a73e8;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .ev-power {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .ev-navigate {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            background: #1a73e8;
+            color: white;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-top: 12px;
+            cursor: pointer;
+        }
+
+        /* ============================================
+           Phase 2: Parking Panel (M36)
+           ============================================ */
+        .parking-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            z-index: 500;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .parking-panel.active {
+            transform: translateX(0);
+        }
+
+        .parking-header {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .parking-back {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            margin-right: 12px;
+        }
+
+        .parking-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .parking-list {
+            padding: 16px;
+            overflow-y: auto;
+            height: calc(100% - 70px);
+        }
+
+        .parking-spot {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+        }
+
+        .parking-icon {
+            font-size: 32px;
+            margin-right: 12px;
+        }
+
+        .parking-info {
+            flex: 1;
+        }
+
+        .parking-name {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .parking-details {
+            font-size: 13px;
+            color: #666;
+            display: flex;
+            gap: 12px;
+            margin-top: 4px;
+        }
+
+        .parking-capacity {
+            color: #4CAF50;
+        }
+
+        .parking-fee {
+            color: #ff9800;
+        }
+
+        .parking-distance {
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* ============================================
+           Phase 2: Delivery Panel (M38)
+           ============================================ */
+        .delivery-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 20px 20px 0 0;
+            padding: 20px;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 600;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .delivery-panel.active {
+            transform: translateY(0);
+        }
+
+        .delivery-handle {
+            width: 40px;
+            height: 4px;
+            background: #ddd;
+            border-radius: 2px;
+            margin: 0 auto 16px;
+        }
+
+        .delivery-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .delivery-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .delivery-option {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        .delivery-option:active {
+            background: #e8f0fe;
+        }
+
+        .delivery-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-right: 12px;
+        }
+
+        .delivery-logo.ubereats { background: #06C167; }
+        .delivery-logo.mrdfood { background: #FF6B00; }
+        .delivery-logo.boltfood { background: #34D186; }
+        .delivery-logo.sixty60 { background: #E31937; }
+
+        .delivery-info {
+            flex: 1;
+        }
+
+        .delivery-name {
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .delivery-eta {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .delivery-arrow {
+            color: #999;
+            font-size: 18px;
+        }
+
+        /* ============================================
+           Phase 2: Traffic Prediction Badge
+           ============================================ */
+        .traffic-prediction {
+            position: fixed;
+            top: 80px;
+            right: 16px;
+            background: white;
+            border-radius: 12px;
+            padding: 12px 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            z-index: 100;
+            display: none;
+        }
+
+        .traffic-prediction.show {
+            display: block;
+        }
+
+        .traffic-prediction-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .traffic-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .traffic-indicator.free { background: #4CAF50; }
+        .traffic-indicator.moderate { background: #FFC107; }
+        .traffic-indicator.heavy { background: #F44336; }
+
+        .traffic-prediction-level {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .traffic-prediction-delay {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .traffic-suggestion {
+            font-size: 12px;
+            color: #1a73e8;
+            margin-top: 4px;
+        }
+
+        /* Dark mode for Phase 2 */
+        body.dark-mode .ev-panel { background: #121212; }
+        body.dark-mode .ev-header { border-color: #333; }
+        body.dark-mode .ev-title { color: #e0e0e0; }
+        body.dark-mode .ev-back { background: #333; color: #ddd; }
+        body.dark-mode .ev-station { background: #1e1e1e; }
+        body.dark-mode .ev-station-name { color: #e0e0e0; }
+
+        body.dark-mode .parking-panel { background: #121212; }
+        body.dark-mode .parking-header { border-color: #333; }
+        body.dark-mode .parking-title { color: #e0e0e0; }
+        body.dark-mode .parking-back { background: #333; color: #ddd; }
+        body.dark-mode .parking-spot { background: #1e1e1e; }
+        body.dark-mode .parking-name { color: #e0e0e0; }
+
+        body.dark-mode .delivery-panel { background: #1e1e1e; }
+        body.dark-mode .delivery-title { color: #e0e0e0; }
+        body.dark-mode .delivery-option { background: #252525; }
+        body.dark-mode .delivery-name { color: #e0e0e0; }
+
+        body.dark-mode .traffic-prediction { background: #1e1e1e; }
+        body.dark-mode .traffic-prediction-level { color: #e0e0e0; }
     </style>
     <link rel="preload" href="css/maps.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="css/maps.css"></noscript>
@@ -5626,6 +5993,18 @@
             <button class="menu-item" onclick="openCalendarPanel()">
                 <span class="menu-item-icon">📆</span>
                 Calendar
+            </button>
+            <button class="menu-item" onclick="openEVPanel()">
+                <span class="menu-item-icon">🔌</span>
+                EV Charging
+            </button>
+            <button class="menu-item" onclick="openParkingPanel()">
+                <span class="menu-item-icon">🅿️</span>
+                Find Parking
+            </button>
+            <button class="menu-item" onclick="openDeliveryPanel()">
+                <span class="menu-item-icon">🍕</span>
+                Food Delivery
             </button>
             <div class="menu-divider"></div>
             <button class="menu-item" onclick="openTimeline()">
@@ -6562,6 +6941,47 @@
         <div class="calendar-content" id="calendar-content">
             <!-- Events rendered dynamically or connect prompt -->
         </div>
+    </div>
+
+    <!-- EV Charging Panel (M35) -->
+    <div class="ev-panel" id="ev-panel">
+        <div class="ev-header">
+            <button class="ev-back" onclick="closeEVPanel()">←</button>
+            <div class="ev-title">EV Charging</div>
+        </div>
+        <div class="ev-list" id="ev-list">
+            <!-- Chargers rendered dynamically -->
+        </div>
+    </div>
+
+    <!-- Parking Panel (M36) -->
+    <div class="parking-panel" id="parking-panel">
+        <div class="parking-header">
+            <button class="parking-back" onclick="closeParkingPanel()">←</button>
+            <div class="parking-title">Parking</div>
+        </div>
+        <div class="parking-list" id="parking-list">
+            <!-- Parking spots rendered dynamically -->
+        </div>
+    </div>
+
+    <!-- Delivery Panel (M38) -->
+    <div class="delivery-panel" id="delivery-panel">
+        <div class="delivery-handle"></div>
+        <div class="delivery-title">Order Food Delivery</div>
+        <div class="delivery-options" id="delivery-options">
+            <!-- Delivery options rendered dynamically -->
+        </div>
+    </div>
+
+    <!-- Traffic Prediction Badge (M39) -->
+    <div class="traffic-prediction" id="traffic-prediction">
+        <div class="traffic-prediction-header">
+            <div class="traffic-indicator" id="traffic-indicator"></div>
+            <span class="traffic-prediction-level" id="traffic-level">Traffic</span>
+        </div>
+        <div class="traffic-prediction-delay" id="traffic-delay">Checking...</div>
+        <div class="traffic-suggestion" id="traffic-suggestion"></div>
     </div>
 
     <!-- Toast notification -->
