@@ -2,493 +2,3267 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DataAcuity Maps - Navigate Time & Space | Historical Mapping Platform</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Data Acuity Maps - Navigate Anywhere</title>
 
-    <!-- Preconnect to third-party origins for faster resource loading -->
+    <!-- Preconnect for faster loading -->
     <link rel="preconnect" href="https://unpkg.com" crossorigin>
-    <link rel="preconnect" href="https://api.maptiler.com" crossorigin>
     <link rel="dns-prefetch" href="https://unpkg.com">
 
     <!-- SEO Meta Tags -->
-    <meta name="description" content="Explore the world through time with DataAcuity Maps. An interactive historical mapping platform that lets you travel from 3000 BCE to today, discover how place names changed, and explore events across history.">
-    <meta name="keywords" content="historical maps, interactive maps, timeline maps, ancient places, historical geography, place names history, world history maps, GeoNames, Pleiades, historical events">
-    <meta name="author" content="DataAcuity">
-    <meta name="robots" content="index, follow">
-    <meta name="googlebot" content="index, follow">
-    <link rel="canonical" href="https://maps.dataacuity.co.za/">
+    <meta name="description" content="Navigate anywhere with Data Acuity Maps. Get directions, find nearby places, and explore with real-time navigation.">
+    <meta name="theme-color" content="#1a1a2e">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://maps.dataacuity.co.za/">
-    <meta property="og:title" content="DataAcuity Maps - Navigate Time & Space">
-    <meta property="og:description" content="Explore the world through time. Travel from 3000 BCE to today, discover historical place names, and explore events across history with our interactive mapping platform.">
-    <meta property="og:image" content="https://maps.dataacuity.co.za/images/og-image.png">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:site_name" content="DataAcuity Maps">
-    <meta property="og:locale" content="en_US">
-
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="https://maps.dataacuity.co.za/">
-    <meta name="twitter:title" content="DataAcuity Maps - Navigate Time & Space">
-    <meta name="twitter:description" content="Explore the world through time. Travel from 3000 BCE to today with our interactive historical mapping platform.">
-    <meta name="twitter:image" content="https://maps.dataacuity.co.za/images/twitter-card.png">
-
-    <!-- Additional SEO -->
-    <meta name="theme-color" content="#0ea5e9">
-    <meta name="msapplication-TileColor" content="#0ea5e9">
+    <!-- Icons -->
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="manifest" href="/manifest.json">
 
-    <!-- Structured Data - JSON-LD -->
-    <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "WebApplication",
-        "name": "DataAcuity Maps",
-        "alternateName": "Historical Maps Platform",
-        "description": "An interactive historical mapping platform that lets you explore the world through time, from 3000 BCE to today.",
-        "url": "https://maps.dataacuity.co.za/",
-        "applicationCategory": "EducationalApplication",
-        "operatingSystem": "Web Browser",
-        "browserRequirements": "Requires JavaScript. Requires HTML5.",
-        "offers": {
-            "@type": "Offer",
-            "price": "0",
-            "priceCurrency": "USD"
-        },
-        "creator": {
-            "@type": "Organization",
-            "name": "DataAcuity",
-            "url": "https://dataacuity.co.za"
-        },
-        "featureList": [
-            "Interactive timeline from 3000 BCE to present",
-            "Historical place name search",
-            "Multi-language support",
-            "Cited historical sources",
-            "Route planning",
-            "Nearby places search"
-        ],
-        "screenshot": "https://maps.dataacuity.co.za/images/screenshot.png",
-        "softwareVersion": "1.0"
-    }
-    </script>
+    <!-- Open Graph -->
+    <meta property="og:title" content="Data Acuity Maps">
+    <meta property="og:description" content="Navigate anywhere. Get directions, find places, explore.">
+    <meta property="og:image" content="https://maps.dataacuity.co.za/images/og-image.png">
+    <meta property="og:url" content="https://maps.dataacuity.co.za/">
 
-    <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "Organization",
-        "name": "DataAcuity",
-        "url": "https://dataacuity.co.za",
-        "logo": "https://dataacuity.co.za/images/logo.png",
-        "sameAs": [
-            "https://twitter.com/dataacuity",
-            "https://linkedin.com/company/dataacuity"
-        ]
-    }
-    </script>
-
-    <script type="application/ld+json">
-    {
-        "@context": "https://schema.org",
-        "@type": "BreadcrumbList",
-        "itemListElement": [{
-            "@type": "ListItem",
-            "position": 1,
-            "name": "Home",
-            "item": "https://dataacuity.co.za/"
-        }, {
-            "@type": "ListItem",
-            "position": 2,
-            "name": "Maps",
-            "item": "https://maps.dataacuity.co.za/"
-        }]
-    }
-    </script>
-
-    <!-- MapLibre GL CSS - Load sync to prevent CLS -->
+    <!-- MapLibre GL CSS -->
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.css">
-    <!-- Preload MapLibre JS for faster load -->
     <link rel="preload" href="https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js" as="script">
 
-    <!-- Custom styles - Critical CSS inlined, rest deferred -->
+    <!-- Critical CSS - Mobile First -->
     <style>
-        /* Critical CSS for above-the-fold content */
-        *{box-sizing:border-box;margin:0;padding:0}
-        html,body{height:100%;font-family:system-ui,-apple-system,sans-serif;background:#0f172a}
-        .maps-header{position:fixed;top:0;left:0;right:0;height:56px;background:linear-gradient(135deg,#0f172a,#1e293b);display:flex;align-items:center;justify-content:space-between;padding:0 16px;z-index:1000;border-bottom:1px solid #334155}
-        .header-left{display:flex;align-items:center;gap:12px}
-        .logo{display:flex;align-items:center;gap:8px;color:#fff;text-decoration:none;font-weight:600;font-size:18px}
-        .logo-icon{font-size:24px}
-        .tagline{color:#94a3b8;font-size:12px;display:none}
-        @media(min-width:768px){.tagline{display:inline}}
-        .header-center{flex:1;max-width:600px;margin:0 16px}
-        .search-container{position:relative}
-        #search-input{width:100%;padding:8px 16px;border-radius:20px;border:1px solid #334155;background:#1e293b;color:#fff;font-size:14px}
-        #search-input::placeholder{color:#64748b}
-        .header-right{display:flex;gap:8px}
-        .btn-icon{width:40px;height:40px;border-radius:8px;border:none;background:#1e293b;color:#fff;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
-        .btn-icon:hover{background:#334155}
-        #map-container{position:fixed;top:56px;left:0;right:0;bottom:0}
-        #map{width:100%;height:100%;background:#1a1a2e}
-        .mode-switcher{position:fixed;top:64px;left:50%;transform:translateX(-50%);display:flex;gap:4px;background:rgba(15,23,42,0.9);padding:4px;border-radius:12px;z-index:100}
-        .mode-tab{padding:8px 16px;border:none;background:transparent;color:#94a3b8;border-radius:8px;cursor:pointer;font-size:13px;display:flex;align-items:center;gap:6px}
-        .mode-tab.active{background:#0ea5e9;color:#fff}
-        .mode-icon{font-size:14px}
-        @media(max-width:480px){.mode-label{display:none}.mode-tab{padding:10px 12px}}
-        .hidden{display:none!important}
-        .skip-link{position:absolute;top:-40px;left:0;background:#0ea5e9;color:#fff;padding:8px;z-index:9999}
-        .skip-link:focus{top:0}
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        /* Full screen map */
+        #map {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 1;
+        }
+
+        /* Search pill - Waze style */
+        .search-pill {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            right: 16px;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .search-box {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: 32px;
+            padding: 22px 34px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+            cursor: pointer;
+            min-height: 84px;
+        }
+
+        .search-box:active {
+            transform: scale(0.98);
+        }
+
+        .search-icon {
+            font-size: 28px;
+            margin-right: 16px;
+            color: #666;
+        }
+
+        .search-text {
+            flex: 1;
+            font-size: 26px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .search-text span {
+            color: #999;
+            font-weight: 400;
+        }
+
+        .menu-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: white;
+            border: none;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .menu-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Bottom action bar */
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: white;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -2px 20px rgba(0,0,0,0.1);
+            padding: 16px 8px;
+            padding-bottom: max(16px, env(safe-area-inset-bottom));
+        }
+
+        .quick-actions {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+
+        .quick-action {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-radius: 12px;
+            min-width: 64px;
+        }
+
+        .quick-action:active {
+            background: #f0f0f0;
+        }
+
+        .quick-action-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .quick-action-icon.home { background: #e3f2fd; }
+        .quick-action-icon.work { background: #fce4ec; }
+        .quick-action-icon.gas { background: #fff3e0; }
+        .quick-action-icon.food { background: #e8f5e9; }
+        .quick-action-icon.more { background: #f3e5f5; }
+
+        .quick-action-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        /* Locate me FAB */
+        .fab-locate {
+            position: fixed;
+            right: 16px;
+            bottom: 140px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: white;
+            border: none;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 99;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .fab-locate:active {
+            transform: scale(0.95);
+            background: #e3f2fd;
+        }
+
+        .fab-locate.locating {
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 2px 12px rgba(0,0,0,0.2); }
+            50% { box-shadow: 0 2px 20px rgba(33,150,243,0.5); }
+        }
+
+        /* User location marker */
+        .user-marker {
+            width: 24px;
+            height: 24px;
+            background: #2196F3;
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(33,150,243,0.5);
+        }
+
+        .user-marker-pulse {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: rgba(33,150,243,0.2);
+            border-radius: 50%;
+            animation: marker-pulse 2s infinite;
+            transform: translate(-50%, -50%);
+            left: 50%;
+            top: 50%;
+            z-index: -1;
+        }
+
+        @keyframes marker-pulse {
+            0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+        }
+
+        /* Full screen search overlay */
+        /* Waze-style search - backdrop dims the map */
+        .search-backdrop {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 199;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .search-backdrop.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Bottom sheet that slides up */
+        .search-overlay {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            background: white;
+            z-index: 200;
+            border-radius: 24px 24px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+            height: 75vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .search-overlay.active {
+            transform: translateY(0);
+        }
+
+        /* Drag handle at top of sheet */
+        .search-drag-handle {
+            width: 40px;
+            height: 4px;
+            background: #ddd;
+            border-radius: 2px;
+            margin: 12px auto 8px;
+        }
+
+        .search-header {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px 16px;
+            gap: 12px;
+        }
+
+        .search-back {
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .search-input-wrapper {
+            flex: 1;
+            position: relative;
+        }
+
+        #search-input {
+            width: 100%;
+            padding: 18px 24px;
+            border: none;
+            font-size: 20px;
+            outline: none;
+            background: #f5f5f5;
+            border-radius: 16px;
+            min-height: 60px;
+            box-sizing: border-box;
+        }
+
+        #search-input::placeholder {
+            color: #999;
+        }
+
+        .search-clear {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: #ccc;
+            border-radius: 50%;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            display: none;
+        }
+
+        .search-clear.visible {
+            display: block;
+        }
+
+        .search-body {
+            flex: 1 1 auto;
+            overflow-y: auto;
+            padding: 0 16px 16px;
+            padding-bottom: max(16px, env(safe-area-inset-bottom));
+            min-height: 0;
+        }
+
+        .search-section {
+            margin-bottom: 24px;
+        }
+
+        .search-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .saved-places {
+            display: flex;
+            gap: 12px;
+        }
+
+        .saved-place {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 16px;
+            background: #f8f8f8;
+            border-radius: 16px;
+            border: none;
+            cursor: pointer;
+            min-width: 100px;
+        }
+
+        .saved-place:active {
+            background: #eee;
+        }
+
+        .saved-place-icon {
+            font-size: 28px;
+        }
+
+        .saved-place-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .saved-place-address {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .category-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .category-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background: #f0f0f0;
+            border-radius: 24px;
+            border: none;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+        .category-chip:active {
+            background: #e0e0e0;
+        }
+
+        .search-results {
+            background: #fff;
+            padding: 8px 0;
+        }
+
+        .search-result {
+            display: flex;
+            align-items: center;
+            padding: 18px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            border-radius: 12px;
+            margin: 4px 0;
+        }
+
+        .search-result:hover {
+            background: #f8f8f8;
+        }
+
+        .search-result:active {
+            background: #f8f8f8;
+        }
+
+        .result-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #f0f0f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            margin-right: 14px;
+        }
+
+        .result-info {
+            flex: 1;
+        }
+
+        .result-name {
+            font-size: 18px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .result-address {
+            font-size: 15px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        /* Navigation panel */
+        .nav-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            z-index: 150;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            max-height: 70vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .nav-panel.active {
+            transform: translateY(0);
+        }
+
+        .nav-panel-header {
+            padding: 16px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .nav-panel-drag {
+            width: 40px;
+            height: 4px;
+            background: #ddd;
+            border-radius: 2px;
+            margin: 0 auto 12px;
+        }
+
+        .nav-destination {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .nav-destination-icon {
+            width: 48px;
+            height: 48px;
+            background: #e3f2fd;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .nav-destination-info h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .nav-destination-info p {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .nav-panel-actions {
+            display: flex;
+            gap: 12px;
+            padding: 16px;
+        }
+
+        .nav-action-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .nav-action-btn.primary {
+            background: #2196F3;
+            color: white;
+        }
+
+        .nav-action-btn.secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .nav-action-btn:active {
+            opacity: 0.9;
+            transform: scale(0.98);
+        }
+
+        /* Directions List */
+        .directions-list {
+            display: none;
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 16px 16px;
+            max-height: 50vh;
+        }
+
+        .directions-list.active {
+            display: block;
+        }
+
+        .directions-summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+            margin-bottom: 8px;
+        }
+
+        .directions-summary-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .directions-time {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2196F3;
+        }
+
+        .directions-distance {
+            font-size: 16px;
+            color: #666;
+        }
+
+        .directions-step {
+            display: flex;
+            align-items: flex-start;
+            padding: 12px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .directions-step:last-child {
+            border-bottom: none;
+        }
+
+        .directions-step-icon {
+            width: 36px;
+            height: 36px;
+            background: #f0f0f0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .directions-step-icon.depart { background: #e8f5e9; }
+        .directions-step-icon.arrive { background: #ffebee; }
+        .directions-step-icon.turn { background: #e3f2fd; }
+
+        .directions-step-content {
+            flex: 1;
+        }
+
+        .directions-step-instruction {
+            font-size: 15px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .directions-step-detail {
+            font-size: 13px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .directions-step-distance {
+            font-size: 13px;
+            color: #666;
+            margin-left: 8px;
+            white-space: nowrap;
+        }
+
+        .directions-step.current-step {
+            background: #e3f2fd;
+            margin: 0 -16px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border-bottom: none;
+        }
+
+        .directions-step.current-step .directions-step-icon {
+            background: #2196F3;
+            color: white;
+        }
+
+        .directions-step.current-step .directions-step-instruction {
+            color: #1565C0;
+            font-weight: 600;
+        }
+
+        /* Menu panel */
+        .menu-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 300px;
+            background: white;
+            z-index: 300;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .menu-panel.active {
+            transform: translateX(0);
+        }
+
+        .menu-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 299;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease;
+        }
+
+        .menu-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .menu-header {
+            padding: 24px 20px;
+            padding-top: max(24px, env(safe-area-inset-top));
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: white;
+        }
+
+        .menu-header h2 {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .menu-header p {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+
+        .menu-items {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px 0;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 20px;
+            border: none;
+            background: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .menu-item:active {
+            background: #f5f5f5;
+        }
+
+        .menu-item-icon {
+            font-size: 22px;
+            width: 28px;
+            text-align: center;
+        }
+
+        .menu-divider {
+            height: 1px;
+            background: #eee;
+            margin: 8px 0;
+        }
+
+        /* Settings Panel - Waze Style */
+        .settings-backdrop {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 299;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .settings-backdrop.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .settings-panel {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            background: #f5f5f5;
+            z-index: 300;
+            border-radius: 24px 24px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+            height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .settings-panel.active {
+            transform: translateY(0);
+        }
+
+        .settings-header {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            background: white;
+            border-radius: 24px 24px 0 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .settings-back {
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+        }
+
+        .settings-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .settings-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            padding-bottom: max(16px, env(safe-area-inset-bottom));
+        }
+
+        .settings-section {
+            background: white;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .settings-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            padding: 16px 20px 8px;
+        }
+
+        .settings-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .settings-item:active {
+            background: #f8f8f8;
+        }
+
+        .settings-item-icon {
+            font-size: 24px;
+            width: 40px;
+            text-align: center;
+            margin-right: 16px;
+        }
+
+        .settings-item-content {
+            flex: 1;
+        }
+
+        .settings-item-label {
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .settings-item-value {
+            font-size: 14px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .settings-item-arrow {
+            font-size: 18px;
+            color: #ccc;
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            width: 52px;
+            height: 32px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #ccc;
+            transition: 0.3s;
+            border-radius: 32px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            transition: 0.3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .toggle-switch input:checked + .toggle-slider {
+            background: #2196F3;
+        }
+
+        .toggle-switch input:checked + .toggle-slider:before {
+            transform: translateX(20px);
+        }
+
+        /* Radio Options */
+        .settings-radio-group {
+            padding: 8px 20px 16px;
+        }
+
+        .settings-radio {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            cursor: pointer;
+        }
+
+        .settings-radio input {
+            display: none;
+        }
+
+        .settings-radio-mark {
+            width: 22px;
+            height: 22px;
+            border: 2px solid #ccc;
+            border-radius: 50%;
+            margin-right: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.2s;
+        }
+
+        .settings-radio input:checked + .settings-radio-mark {
+            border-color: #2196F3;
+        }
+
+        .settings-radio input:checked + .settings-radio-mark:after {
+            content: "";
+            width: 12px;
+            height: 12px;
+            background: #2196F3;
+            border-radius: 50%;
+        }
+
+        .settings-radio-label {
+            font-size: 16px;
+            color: #333;
+        }
+
+        /* Utility */
+        .hidden { display: none !important; }
+
         /* Loading state */
-        .map-loading{display:flex;align-items:center;justify-content:center;height:100%;color:#94a3b8;font-size:16px}
+        .loading-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #1a1a2e;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            transition: opacity 0.5s ease;
+        }
+
+        .loading-overlay.fade-out {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid rgba(255,255,255,0.2);
+            border-top-color: #2196F3;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            margin-top: 16px;
+            font-size: 16px;
+            opacity: 0.8;
+        }
+
+        /* Toast notifications */
+        .toast {
+            position: fixed;
+            bottom: 140px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #333;
+            color: white;
+            padding: 14px 24px;
+            border-radius: 28px;
+            font-size: 15px;
+            z-index: 400;
+            opacity: 0;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        /* Responsive adjustments */
+        @media (min-width: 768px) {
+            .search-pill {
+                max-width: 600px;
+                left: 50%;
+                transform: translateX(-50%);
+                right: auto;
+            }
+
+            .bottom-bar {
+                max-width: 500px;
+                left: 50%;
+                transform: translateX(-50%);
+                border-radius: 20px;
+                margin-bottom: 20px;
+            }
+
+            .fab-locate {
+                bottom: 160px;
+            }
+        }
+
+        /* Incident Report Panel */
+        .report-panel {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            background: #f5f5f5;
+            z-index: 300;
+            border-radius: 24px 24px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+            max-height: 70vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .report-panel.active {
+            transform: translateY(0);
+        }
+
+        .report-header {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            background: white;
+            border-radius: 24px 24px 0 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .report-back {
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+        }
+
+        .report-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .report-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            padding-bottom: max(16px, env(safe-area-inset-bottom));
+        }
+
+        .report-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .report-type {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border-radius: 16px;
+            padding: 20px 12px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .report-type:active {
+            transform: scale(0.95);
+        }
+
+        .report-type.selected {
+            border-color: #007AFF;
+            background: #E8F4FF;
+        }
+
+        .report-type-icon {
+            font-size: 36px;
+            margin-bottom: 8px;
+        }
+
+        .report-type-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: #333;
+            text-align: center;
+        }
+
+        .report-submit {
+            width: 100%;
+            padding: 16px;
+            background: #007AFF;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            margin-top: 16px;
+            cursor: pointer;
+        }
+
+        .report-submit:disabled {
+            background: #ccc;
+        }
+
+        .report-submit:active:not(:disabled) {
+            background: #0056b3;
+        }
+
+        /* Incident markers on map */
+        .incident-marker {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .incident-marker:hover {
+            transform: scale(1.1);
+        }
+
+        .incident-marker.police { background: #2196F3; }
+        .incident-marker.accident { background: #f44336; }
+        .incident-marker.hazard { background: #FF9800; }
+        .incident-marker.traffic { background: #9C27B0; }
+        .incident-marker.closure { background: #E91E63; }
+        .incident-marker.construction { background: #795548; }
+        .incident-marker.speed_camera { background: #000000; }
+        .incident-marker.red_light { background: #D32F2F; }
+
+        /* Camera alert styling */
+        .camera-alert {
+            position: fixed;
+            top: 200px;
+            left: 16px;
+            right: 16px;
+            background: linear-gradient(135deg, #1a1a1a 0%, #333 100%);
+            border: 2px solid #FFD600;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            z-index: 260;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transform: translateY(-150%);
+            transition: transform 0.3s ease-out;
+        }
+
+        .camera-alert.show {
+            transform: translateY(0);
+        }
+
+        .camera-alert-icon {
+            font-size: 36px;
+            animation: pulse-camera 1s infinite;
+        }
+
+        @keyframes pulse-camera {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .camera-alert-content {
+            flex: 1;
+        }
+
+        .camera-alert-title {
+            font-weight: 700;
+            font-size: 18px;
+            color: #FFD600;
+        }
+
+        .camera-alert-speed {
+            font-size: 28px;
+            font-weight: 800;
+            color: white;
+            margin: 4px 0;
+        }
+
+        .camera-alert-distance {
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        .camera-alert-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            font-size: 18px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .incident-popup {
+            padding: 12px;
+            min-width: 180px;
+        }
+
+        .incident-popup-title {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+
+        .incident-popup-time {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .incident-popup-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .incident-confirm-btn, .incident-dismiss-btn {
+            flex: 1;
+            padding: 8px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .incident-confirm-btn {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .incident-dismiss-btn {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        /* Incident alert toast */
+        .incident-alert {
+            position: fixed;
+            top: 200px;
+            left: 16px;
+            right: 16px;
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            z-index: 250;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transform: translateY(-150%);
+            transition: transform 0.3s ease-out;
+        }
+
+        .incident-alert.show {
+            transform: translateY(0);
+        }
+
+        .incident-alert-icon {
+            font-size: 32px;
+        }
+
+        .incident-alert-content {
+            flex: 1;
+        }
+
+        .incident-alert-title {
+            font-weight: 600;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .incident-alert-distance {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .incident-alert-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        /* Report FAB */
+        .fab-report {
+            position: fixed;
+            right: 16px;
+            bottom: 180px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #FF6B00;
+            color: white;
+            border: none;
+            box-shadow: 0 4px 12px rgba(255, 107, 0, 0.4);
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 90;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .fab-report:active {
+            transform: scale(0.95);
+        }
+
+        /* Traffic Legend */
+        .traffic-legend {
+            position: fixed;
+            bottom: 100px;
+            left: 16px;
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+            z-index: 90;
+            display: none;
+            font-size: 12px;
+        }
+
+        .traffic-legend.show {
+            display: block;
+        }
+
+        .traffic-legend-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .traffic-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .traffic-legend-color {
+            width: 24px;
+            height: 4px;
+            border-radius: 2px;
+        }
+
+        .traffic-legend-color.free { background: #00C853; }
+        .traffic-legend-color.moderate { background: #FFD600; }
+        .traffic-legend-color.heavy { background: #FF6D00; }
+        .traffic-legend-color.severe { background: #D50000; }
+
+        .traffic-legend-label {
+            color: #666;
+        }
+
+        /* Traffic FAB */
+        .fab-traffic {
+            position: fixed;
+            right: 16px;
+            bottom: 244px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: white;
+            border: none;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 90;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .fab-traffic.active {
+            background: #00C853;
+            color: white;
+        }
+
+        .fab-traffic:active {
+            transform: scale(0.95);
+        }
+
+        /* Saved Routes Panel */
+        .saved-routes-panel {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            background: white;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            z-index: 180;
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .saved-routes-panel.active {
+            transform: translateY(0);
+        }
+
+        .saved-routes-header {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid #eee;
+            position: sticky;
+            top: 0;
+            background: white;
+        }
+
+        .saved-routes-back {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: none;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .saved-routes-title {
+            flex: 1;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .saved-routes-body {
+            padding: 8px;
+        }
+
+        .saved-routes-empty {
+            text-align: center;
+            padding: 40px 20px;
+            display: none;
+        }
+
+        .saved-routes-empty.show {
+            display: block;
+        }
+
+        .saved-routes-empty .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .saved-routes-empty .empty-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .saved-routes-empty .empty-hint {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .saved-route-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 8px;
+            background: #f8f8f8;
+            cursor: pointer;
+        }
+
+        .saved-route-item:active {
+            background: #e8e8e8;
+        }
+
+        .saved-route-icon {
+            font-size: 24px;
+            margin-right: 12px;
+        }
+
+        .saved-route-info {
+            flex: 1;
+        }
+
+        .saved-route-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+
+        .saved-route-details {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .saved-route-size {
+            font-size: 12px;
+            color: #999;
+            margin-top: 2px;
+        }
+
+        .saved-route-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .saved-route-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 50%;
+            background: #e0e0e0;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .saved-route-btn.delete {
+            background: #ffebee;
+        }
+
+        .saved-route-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Download Modal */
+        .download-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 300;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .download-modal.show {
+            display: flex;
+        }
+
+        .download-modal-content {
+            background: white;
+            border-radius: 20px;
+            padding: 32px;
+            text-align: center;
+            width: 100%;
+            max-width: 320px;
+        }
+
+        .download-modal .download-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .download-modal .download-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .download-progress-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 12px;
+        }
+
+        .download-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #2196F3, #4CAF50);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .download-modal .download-status {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .download-cancel-btn {
+            padding: 12px 32px;
+            border: none;
+            border-radius: 24px;
+            background: #f0f0f0;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .download-cancel-btn:active {
+            background: #e0e0e0;
+        }
+
+        /* Route Selection Panel */
+        .route-options {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            z-index: 150;
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+            max-height: 50vh;
+            overflow-y: auto;
+            padding-bottom: max(16px, env(safe-area-inset-bottom));
+        }
+
+        .route-options.show {
+            transform: translateY(0);
+        }
+
+        .route-options-header {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #eee;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 1;
+        }
+
+        .route-options-title {
+            font-size: 18px;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .route-options-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 50%;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .route-option {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .route-option:hover {
+            background: #f8f8f8;
+        }
+
+        .route-option.selected {
+            background: #E3F2FD;
+            border-left: 4px solid #2196F3;
+        }
+
+        .route-option-color {
+            width: 8px;
+            height: 40px;
+            border-radius: 4px;
+            margin-right: 16px;
+        }
+
+        .route-option-color.primary { background: #2196F3; }
+        .route-option-color.alt1 { background: #9E9E9E; }
+        .route-option-color.alt2 { background: #757575; }
+
+        .route-option-info {
+            flex: 1;
+        }
+
+        .route-option-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .route-option-time {
+            font-size: 22px;
+            font-weight: 700;
+            color: #2196F3;
+            margin: 4px 0;
+        }
+
+        .route-option-time.delayed {
+            color: #FF6D00;
+        }
+
+        .route-option-time.heavy {
+            color: #D50000;
+        }
+
+        .route-option-details {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .route-option-traffic {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .route-option-traffic.free { background: #E8F5E9; color: #2E7D32; }
+        .route-option-traffic.moderate { background: #FFF8E1; color: #F57F17; }
+        .route-option-traffic.heavy { background: #FBE9E7; color: #E64A19; }
+        .route-option-traffic.severe { background: #FFEBEE; color: #C62828; }
+        .route-option-traffic.unknown { background: #ECEFF1; color: #607D8B; }
+
+        .route-option-go {
+            width: 48px;
+            height: 48px;
+            border: none;
+            background: #2196F3;
+            border-radius: 50%;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .route-option-go:hover {
+            background: #1976D2;
+        }
+
+        /* ============================================ */
+        /* Dark Mode Styles */
+        /* ============================================ */
+        body.dark-mode {
+            background: #121212;
+        }
+
+        body.dark-mode .search-box {
+            background: #1e1e1e;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+        }
+
+        body.dark-mode .search-text {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .search-text span {
+            color: #888;
+        }
+
+        body.dark-mode .search-icon {
+            color: #888;
+        }
+
+        body.dark-mode .menu-btn,
+        body.dark-mode .fab-locate,
+        body.dark-mode .fab-report,
+        body.dark-mode .fab-traffic {
+            background: #2a2a2a;
+            color: #e0e0e0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+        }
+
+        body.dark-mode .fab-traffic.active {
+            background: #1b5e20;
+        }
+
+        body.dark-mode .bottom-bar {
+            background: #1e1e1e;
+            box-shadow: 0 -2px 20px rgba(0,0,0,0.4);
+        }
+
+        body.dark-mode .quick-action:active {
+            background: #333;
+        }
+
+        body.dark-mode .quick-action-icon.home { background: #1a3a5c; }
+        body.dark-mode .quick-action-icon.work { background: #4a2a3a; }
+        body.dark-mode .quick-action-icon.gas { background: #4a3a1a; }
+        body.dark-mode .quick-action-icon.food { background: #1a4a2a; }
+        body.dark-mode .quick-action-icon.more { background: #3a2a4a; }
+
+        body.dark-mode .quick-action-label {
+            color: #aaa;
+        }
+
+        body.dark-mode .search-overlay {
+            background: #121212;
+        }
+
+        body.dark-mode .search-header {
+            border-bottom-color: #333;
+        }
+
+        body.dark-mode .search-input-wrapper {
+            background: #2a2a2a;
+        }
+
+        body.dark-mode .search-input {
+            background: transparent;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .search-input::placeholder {
+            color: #666;
+        }
+
+        body.dark-mode .search-back,
+        body.dark-mode .search-clear {
+            color: #aaa;
+        }
+
+        body.dark-mode .search-results {
+            background: #121212;
+        }
+
+        body.dark-mode .search-section-title {
+            color: #888;
+            background: #121212;
+        }
+
+        body.dark-mode .search-result {
+            border-bottom-color: #2a2a2a;
+        }
+
+        body.dark-mode .search-result:active {
+            background: #2a2a2a;
+        }
+
+        body.dark-mode .search-result-name {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .search-result-address {
+            color: #888;
+        }
+
+        body.dark-mode .nav-panel {
+            background: #1e1e1e;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+        }
+
+        body.dark-mode .nav-panel-drag {
+            background: #444;
+        }
+
+        body.dark-mode .nav-destination-info h3 {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .nav-destination-info p {
+            color: #888;
+        }
+
+        body.dark-mode .nav-action-btn.secondary {
+            background: #2a2a2a;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .directions-summary {
+            background: #252525;
+            border-bottom-color: #333;
+        }
+
+        body.dark-mode .directions-duration {
+            color: #4CAF50;
+        }
+
+        body.dark-mode .directions-distance {
+            color: #aaa;
+        }
+
+        body.dark-mode .directions-step {
+            border-bottom-color: #2a2a2a;
+        }
+
+        body.dark-mode .directions-step-instruction {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .directions-step-distance {
+            color: #888;
+        }
+
+        body.dark-mode .directions-step.current-step {
+            background: #1a3a1a;
+        }
+
+        body.dark-mode .menu-panel {
+            background: #1e1e1e;
+        }
+
+        body.dark-mode .menu-header {
+            background: linear-gradient(135deg, #1a237e 0%, #311b92 100%);
+        }
+
+        body.dark-mode .menu-item {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .menu-item:active {
+            background: #2a2a2a;
+        }
+
+        body.dark-mode .menu-divider {
+            background: #333;
+        }
+
+        body.dark-mode .settings-panel,
+        body.dark-mode .report-panel,
+        body.dark-mode .saved-routes-panel {
+            background: #1e1e1e;
+        }
+
+        body.dark-mode .settings-header,
+        body.dark-mode .report-header,
+        body.dark-mode .saved-routes-header {
+            background: #1e1e1e;
+            border-bottom-color: #333;
+        }
+
+        body.dark-mode .settings-title,
+        body.dark-mode .report-title,
+        body.dark-mode .saved-routes-title {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .settings-back,
+        body.dark-mode .report-back,
+        body.dark-mode .saved-routes-back {
+            color: #aaa;
+        }
+
+        body.dark-mode .settings-section-title {
+            color: #888;
+        }
+
+        body.dark-mode .settings-item {
+            border-bottom-color: #2a2a2a;
+        }
+
+        body.dark-mode .settings-item-label {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .settings-item-value {
+            color: #888;
+        }
+
+        body.dark-mode .report-type {
+            background: #2a2a2a;
+        }
+
+        body.dark-mode .report-type.selected {
+            background: #1a3a5c;
+            border-color: #2196F3;
+        }
+
+        body.dark-mode .report-type-label {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .report-submit {
+            background: #2196F3;
+        }
+
+        body.dark-mode .report-submit:disabled {
+            background: #333;
+            color: #666;
+        }
+
+        body.dark-mode .incident-alert {
+            background: #2a2a2a;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+
+        body.dark-mode .incident-alert-title {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .incident-alert-distance {
+            color: #888;
+        }
+
+        body.dark-mode .toast {
+            background: #333;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .route-options {
+            background: #1e1e1e;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+        }
+
+        body.dark-mode .route-options-title {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .route-options-close {
+            color: #888;
+        }
+
+        body.dark-mode .route-option {
+            background: #252525;
+        }
+
+        body.dark-mode .route-option.selected {
+            background: #1a3a1a;
+            border-color: #4CAF50;
+        }
+
+        body.dark-mode .route-option-label {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .route-option-duration {
+            color: #4CAF50;
+        }
+
+        body.dark-mode .route-option-distance,
+        body.dark-mode .route-option-traffic {
+            color: #888;
+        }
+
+        body.dark-mode .traffic-legend {
+            background: #2a2a2a;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+        }
+
+        body.dark-mode .traffic-legend-title {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .traffic-legend-label {
+            color: #aaa;
+        }
+
+        body.dark-mode .saved-route-item {
+            background: #252525;
+        }
+
+        body.dark-mode .saved-route-item:active {
+            background: #333;
+        }
+
+        body.dark-mode .saved-route-name {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .saved-route-details {
+            color: #aaa;
+        }
+
+        body.dark-mode .saved-route-size {
+            color: #666;
+        }
+
+        body.dark-mode .saved-route-btn {
+            background: #333;
+        }
+
+        body.dark-mode .saved-route-btn.delete {
+            background: #4a2a2a;
+        }
+
+        body.dark-mode .saved-routes-empty .empty-text {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .saved-routes-empty .empty-hint {
+            color: #888;
+        }
+
+        body.dark-mode .download-modal-content {
+            background: #1e1e1e;
+        }
+
+        body.dark-mode .download-title {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .download-status {
+            color: #888;
+        }
+
+        body.dark-mode .download-progress-bar {
+            background: #333;
+        }
+
+        body.dark-mode .download-cancel-btn {
+            background: #333;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode #nav-speed-display {
+            background: #2a2a2a !important;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.4) !important;
+        }
+
+        body.dark-mode #nav-eta-display {
+            background: #2a2a2a !important;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4) !important;
+        }
+
+        /* Dark mode maplibre controls */
+        body.dark-mode .maplibregl-ctrl-group {
+            background: #2a2a2a;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+
+        body.dark-mode .maplibregl-ctrl-group button {
+            background-color: #2a2a2a;
+        }
+
+        body.dark-mode .maplibregl-ctrl-group button:hover {
+            background-color: #3a3a3a;
+        }
+
+        body.dark-mode .maplibregl-ctrl-group button + button {
+            border-top-color: #444;
+        }
+
+        body.dark-mode .maplibregl-popup-content {
+            background: #2a2a2a;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+            border-top-color: #2a2a2a;
+        }
+
+        body.dark-mode .incident-popup {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .incident-popup-time {
+            color: #888;
+        }
+
+        body.dark-mode .incident-dismiss-btn {
+            background: #333;
+            color: #aaa;
+        }
+
+        /* ============================================ */
+        /* Lane Guidance Styles */
+        /* ============================================ */
+        .lane-guidance {
+            position: fixed;
+            top: 110px;
+            right: 16px;
+            background: white;
+            border-radius: 12px;
+            padding: 12px 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 160;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            max-width: 200px;
+        }
+
+        .lane-guidance.show {
+            display: flex;
+        }
+
+        .lane-guidance-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .lane-guidance-arrows {
+            display: flex;
+            gap: 4px;
+        }
+
+        .lane-arrow {
+            width: 36px;
+            height: 48px;
+            border-radius: 6px;
+            background: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .lane-arrow.valid {
+            background: #4CAF50;
+        }
+
+        .lane-arrow svg {
+            width: 24px;
+            height: 24px;
+            fill: #666;
+        }
+
+        .lane-arrow.valid svg {
+            fill: white;
+        }
+
+        .lane-arrow-divider {
+            position: absolute;
+            right: -2px;
+            top: 8px;
+            bottom: 8px;
+            width: 2px;
+            background: #ccc;
+        }
+
+        .lane-arrow:last-child .lane-arrow-divider {
+            display: none;
+        }
+
+        .lane-guidance-hint {
+            font-size: 11px;
+            color: #888;
+            text-align: center;
+        }
+
+        /* Dark mode lane guidance */
+        body.dark-mode .lane-guidance {
+            background: #2a2a2a;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        body.dark-mode .lane-guidance-title {
+            color: #aaa;
+        }
+
+        body.dark-mode .lane-arrow {
+            background: #444;
+        }
+
+        body.dark-mode .lane-arrow.valid {
+            background: #2E7D32;
+        }
+
+        body.dark-mode .lane-arrow svg {
+            fill: #888;
+        }
+
+        body.dark-mode .lane-arrow.valid svg {
+            fill: white;
+        }
+
+        body.dark-mode .lane-arrow-divider {
+            background: #555;
+        }
+
+        body.dark-mode .lane-guidance-hint {
+            color: #666;
+        }
+
+        /* ============================================ */
+        /* Share ETA Modal Styles */
+        /* ============================================ */
+        .share-eta-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 300;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .share-eta-modal.show {
+            display: flex;
+        }
+
+        .share-eta-content {
+            background: white;
+            border-radius: 20px 20px 0 0;
+            width: 100%;
+            max-width: 500px;
+            padding: 20px;
+            padding-bottom: max(20px, env(safe-area-inset-bottom));
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .share-eta-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .share-eta-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .share-eta-close {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .share-eta-preview {
+            background: #f8f8f8;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .share-eta-destination {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .share-eta-info {
+            display: flex;
+            gap: 16px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .share-eta-info span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .share-eta-options {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .share-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 8px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-radius: 12px;
+        }
+
+        .share-option:active {
+            background: #f0f0f0;
+        }
+
+        .share-option-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .share-option-icon.sms { background: #4CAF50; }
+        .share-option-icon.whatsapp { background: #25D366; }
+        .share-option-icon.email { background: #EA4335; }
+        .share-option-icon.copy { background: #2196F3; }
+
+        .share-option-label {
+            font-size: 12px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .share-eta-link {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .share-eta-link input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            font-size: 14px;
+            background: #f8f8f8;
+        }
+
+        .share-eta-link button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 12px;
+            background: #2196F3;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .share-eta-note {
+            font-size: 12px;
+            color: #888;
+            text-align: center;
+        }
+
+        .share-eta-live {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding: 12px;
+            background: #E8F5E9;
+            border-radius: 12px;
+        }
+
+        .share-eta-live-dot {
+            width: 8px;
+            height: 8px;
+            background: #4CAF50;
+            border-radius: 50%;
+            animation: pulse-dot 1.5s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .share-eta-live-text {
+            font-size: 13px;
+            color: #2E7D32;
+            font-weight: 500;
+        }
+
+        /* Share ETA FAB during navigation */
+        .fab-share-eta {
+            position: fixed;
+            left: 16px;
+            bottom: 270px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: #2196F3;
+            color: white;
+            border: none;
+            box-shadow: 0 2px 12px rgba(33, 150, 243, 0.4);
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 90;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .fab-share-eta.show {
+            display: flex;
+        }
+
+        .fab-share-eta:active {
+            transform: scale(0.95);
+        }
+
+        /* Dark mode share ETA */
+        body.dark-mode .share-eta-content {
+            background: #1e1e1e;
+        }
+
+        body.dark-mode .share-eta-title {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .share-eta-close {
+            background: #333;
+            color: #aaa;
+        }
+
+        body.dark-mode .share-eta-preview {
+            background: #252525;
+        }
+
+        body.dark-mode .share-eta-destination {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .share-eta-info {
+            color: #888;
+        }
+
+        body.dark-mode .share-option:active {
+            background: #333;
+        }
+
+        body.dark-mode .share-option-label {
+            color: #aaa;
+        }
+
+        body.dark-mode .share-eta-link input {
+            background: #252525;
+            border-color: #444;
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .share-eta-note {
+            color: #666;
+        }
+
+        body.dark-mode .share-eta-live {
+            background: #1a3a1a;
+        }
+
+        body.dark-mode .share-eta-live-text {
+            color: #81C784;
+        }
     </style>
     <link rel="preload" href="css/maps.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="css/maps.css"></noscript>
 </head>
 <body>
-    <!-- Skip to main content for accessibility -->
-    <a href="#map" class="skip-link">Skip to map</a>
+    <!-- Loading Screen -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading map...</div>
+    </div>
 
-    <!-- Header -->
-    <header class="maps-header" role="banner">
-        <div class="header-left">
-            <a href="/" class="logo" aria-label="DataAcuity Maps Home">
-                <span class="logo-icon" aria-hidden="true">🗺️</span>
-                <span class="logo-text">DataAcuity Maps</span>
-            </a>
-            <span class="tagline" aria-label="Tagline">Navigate Time & Space</span>
-        </div>
+    <!-- Map Container -->
+    <div id="map"></div>
 
-        <div class="header-center">
-            <div class="search-container" role="search">
-                <label for="search-input" class="visually-hidden">Search places</label>
-                <input type="search" id="search-input" placeholder="Search places across all time periods..." aria-label="Search places across all time periods" autocomplete="off" />
-                <div id="search-results" class="search-results hidden" role="listbox" aria-label="Search results"></div>
+    <!-- Search Pill (Waze-style) -->
+    <div class="search-pill">
+        <div class="search-box" id="search-trigger" onclick="openSearch()">
+            <span class="search-icon">🔍</span>
+            <div class="search-text">
+                <span>Where to?</span>
             </div>
         </div>
-
-        <nav class="header-right" role="navigation" aria-label="Map controls">
-            <button id="btn-refresh" class="btn btn-icon" title="Reset Map" onclick="hardRefresh()" aria-label="Reset map view">
-                <span aria-hidden="true">🔄</span>
-            </button>
-            <button id="btn-clear-cache" class="btn btn-icon" title="Clear Cache (Ctrl+Shift+R)" onclick="clearMapCache()" aria-label="Clear cached map data">
-                <span aria-hidden="true">🗑️</span>
-            </button>
-            <button id="btn-layers" class="btn btn-icon" title="Map Layers" aria-label="Toggle map layers panel" aria-expanded="false" aria-controls="layers-panel">
-                <span aria-hidden="true">📑</span>
-            </button>
-            <button id="btn-info" class="btn btn-icon" title="About" aria-label="About DataAcuity Maps" aria-expanded="false" aria-controls="info-modal">
-                <span aria-hidden="true">ℹ️</span>
-            </button>
-        </nav>
-    </header>
-
-    <!-- Mode Switcher Tab Bar -->
-    <nav id="mode-switcher" class="mode-switcher" role="tablist" aria-label="Map modes">
-        <button class="mode-tab active" data-mode="explore" role="tab" aria-selected="true" onclick="switchMode('explore')">
-            <span class="mode-icon">🔍</span>
-            <span class="mode-label">Explore</span>
+        <button class="menu-btn" id="menu-btn" onclick="toggleMenu()">
+            ☰
         </button>
-        <button class="mode-tab" data-mode="timeline" role="tab" aria-selected="false" onclick="switchMode('timeline')">
-            <span class="mode-icon">⏳</span>
-            <span class="mode-label">Timeline</span>
-        </button>
-        <button class="mode-tab" data-mode="navigate" role="tab" aria-selected="false" onclick="switchMode('navigate')">
-            <span class="mode-icon">🚗</span>
-            <span class="mode-label">Navigate</span>
-        </button>
-        <button class="mode-tab" data-mode="transit" role="tab" aria-selected="false" onclick="switchMode('transit')">
-            <span class="mode-icon">🚌</span>
-            <span class="mode-label">Transit</span>
-        </button>
-    </nav>
+    </div>
 
-    <!-- Main Map Container -->
-    <main id="map-container" role="main">
-        <div id="map" role="application" aria-label="Interactive historical map" tabindex="0"></div>
+    <!-- Locate Me FAB -->
+    <button class="fab-locate" id="fab-locate" onclick="locateMe()">
+        📍
+    </button>
 
-        <!-- Timeline Slider (hidden by default, shown in Timeline mode) -->
-        <section id="timeline-panel" class="timeline-container draggable hidden" role="region" aria-label="Timeline navigation">
-            <div id="timeline-drag-handle" class="timeline-drag-handle panel-drag-handle">
-                <h2><span class="drag-icon" aria-hidden="true">⋮⋮</span> Timeline</h2>
-                <div class="year-input-container">
-                    <input type="number" id="year-input" class="year-input" value="2024" min="-3000" max="2024" aria-label="Enter year" />
-                    <div class="year-era-toggle">
-                        <button class="era-btn" data-era="bce" onclick="toggleEra('bce')">BCE</button>
-                        <button class="era-btn active" data-era="ce" onclick="toggleEra('ce')">CE</button>
-                    </div>
+    <!-- Report Incident FAB -->
+    <button class="fab-report" id="fab-report" onclick="openReportPanel()">
+        ⚠️
+    </button>
+
+    <!-- Incident Alert Toast -->
+    <div class="incident-alert" id="incident-alert">
+        <div class="incident-alert-icon" id="incident-alert-icon">🚔</div>
+        <div class="incident-alert-content">
+            <div class="incident-alert-title" id="incident-alert-title">Police reported ahead</div>
+            <div class="incident-alert-distance" id="incident-alert-distance">500m ahead</div>
+        </div>
+        <button class="incident-alert-close" onclick="closeIncidentAlert()">×</button>
+    </div>
+
+    <!-- Camera Alert Toast -->
+    <div class="camera-alert" id="camera-alert">
+        <div class="camera-alert-icon" id="camera-alert-icon">📷</div>
+        <div class="camera-alert-content">
+            <div class="camera-alert-title" id="camera-alert-title">Speed Camera Ahead</div>
+            <div class="camera-alert-speed" id="camera-alert-speed">60 km/h</div>
+            <div class="camera-alert-distance" id="camera-alert-distance">500m ahead</div>
+        </div>
+        <button class="camera-alert-close" onclick="closeCameraAlert()">×</button>
+    </div>
+
+    <!-- Lane Guidance Panel -->
+    <div class="lane-guidance" id="lane-guidance">
+        <div class="lane-guidance-title">Use lanes</div>
+        <div class="lane-guidance-arrows" id="lane-guidance-arrows">
+            <!-- Lane arrows will be dynamically inserted -->
+        </div>
+        <div class="lane-guidance-hint" id="lane-guidance-hint">Stay in highlighted lane</div>
+    </div>
+
+    <!-- Share ETA FAB (shown during navigation) -->
+    <button class="fab-share-eta" id="fab-share-eta" onclick="openShareETA()">
+        📤
+    </button>
+
+    <!-- Share ETA Modal -->
+    <div class="share-eta-modal" id="share-eta-modal" onclick="closeShareETAOnBackdrop(event)">
+        <div class="share-eta-content" onclick="event.stopPropagation()">
+            <div class="share-eta-header">
+                <div class="share-eta-title">Share your ETA</div>
+                <button class="share-eta-close" onclick="closeShareETA()">×</button>
+            </div>
+
+            <div class="share-eta-live">
+                <div class="share-eta-live-dot"></div>
+                <div class="share-eta-live-text">Live location sharing</div>
+            </div>
+
+            <div class="share-eta-preview">
+                <div class="share-eta-destination" id="share-eta-destination">Destination</div>
+                <div class="share-eta-info">
+                    <span>🕐 <span id="share-eta-time">--</span></span>
+                    <span>📍 <span id="share-eta-distance">--</span></span>
+                    <span>🚗 <span id="share-eta-arrival">--</span></span>
                 </div>
-                <button id="btn-play" class="btn btn-icon" title="Animate through time" aria-label="Play timeline animation">
-                    <span aria-hidden="true">▶️</span>
+            </div>
+
+            <div class="share-eta-options">
+                <button class="share-option" onclick="shareETAvia('sms')">
+                    <div class="share-option-icon sms">💬</div>
+                    <div class="share-option-label">SMS</div>
                 </button>
-                <button id="timeline-toggle" class="timeline-toggle" onclick="toggleTimeline()" title="Collapse/Expand" aria-label="Collapse timeline panel" aria-expanded="true">−</button>
+                <button class="share-option" onclick="shareETAvia('whatsapp')">
+                    <div class="share-option-icon whatsapp">📱</div>
+                    <div class="share-option-label">WhatsApp</div>
+                </button>
+                <button class="share-option" onclick="shareETAvia('email')">
+                    <div class="share-option-icon email">✉️</div>
+                    <div class="share-option-label">Email</div>
+                </button>
+                <button class="share-option" onclick="shareETAvia('copy')">
+                    <div class="share-option-icon copy">📋</div>
+                    <div class="share-option-label">Copy</div>
+                </button>
             </div>
-            <div class="timeline-slider-container">
-                <span class="timeline-label" id="timeline-min-label">3000 BCE</span>
-                <input type="range" id="timeline-slider" min="-3000" max="2024" value="2024" step="1" aria-label="Select year" aria-valuemin="-3000" aria-valuemax="2024" aria-valuenow="2024" aria-describedby="timeline-min-label timeline-max-label" />
-                <span class="timeline-label" id="timeline-max-label">2024 CE</span>
-            </div>
-            <div class="timeline-presets" role="group" aria-label="Quick jump to historical periods">
-                <button class="preset-btn" data-year="-1000" title="Kingdom of Israel under King David and Solomon">1000 BCE</button>
-                <button class="preset-btn" data-year="-586" title="Destruction of First Temple, Babylonian Exile begins">586 BCE</button>
-                <button class="preset-btn" data-year="33" title="Crucifixion of Jesus, birth of Christianity">33 CE</button>
-                <button class="preset-btn" data-year="135" title="Bar Kokhba revolt, Jews expelled from Jerusalem">135 CE</button>
-                <button class="preset-btn" data-year="1652" title="Dutch East India Company establishes Cape Colony">1652 CE</button>
-                <button class="preset-btn" data-year="1886" title="Discovery of gold on Witwatersrand, Johannesburg founded">1886 CE</button>
-                <button class="preset-btn active" data-year="2024" title="Present day" aria-current="true">Today</button>
-            </div>
-        </section>
 
-        <!-- Place Info Panel -->
-        <aside id="place-panel" class="place-panel hidden draggable" role="complementary" aria-label="Place details">
-            <div id="place-panel-header" class="panel-drag-handle">
-                <h2><span class="drag-icon" aria-hidden="true">⋮⋮</span> Place Details</h2>
-                <button id="close-panel" class="panel-close-btn" aria-label="Close place details">&times;</button>
+            <div class="share-eta-link">
+                <input type="text" id="share-eta-link-input" readonly placeholder="Generating link...">
+                <button onclick="copyShareLink()">Copy</button>
             </div>
-            <div id="panel-content" aria-live="polite">
-                <!-- Populated by JavaScript -->
-            </div>
-        </aside>
 
-        <!-- Layers Panel -->
-        <aside id="layers-panel" class="layers-panel hidden" role="complementary" aria-label="Map layers settings">
-            <h2>Map Layers</h2>
-            <div id="layers-list" role="group" aria-label="Available map layers">
-                <!-- Populated by JavaScript -->
-            </div>
-        </aside>
-
-        <!-- Stats Badge -->
-        <div class="stats-badge" role="status" aria-live="polite" aria-label="Map statistics">
-            <div class="stats-numbers">
-                <span><span id="stats-places">0</span> places</span> |
-                <span><span id="stats-names">0</span> names</span> |
-                <span><span id="stats-events">0</span> events</span>
-            </div>
-            <div id="stats-hint" class="stats-hint">Slide timeline or search to explore</div>
-        </div>
-    </main>
-
-    <!-- Info Modal -->
-    <div id="info-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-description">
-        <div class="modal-overlay" aria-hidden="true"></div>
-        <div class="modal-content">
-            <button class="close-btn" aria-label="Close dialog">&times;</button>
-            <h2 id="modal-title">About DataAcuity Maps</h2>
-            <p><strong>"Navigate Time & Space"</strong></p>
-            <p id="modal-description">
-                DataAcuity Maps is a historical mapping platform that lets you explore
-                the world as it was known throughout history. Slide through time to see how place
-                names changed, empires rose and fell, and events unfolded.
-            </p>
-            <h3>Features</h3>
-            <ul>
-                <li><strong>Timeline Slider:</strong> Travel from 3000 BCE to today</li>
-                <li><strong>Historical Names:</strong> See what places were called in different eras</li>
-                <li><strong>Cited Sources:</strong> Every historical fact has a source</li>
-                <li><strong>Multi-language:</strong> Names in original scripts when available</li>
-            </ul>
-            <h3>How to Use</h3>
-            <ol>
-                <li>Use the <strong>timeline slider</strong> to travel through time</li>
-                <li>Click on any <strong>place marker</strong> to see its history</li>
-                <li><strong>Search</strong> for places by any name they've ever had</li>
-            </ol>
-            <h3>Want to Contribute?</h3>
-            <p>
-                Location data is collected through the <strong>TagMe</strong> app.
-                Download TagMe to share anonymized location data and help improve our maps.
-                Your privacy is protected - only aggregated, anonymized data is used.
-            </p>
-            <h3>API Features</h3>
-            <ul>
-                <li><strong>Routing:</strong> Turn-by-turn directions (OSRM)</li>
-                <li><strong>Geocoding:</strong> Address search (Nominatim)</li>
-                <li><strong>34,000+ POIs:</strong> From OpenStreetMap</li>
-                <li><strong>Weather:</strong> Current + 7-day forecast (Open-Meteo)</li>
-                <li><strong>Elevation:</strong> SRTM 30m resolution profiles</li>
-                <li><strong>Traffic:</strong> Crowdsourced + HERE API</li>
-            </ul>
-            <p style="margin-top: 10px;">
-                <a href="/demo.html" style="color: #0ea5e9;">Try the API Demo &rarr;</a>
-            </p>
-            <h3>Data Sources</h3>
-            <ul>
-                <li><strong>GeoNames:</strong> Global geographic database</li>
-                <li><strong>Pleiades:</strong> Ancient world gazetteer</li>
-                <li><strong>OpenStreetMap:</strong> POIs, transit, indoor maps</li>
-                <li><strong>TagMe:</strong> Community location contributions</li>
-            </ul>
-            <p class="credits">
-                Built with MapLibre GL JS | Data from GeoNames, Pleiades, OSM & TagMe contributors
-            </p>
-        </div>
-    </div>
-
-    <!-- Onboarding Overlay -->
-    <div id="onboarding-overlay" class="onboarding-overlay hidden">
-        <div class="onboarding-card">
-            <div class="onboarding-header">
-                <h2>Welcome to DataAcuity Maps</h2>
-                <p>Navigate Time & Space</p>
-            </div>
-            <div class="onboarding-content">
-                <div class="onboarding-step">
-                    <div class="onboarding-step-icon">🕰️</div>
-                    <div class="onboarding-step-content">
-                        <h4>Travel Through Time</h4>
-                        <p>Use the timeline slider at the bottom to explore how places changed from 3000 BCE to today.</p>
-                    </div>
-                </div>
-                <div class="onboarding-step">
-                    <div class="onboarding-step-icon">🔍</div>
-                    <div class="onboarding-step-content">
-                        <h4>Search Any Place</h4>
-                        <p>Search by modern or ancient names. Try "Jerusalem", "Constantinople", or "Babylon".</p>
-                    </div>
-                </div>
-                <div class="onboarding-step">
-                    <div class="onboarding-step-icon">📍</div>
-                    <div class="onboarding-step-content">
-                        <h4>Click to Explore</h4>
-                        <p>Click any marker to see its full history, past names, and historical sources.</p>
-                    </div>
-                </div>
-                <div class="onboarding-step">
-                    <div class="onboarding-step-icon">🧭</div>
-                    <div class="onboarding-step-content">
-                        <h4>Get Directions & Discover Nearby</h4>
-                        <p>Use the floating buttons on the right for routing and finding nearby places.</p>
-                    </div>
-                </div>
-                <div class="onboarding-shortcuts">
-                    <h4>Keyboard Shortcuts</h4>
-                    <div class="shortcut-list">
-                        <div class="shortcut-item">
-                            <span class="shortcut-key">←</span>
-                            <span>Back in time</span>
-                        </div>
-                        <div class="shortcut-item">
-                            <span class="shortcut-key">→</span>
-                            <span>Forward in time</span>
-                        </div>
-                        <div class="shortcut-item">
-                            <span class="shortcut-key">/</span>
-                            <span>Focus search</span>
-                        </div>
-                        <div class="shortcut-item">
-                            <span class="shortcut-key">?</span>
-                            <span>Show shortcuts</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="onboarding-footer">
-                <button class="btn btn-primary" onclick="closeOnboarding()">Start Exploring</button>
-                <label class="onboarding-checkbox">
-                    <input type="checkbox" id="dont-show-again" />
-                    <span>Don't show this again</span>
-                </label>
+            <div class="share-eta-note">
+                Your live location will be shared until you arrive or stop navigation
             </div>
         </div>
     </div>
 
-    <!-- Keyboard Shortcuts Panel -->
-    <div id="shortcuts-panel" class="shortcuts-panel hidden">
-        <button class="shortcuts-panel-close" onclick="toggleShortcutsPanel()">&times;</button>
-        <h3>⌨️ Keyboard Shortcuts</h3>
-        <div class="shortcuts-grid">
-            <div class="shortcut-item">
-                <span class="shortcut-key">←</span>
-                <span class="shortcut-action">Back 10 years</span>
+    <!-- Traffic FAB -->
+    <button class="fab-traffic" id="fab-traffic" onclick="quickToggleTraffic()">
+        🚦
+    </button>
+
+    <!-- Traffic Legend -->
+    <div class="traffic-legend" id="traffic-legend">
+        <div class="traffic-legend-title">Traffic</div>
+        <div class="traffic-legend-item">
+            <div class="traffic-legend-color free"></div>
+            <span class="traffic-legend-label">Free flow</span>
+        </div>
+        <div class="traffic-legend-item">
+            <div class="traffic-legend-color moderate"></div>
+            <span class="traffic-legend-label">Moderate</span>
+        </div>
+        <div class="traffic-legend-item">
+            <div class="traffic-legend-color heavy"></div>
+            <span class="traffic-legend-label">Heavy</span>
+        </div>
+        <div class="traffic-legend-item">
+            <div class="traffic-legend-color severe"></div>
+            <span class="traffic-legend-label">Severe</span>
+        </div>
+    </div>
+
+    <!-- Route Options Panel -->
+    <div class="route-options" id="route-options">
+        <div class="route-options-header">
+            <div class="route-options-title">Choose a route</div>
+            <button class="route-options-close" onclick="closeRouteOptions()">×</button>
+        </div>
+        <div id="route-options-list">
+            <!-- Route options will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <!-- Bottom Action Bar -->
+    <div class="bottom-bar" id="bottom-bar">
+        <div class="quick-actions">
+            <button class="quick-action" onclick="goToSaved('home')">
+                <div class="quick-action-icon home">🏠</div>
+                <span class="quick-action-label">Home</span>
+            </button>
+            <button class="quick-action" onclick="goToSaved('work')">
+                <div class="quick-action-icon work">🏢</div>
+                <span class="quick-action-label">Work</span>
+            </button>
+            <button class="quick-action" onclick="searchNearby('gas_station')">
+                <div class="quick-action-icon gas">⛽</div>
+                <span class="quick-action-label">Gas</span>
+            </button>
+            <button class="quick-action" onclick="searchNearby('restaurant')">
+                <div class="quick-action-icon food">🍔</div>
+                <span class="quick-action-label">Food</span>
+            </button>
+            <button class="quick-action" onclick="openSearch()">
+                <div class="quick-action-icon more">⋯</div>
+                <span class="quick-action-label">More</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Search Backdrop (dims the map) -->
+    <div class="search-backdrop" id="search-backdrop" onclick="closeSearch()"></div>
+
+    <!-- Search Bottom Sheet (Waze-style) -->
+    <div class="search-overlay" id="search-overlay">
+        <div class="search-drag-handle"></div>
+        <div class="search-header">
+            <button class="search-back" onclick="closeSearch()">←</button>
+            <div class="search-input-wrapper">
+                <input type="text" id="search-input" placeholder="Where to?" autocomplete="off">
+                <button class="search-clear" id="search-clear" onclick="clearSearch()">×</button>
             </div>
-            <div class="shortcut-item">
-                <span class="shortcut-key">→</span>
-                <span class="shortcut-action">Forward 10 years</span>
+        </div>
+        <div class="search-body">
+            <!-- Default content (saved places, categories) -->
+            <div id="search-default">
+                <div class="search-section">
+                    <div class="search-section-title">Saved Places</div>
+                    <div class="saved-places">
+                        <button class="saved-place" onclick="goToSaved('home')">
+                            <span class="saved-place-icon">🏠</span>
+                            <span class="saved-place-label">Home</span>
+                            <span class="saved-place-address" id="home-address">Set location</span>
+                        </button>
+                        <button class="saved-place" onclick="goToSaved('work')">
+                            <span class="saved-place-icon">🏢</span>
+                            <span class="saved-place-label">Work</span>
+                            <span class="saved-place-address" id="work-address">Set location</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="search-section">
+                    <div class="search-section-title">Categories</div>
+                    <div class="category-chips">
+                        <button class="category-chip" onclick="searchNearby('gas_station')">⛽ Gas stations</button>
+                        <button class="category-chip" onclick="searchNearby('restaurant')">🍽️ Restaurants</button>
+                        <button class="category-chip" onclick="searchNearby('cafe')">☕ Coffee</button>
+                        <button class="category-chip" onclick="searchNearby('atm')">🏧 ATMs</button>
+                        <button class="category-chip" onclick="searchNearby('parking')">🅿️ Parking</button>
+                        <button class="category-chip" onclick="searchNearby('hospital')">🏥 Hospitals</button>
+                        <button class="category-chip" onclick="searchNearby('pharmacy')">💊 Pharmacies</button>
+                        <button class="category-chip" onclick="searchNearby('supermarket')">🛒 Grocery</button>
+                    </div>
+                </div>
+                <div class="search-section" id="recent-section" style="display:none;">
+                    <div class="search-section-title">Recent</div>
+                    <div id="recent-searches"></div>
+                </div>
             </div>
-            <div class="shortcut-item">
-                <span class="shortcut-key">Shift + ←</span>
-                <span class="shortcut-action">Back 100 years</span>
+
+            <!-- Search results -->
+            <div class="search-results" id="search-results"></div>
+        </div>
+    </div>
+
+    <!-- Navigation Panel (slides up when destination selected) -->
+    <div class="nav-panel" id="nav-panel">
+        <div class="nav-panel-header">
+            <div class="nav-panel-drag"></div>
+            <div class="nav-destination">
+                <div class="nav-destination-icon" id="nav-icon">📍</div>
+                <div class="nav-destination-info">
+                    <h3 id="nav-name">Destination</h3>
+                    <p id="nav-address">Address</p>
+                </div>
             </div>
-            <div class="shortcut-item">
-                <span class="shortcut-key">Shift + →</span>
-                <span class="shortcut-action">Forward 100 years</span>
+        </div>
+        <div class="nav-panel-actions" id="nav-actions-initial">
+            <button class="nav-action-btn primary" onclick="startNavigation()">
+                🧭 Directions
+            </button>
+            <button class="nav-action-btn secondary" onclick="closeNavPanel()">
+                ✕ Cancel
+            </button>
+        </div>
+
+        <!-- Directions List (shown after getting directions) -->
+        <div class="directions-list" id="directions-list">
+            <div class="directions-summary">
+                <div class="directions-summary-info">
+                    <div class="directions-time" id="directions-time">32 min</div>
+                    <div class="directions-distance" id="directions-distance">26.2 km</div>
+                </div>
             </div>
-            <div class="shortcut-item">
-                <span class="shortcut-key">/</span>
-                <span class="shortcut-action">Focus search</span>
+            <div id="directions-steps">
+                <!-- Steps populated by JavaScript -->
             </div>
-            <div class="shortcut-item">
-                <span class="shortcut-key">Esc</span>
-                <span class="shortcut-action">Close panels</span>
+        </div>
+
+        <div class="nav-panel-actions" id="nav-actions-route" style="display:none;">
+            <button class="nav-action-btn primary" onclick="startLiveNavigation()">
+                🚗 Start
+            </button>
+            <button class="nav-action-btn secondary" onclick="saveRouteOffline()">
+                💾 Save
+            </button>
+            <button class="nav-action-btn secondary" onclick="closeNavPanel()">
+                ✕ Cancel
+            </button>
+        </div>
+    </div>
+
+    <!-- Menu Panel -->
+    <div class="menu-overlay" id="menu-overlay" onclick="toggleMenu()"></div>
+    <div class="menu-panel" id="menu-panel">
+        <div class="menu-header">
+            <h2>Data Acuity Maps</h2>
+            <p>Navigate anywhere</p>
+        </div>
+        <div class="menu-items">
+            <button class="menu-item" onclick="startOver()">
+                <span class="menu-item-icon">🔄</span>
+                Start Over
+            </button>
+            <div class="menu-divider"></div>
+            <button class="menu-item" onclick="openSearch()">
+                <span class="menu-item-icon">🔍</span>
+                Search
+            </button>
+            <button class="menu-item" onclick="locateMe(); toggleMenu();">
+                <span class="menu-item-icon">📍</span>
+                My Location
+            </button>
+            <div class="menu-divider"></div>
+            <button class="menu-item" onclick="setSavedPlace('home')">
+                <span class="menu-item-icon">🏠</span>
+                Set Home
+            </button>
+            <button class="menu-item" onclick="setSavedPlace('work')">
+                <span class="menu-item-icon">🏢</span>
+                Set Work
+            </button>
+            <button class="menu-item" onclick="openSavedRoutes()">
+                <span class="menu-item-icon">📥</span>
+                Saved Routes
+            </button>
+            <div class="menu-divider"></div>
+            <button class="menu-item" onclick="openTimeline()">
+                <span class="menu-item-icon">⏳</span>
+                Historical Timeline
+            </button>
+            <button class="menu-item" onclick="openTransit()">
+                <span class="menu-item-icon">🚌</span>
+                Public Transit
+            </button>
+            <div class="menu-divider"></div>
+            <button class="menu-item" onclick="openLayers()">
+                <span class="menu-item-icon">🗺️</span>
+                Map Style
+            </button>
+            <button class="menu-item" onclick="openSettings()">
+                <span class="menu-item-icon">⚙️</span>
+                Settings
+            </button>
+            <button class="menu-item" onclick="openAbout()">
+                <span class="menu-item-icon">ℹ️</span>
+                About
+            </button>
+        </div>
+    </div>
+
+    <!-- Saved Routes Panel -->
+    <div class="search-backdrop" id="saved-routes-backdrop" onclick="closeSavedRoutes()"></div>
+    <div class="saved-routes-panel" id="saved-routes-panel">
+        <div class="saved-routes-header">
+            <button class="saved-routes-back" onclick="closeSavedRoutes()">←</button>
+            <div class="saved-routes-title">Saved Routes</div>
+        </div>
+        <div class="saved-routes-body" id="saved-routes-list">
+            <!-- Populated by JavaScript -->
+        </div>
+        <div class="saved-routes-empty" id="saved-routes-empty">
+            <div class="empty-icon">📥</div>
+            <div class="empty-text">No saved routes yet</div>
+            <div class="empty-hint">Save a route to use it offline</div>
+        </div>
+    </div>
+
+    <!-- Download Progress Modal -->
+    <div class="download-modal" id="download-modal">
+        <div class="download-modal-content">
+            <div class="download-icon">📥</div>
+            <div class="download-title" id="download-title">Saving Route</div>
+            <div class="download-progress-bar">
+                <div class="download-progress-fill" id="download-progress-fill"></div>
             </div>
-            <div class="shortcut-item">
-                <span class="shortcut-key">D</span>
-                <span class="shortcut-action">Open directions</span>
+            <div class="download-status" id="download-status">Downloading tiles...</div>
+            <button class="download-cancel-btn" id="download-cancel-btn" onclick="cancelDownload()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Report Incident Panel -->
+    <div class="search-backdrop" id="report-backdrop" onclick="closeReportPanel()"></div>
+    <div class="report-panel" id="report-panel">
+        <div class="report-header">
+            <button class="report-back" onclick="closeReportPanel()">←</button>
+            <div class="report-title">Report Incident</div>
+        </div>
+        <div class="report-body">
+            <div class="report-grid">
+                <button class="report-type" data-type="police" onclick="selectIncidentType(this)">
+                    <div class="report-type-icon">🚔</div>
+                    <div class="report-type-label">Police</div>
+                </button>
+                <button class="report-type" data-type="accident" onclick="selectIncidentType(this)">
+                    <div class="report-type-icon">💥</div>
+                    <div class="report-type-label">Accident</div>
+                </button>
+                <button class="report-type" data-type="hazard" onclick="selectIncidentType(this)">
+                    <div class="report-type-icon">⚠️</div>
+                    <div class="report-type-label">Hazard</div>
+                </button>
+                <button class="report-type" data-type="traffic" onclick="selectIncidentType(this)">
+                    <div class="report-type-icon">🚗</div>
+                    <div class="report-type-label">Traffic Jam</div>
+                </button>
+                <button class="report-type" data-type="closure" onclick="selectIncidentType(this)">
+                    <div class="report-type-icon">🚧</div>
+                    <div class="report-type-label">Road Closed</div>
+                </button>
+                <button class="report-type" data-type="construction" onclick="selectIncidentType(this)">
+                    <div class="report-type-icon">🏗️</div>
+                    <div class="report-type-label">Construction</div>
+                </button>
+                <button class="report-type" data-type="speed_camera" onclick="selectIncidentType(this)">
+                    <div class="report-type-icon">📷</div>
+                    <div class="report-type-label">Speed Camera</div>
+                </button>
+                <button class="report-type" data-type="red_light" onclick="selectIncidentType(this)">
+                    <div class="report-type-icon">🚦</div>
+                    <div class="report-type-label">Red Light Cam</div>
+                </button>
             </div>
-            <div class="shortcut-item">
-                <span class="shortcut-key">N</span>
-                <span class="shortcut-action">What's nearby</span>
+            <button class="report-submit" id="report-submit" onclick="submitIncident()" disabled>
+                Report at Current Location
+            </button>
+        </div>
+    </div>
+
+    <!-- Settings Backdrop -->
+    <div class="settings-backdrop" id="settings-backdrop" onclick="closeSettings()"></div>
+
+    <!-- Settings Panel (Waze-style) -->
+    <div class="settings-panel" id="settings-panel">
+        <div class="settings-header">
+            <button class="settings-back" onclick="closeSettings()">←</button>
+            <div class="settings-title">Settings</div>
+        </div>
+        <div class="settings-body">
+            <!-- General Section -->
+            <div class="settings-section">
+                <div class="settings-section-title">General</div>
+                <div class="settings-item" onclick="toggleDistanceUnit()">
+                    <div class="settings-item-icon">📏</div>
+                    <div class="settings-item-content">
+                        <div class="settings-item-label">Distance Units</div>
+                        <div class="settings-item-value" id="distance-unit-value">Kilometers</div>
+                    </div>
+                    <div class="settings-item-arrow">›</div>
+                </div>
+                <div class="settings-item" onclick="toggleTimeFormat()">
+                    <div class="settings-item-icon">🕐</div>
+                    <div class="settings-item-content">
+                        <div class="settings-item-label">Time Format</div>
+                        <div class="settings-item-value" id="time-format-value">24-hour</div>
+                    </div>
+                    <div class="settings-item-arrow">›</div>
+                </div>
             </div>
-            <div class="shortcut-item">
-                <span class="shortcut-key">M</span>
-                <span class="shortcut-action">My memories</span>
+
+            <!-- Navigation Section -->
+            <div class="settings-section">
+                <div class="settings-section-title">Navigation</div>
+                <div class="settings-item">
+                    <div class="settings-item-icon">🛣️</div>
+                    <div class="settings-item-content">
+                        <div class="settings-item-label">Avoid Toll Roads</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="avoid-tolls" onchange="saveSetting('avoidTolls', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-icon">🚗</div>
+                    <div class="settings-item-content">
+                        <div class="settings-item-label">Avoid Highways</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="avoid-highways" onchange="saveSetting('avoidHighways', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-icon">⛴️</div>
+                    <div class="settings-item-content">
+                        <div class="settings-item-label">Avoid Ferries</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="avoid-ferries" onchange="saveSetting('avoidFerries', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-icon">🛤️</div>
+                    <div class="settings-item-content">
+                        <div class="settings-item-label">Avoid Unpaved Roads</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="avoid-unpaved" onchange="saveSetting('avoidUnpaved', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
             </div>
-            <div class="shortcut-item">
-                <span class="shortcut-key">L</span>
-                <span class="shortcut-action">Toggle layers</span>
+
+            <!-- Map Display Section -->
+            <div class="settings-section">
+                <div class="settings-section-title">Map Display</div>
+                <div class="settings-item">
+                    <div class="settings-item-icon">🌙</div>
+                    <div class="settings-item-content">
+                        <div class="settings-item-label">Dark Mode</div>
+                        <div class="settings-item-value" id="dark-mode-value">Auto</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="dark-mode" onchange="toggleDarkMode(this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-icon">🏢</div>
+                    <div class="settings-item-content">
+                        <div class="settings-item-label">3D Buildings</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="show-3d-buildings" onchange="saveSetting('show3DBuildings', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-icon">🚦</div>
+                    <div class="settings-item-content">
+                        <div class="settings-item-label">Traffic Layer</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="show-traffic" onchange="toggleTrafficLayer(this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-icon">⚡</div>
+                    <div class="settings-item-content">
+                        <div class="settings-item-label">Speed Limit Display</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="show-speed-limit" onchange="saveSetting('showSpeedLimit', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
             </div>
-            <div class="shortcut-item">
-                <span class="shortcut-key">Space</span>
-                <span class="shortcut-action">Play/pause timeline</span>
+
+            <!-- Sound Section -->
+            <div class="settings-section">
+                <div class="settings-section-title">Sound & Voice</div>
+                <div class="settings-item">
+                    <div class="settings-item-icon">🔊</div>
+                    <div class="settings-item-content">
+                        <div class="settings-item-label">Voice Guidance</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="voice-guidance" checked onchange="saveSetting('voiceGuidance', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-icon">🔔</div>
+                    <div class="settings-item-content">
+                        <div class="settings-item-label">Alert Sounds</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="alert-sounds" checked onchange="saveSetting('alertSounds', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
             </div>
-            <div class="shortcut-item">
-                <span class="shortcut-key">?</span>
-                <span class="shortcut-action">Show this help</span>
+
+            <!-- Battery Section -->
+            <div class="settings-section">
+                <div class="settings-section-title">Battery & Data</div>
+                <div class="settings-item">
+                    <div class="settings-item-icon">🔋</div>
+                    <div class="settings-item-content">
+                        <div class="settings-item-label">Battery Saver</div>
+                        <div class="settings-item-value">Dims screen during navigation</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="battery-saver" onchange="saveSetting('batterySaver', this.checked)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="settings-item">
+                    <div class="settings-item-icon">📶</div>
+                    <div class="settings-item-content">
+                        <div class="settings-item-label">Offline Maps</div>
+                        <div class="settings-item-value">Download maps for offline use</div>
+                    </div>
+                    <div class="settings-item-arrow">›</div>
+                </div>
             </div>
-            <div class="shortcut-item">
-                <span class="shortcut-key">Ctrl+Shift+R</span>
-                <span class="shortcut-action">Clear cache</span>
+
+            <!-- Data Management Section -->
+            <div class="settings-section">
+                <div class="settings-section-title">Data Management</div>
+                <div class="settings-item" onclick="clearRecentSearches()">
+                    <div class="settings-item-icon">🗑️</div>
+                    <div class="settings-item-content">
+                        <div class="settings-item-label">Clear Recent Searches</div>
+                    </div>
+                    <div class="settings-item-arrow">›</div>
+                </div>
+                <div class="settings-item" onclick="clearAllData()">
+                    <div class="settings-item-icon">⚠️</div>
+                    <div class="settings-item-content">
+                        <div class="settings-item-label">Clear All Data</div>
+                        <div class="settings-item-value">Reset app to defaults</div>
+                    </div>
+                    <div class="settings-item-arrow">›</div>
+                </div>
+            </div>
+
+            <!-- About Section -->
+            <div class="settings-section">
+                <div class="settings-section-title">About</div>
+                <div class="settings-item">
+                    <div class="settings-item-icon">ℹ️</div>
+                    <div class="settings-item-content">
+                        <div class="settings-item-label">Version</div>
+                        <div class="settings-item-value">2.0.0</div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Floating Action Buttons -->
-    <div class="fab-container">
-        <button class="fab fab-directions" onclick="openRoutingPanel()" title="Get Directions">
-            🧭
-            <span class="fab-tooltip">Get Directions (D)</span>
-        </button>
-        <button class="fab fab-nearby" onclick="openNearbyPanel()" title="What's Nearby">
-            📍
-            <span class="fab-tooltip">What's Nearby (N)</span>
-        </button>
-        <button class="fab fab-memories" onclick="openMemoriesPanel()" title="My Memories">
-            💾
-            <span class="fab-tooltip">My Memories (M)</span>
-        </button>
-        <button class="fab fab-help" onclick="toggleShortcutsPanel()" title="Keyboard Shortcuts">
-            ?
-            <span class="fab-tooltip">Shortcuts (?)</span>
-        </button>
-    </div>
+    <!-- Toast notification -->
+    <div class="toast" id="toast"></div>
 
-    <!-- Async Script Loading for Performance -->
+    <!-- Scripts -->
     <script>
-        // Load MapLibre GL JS (preloaded in head)
+        // Load MapLibre then app
         (function() {
             var maplibreScript = document.createElement('script');
             maplibreScript.src = 'https://unpkg.com/maplibre-gl@4.1.0/dist/maplibre-gl.js';
             maplibreScript.async = true;
             maplibreScript.onload = function() {
-                // MapLibre loaded, now load main app (minified)
                 var appScript = document.createElement('script');
-                appScript.src = 'js/maps.min.js';
+                appScript.src = 'js/maps.min.js?v=32';
                 appScript.async = true;
                 document.body.appendChild(appScript);
             };
@@ -496,32 +3270,15 @@
         })();
     </script>
 
-    <!-- PWA Service Worker Registration (deferred) -->
+    <!-- Service Worker -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                // Delay SW registration to not block initial render
                 setTimeout(() => {
                     navigator.serviceWorker.register('/sw.js')
-                        .then((registration) => {
-                            console.log('[PWA] Service Worker registered:', registration.scope);
-
-                            // Check for updates periodically
-                            setInterval(() => {
-                                registration.update();
-                            }, 60 * 60 * 1000); // Every hour
-
-                            // Cleanup caches periodically
-                            setInterval(() => {
-                                if (registration.active) {
-                                    registration.active.postMessage('cleanup-caches');
-                                }
-                            }, 24 * 60 * 60 * 1000); // Every 24 hours
-                        })
-                        .catch((error) => {
-                            console.log('[PWA] Service Worker registration failed:', error);
-                        });
-                }, 3000); // Delay 3s after load
+                        .then(reg => console.log('[SW] Registered'))
+                        .catch(err => console.log('[SW] Failed:', err));
+                }, 2000);
             });
         }
     </script>

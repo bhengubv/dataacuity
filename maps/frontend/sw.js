@@ -1,7 +1,7 @@
-// DataAcuity Maps Service Worker
-// Version: 1.3.0 - GPS location for routing
+// Data Acuity Maps Service Worker
+// Version: 2.0.0 - Mobile-first Waze-like UX
 
-const CACHE_NAME = 'dataacuity-maps-v4';
+const CACHE_NAME = 'dataacuity-maps-v21';
 const TILE_CACHE_NAME = 'dataacuity-tiles-v1';
 const API_CACHE_NAME = 'dataacuity-api-v1';
 
@@ -61,6 +61,12 @@ self.addEventListener('fetch', (event) => {
   // Skip chrome-extension and other non-http(s) requests
   if (!url.protocol.startsWith('http')) return;
 
+  // Handle offline tile requests from IndexedDB
+  if (url.pathname.startsWith('/offline-tile/')) {
+    event.respondWith(serveOfflineTile(url.pathname));
+    return;
+  }
+
   // Handle map tiles - cache with network-first, long expiry
   if (isTileRequest(url)) {
     event.respondWith(networkFirstTiles(event.request));
@@ -76,6 +82,46 @@ self.addEventListener('fetch', (event) => {
   // Handle static assets - cache-first
   event.respondWith(cacheFirst(event.request));
 });
+
+// Serve tiles from IndexedDB for offline use
+async function serveOfflineTile(pathname) {
+  // Extract tile key from pathname: /offline-tile/z/x/y
+  const tileKey = pathname.replace('/offline-tile/', '');
+
+  try {
+    const db = await openOfflineDB();
+    const tx = db.transaction('tiles', 'readonly');
+    const store = tx.objectStore('tiles');
+    const request = store.get(tileKey);
+
+    return new Promise((resolve) => {
+      request.onsuccess = () => {
+        if (request.result && request.result.data) {
+          resolve(new Response(request.result.data, {
+            headers: { 'Content-Type': 'image/png' }
+          }));
+        } else {
+          // Return transparent tile if not found
+          resolve(new Response(null, { status: 204 }));
+        }
+      };
+      request.onerror = () => {
+        resolve(new Response(null, { status: 204 }));
+      };
+    });
+  } catch (e) {
+    return new Response(null, { status: 204 });
+  }
+}
+
+// Open IndexedDB in service worker
+function openOfflineDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('dataacuity-maps-offline', 1);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
 
 // Check if request is for map tiles
 function isTileRequest(url) {

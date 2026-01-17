@@ -1,7 +1,7 @@
 {
-  "name": "DataAcuity Maps",
+  "name": "Data Acuity Maps",
   "short_name": "Maps",
-  "description": "Navigate Time & Space - Interactive historical mapping platform",
+  "description": "Navigate anywhere - Get directions, find nearby places, explore",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
@@ -38,14 +38,14 @@
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "DataAcuity Maps Desktop View"
+      "label": "Data Acuity Maps Desktop View"
     },
     {
       "src": "/images/screenshot-mobile.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "DataAcuity Maps Mobile View"
+      "label": "Data Acuity Maps Mobile View"
     }
   ],
   "categories": ["navigation", "education", "utilities"],

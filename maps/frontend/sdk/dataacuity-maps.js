@@ -1,13 +1,13 @@
 /**
- * DataAcuity Maps SDK
+ * Data Acuity Maps SDK
  * Drop-in replacement for Google Maps API
  *
  * Usage:
  *   <script src="https://maps.dataacuity.co.za/sdk/dataacuity-maps.js"></script>
- *   const maps = new DataAcuityMaps({ apiKey: 'optional' });
+ *   const maps = new Data AcuityMaps({ apiKey: 'optional' });
  */
 
-class DataAcuityMaps {
+class Data AcuityMaps {
     constructor(options = {}) {
         this.baseUrl = options.baseUrl || 'https://maps.dataacuity.co.za/api';
         this.apiKey = options.apiKey || null;
@@ -336,7 +336,7 @@ class DataAcuityMaps {
      */
     createMap(container, options = {}) {
         if (typeof maplibregl === 'undefined') {
-            throw new Error('MapLibre GL JS is required. Include it before DataAcuity Maps SDK.');
+            throw new Error('MapLibre GL JS is required. Include it before Data Acuity Maps SDK.');
         }
 
         const styles = {
@@ -809,8 +809,8 @@ class DataAcuityMaps {
 
 // Export for different module systems
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = DataAcuityMaps;
+    module.exports = Data AcuityMaps;
 }
 if (typeof window !== 'undefined') {
-    window.DataAcuityMaps = DataAcuityMaps;
+    window.Data AcuityMaps = Data AcuityMaps;
 }

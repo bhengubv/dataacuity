@@ -1901,6 +1901,7 @@ async def get_route(request: RouteRequest):
         "geometries": "geojson",
         "steps": str(request.steps).lower(),
         "alternatives": str(request.alternatives).lower(),
+        "annotations": "true",  # Include lane/speed annotations
     }
 
     try:
@@ -1945,6 +1946,20 @@ async def get_route(request: RouteRequest):
                 steps = []
                 for leg in route["legs"]:
                     for step in leg.get("steps", []):
+                        # Extract lane data from intersections
+                        lanes = None
+                        intersections = step.get("intersections", [])
+                        if intersections:
+                            # Get lanes from the last intersection (approach lanes)
+                            last_intersection = intersections[-1] if len(intersections) > 0 else None
+                            if last_intersection and "lanes" in last_intersection:
+                                lanes = []
+                                for lane in last_intersection["lanes"]:
+                                    lanes.append({
+                                        "valid": lane.get("valid", False),
+                                        "indications": lane.get("indications", [])
+                                    })
+
                         steps.append({
                             "instruction": step.get("maneuver", {}).get("instruction", ""),
                             "name": step.get("name", ""),
@@ -1952,6 +1967,7 @@ async def get_route(request: RouteRequest):
                             "duration_s": step.get("duration", 0),
                             "maneuver": step.get("maneuver", {}).get("type", ""),
                             "modifier": step.get("maneuver", {}).get("modifier", ""),
+                            "lanes": lanes,
                         })
 
             # Extract alternatives
@@ -3010,6 +3026,231 @@ async def get_route_with_traffic(
     }
 
 
+@app.get("/api/route/alternatives", tags=["Navigation"])
+async def get_routes_with_alternatives(
+    origin: str = Query(..., description="Origin: lng,lat"),
+    destination: str = Query(..., description="Destination: lng,lat"),
+    mode: TravelMode = Query(TravelMode.driving),
+    with_traffic: bool = Query(True, description="Include traffic-adjusted ETAs"),
+    db: Session = Depends(get_db)
+):
+    """
+    Get multiple route options with traffic-aware ETAs.
+
+    Returns up to 3 route alternatives with:
+    - Base duration (no traffic)
+    - Traffic-adjusted duration
+    - Traffic level indicator
+    - Route geometry for display
+
+    Perfect for Waze-style route selection.
+    """
+    try:
+        origin_coords = [float(x) for x in origin.split(",")]
+        dest_coords = [float(x) for x in destination.split(",")]
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid coordinates")
+
+    # Build OSRM request with alternatives
+    coords_str = f"{origin_coords[0]},{origin_coords[1]};{dest_coords[0]},{dest_coords[1]}"
+
+    profile_map = {
+        TravelMode.driving: "car",
+        TravelMode.walking: "foot",
+        TravelMode.cycling: "bicycle"
+    }
+    profile = profile_map.get(mode, "car")
+
+    osrm_url = f"{OSRM_URL}/route/v1/{profile}/{coords_str}"
+    params = {
+        "overview": "full",
+        "geometries": "geojson",
+        "steps": "true",
+        "alternatives": "true",
+        "annotations": "true"  # Get speed data
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(osrm_url, params=params)
+
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Routing service unavailable"
+                )
+
+            data = response.json()
+
+            if data.get("code") != "Ok":
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Routing failed: {data.get('message', 'Unknown error')}"
+                )
+
+            routes = []
+
+            for idx, route in enumerate(data["routes"][:3]):  # Max 3 alternatives
+                # Format duration
+                duration_s = route["duration"]
+                distance_m = route["distance"]
+
+                hours = int(duration_s // 3600)
+                minutes = int((duration_s % 3600) // 60)
+                duration_text = f"{hours}h {minutes}min" if hours > 0 else f"{minutes} min"
+
+                # Format distance
+                if distance_m >= 1000:
+                    distance_text = f"{distance_m/1000:.1f} km"
+                else:
+                    distance_text = f"{int(distance_m)} m"
+
+                # Extract steps with lane data
+                steps = []
+                if "legs" in route:
+                    for leg in route["legs"]:
+                        for step in leg.get("steps", []):
+                            # Extract lane data from intersections
+                            lanes = None
+                            intersections = step.get("intersections", [])
+                            if intersections:
+                                last_intersection = intersections[-1] if len(intersections) > 0 else None
+                                if last_intersection and "lanes" in last_intersection:
+                                    lanes = []
+                                    for lane in last_intersection["lanes"]:
+                                        lanes.append({
+                                            "valid": lane.get("valid", False),
+                                            "indications": lane.get("indications", [])
+                                        })
+
+                            steps.append({
+                                "instruction": step.get("maneuver", {}).get("instruction", ""),
+                                "name": step.get("name", ""),
+                                "distance_m": step.get("distance", 0),
+                                "duration_s": step.get("duration", 0),
+                                "maneuver": step.get("maneuver", {}).get("type", ""),
+                                "modifier": step.get("maneuver", {}).get("modifier", ""),
+                                "lanes": lanes,
+                            })
+
+                # Calculate traffic factor
+                traffic_factor = 1.0
+                traffic_level = "unknown"
+                duration_in_traffic_s = duration_s
+
+                if with_traffic:
+                    # Get traffic for this route's corridor
+                    route_coords = route["geometry"].get("coordinates", [])
+                    if route_coords:
+                        lngs = [c[0] for c in route_coords]
+                        lats = [c[1] for c in route_coords]
+
+                        traffic_query = """
+                            WITH route_corridor AS (
+                                SELECT
+                                    AVG(
+                                        CASE
+                                            WHEN prev_time IS NOT NULL AND
+                                                 recorded_at - prev_time < INTERVAL '5 minutes' AND
+                                                 recorded_at - prev_time > INTERVAL '10 seconds'
+                                            THEN (6371 * acos(
+                                                cos(radians(lat)) * cos(radians(prev_lat)) *
+                                                cos(radians(prev_lng) - radians(lng)) +
+                                                sin(radians(lat)) * sin(radians(prev_lat))
+                                            )) / (EXTRACT(EPOCH FROM (recorded_at - prev_time)) / 3600.0)
+                                            ELSE NULL
+                                        END
+                                    ) as avg_speed_kmh
+                                FROM (
+                                    SELECT
+                                        lat, lng, recorded_at,
+                                        LAG(lat) OVER (PARTITION BY user_hash ORDER BY recorded_at) as prev_lat,
+                                        LAG(lng) OVER (PARTITION BY user_hash ORDER BY recorded_at) as prev_lng,
+                                        LAG(recorded_at) OVER (PARTITION BY user_hash ORDER BY recorded_at) as prev_time
+                                    FROM tagme_locations
+                                    WHERE recorded_at > NOW() - INTERVAL '30 minutes'
+                                      AND lat BETWEEN :min_lat AND :max_lat
+                                      AND lng BETWEEN :min_lng AND :max_lng
+                                ) sub
+                            )
+                            SELECT AVG(avg_speed_kmh) as corridor_avg_speed
+                            FROM route_corridor
+                            WHERE avg_speed_kmh IS NOT NULL
+                              AND avg_speed_kmh BETWEEN 5 AND 150
+                        """
+
+                        try:
+                            result = db.execute(text(traffic_query), {
+                                "min_lat": min(lats), "max_lat": max(lats),
+                                "min_lng": min(lngs), "max_lng": max(lngs)
+                            })
+                            traffic_data = result.fetchone()
+
+                            if traffic_data and traffic_data.corridor_avg_speed:
+                                avg_speed = float(traffic_data.corridor_avg_speed)
+                                expected_speed = 50.0
+
+                                if avg_speed >= expected_speed * 0.8:
+                                    traffic_level = "free"
+                                    traffic_factor = 1.0
+                                elif avg_speed >= expected_speed * 0.5:
+                                    traffic_level = "moderate"
+                                    traffic_factor = 1.3
+                                elif avg_speed >= expected_speed * 0.25:
+                                    traffic_level = "heavy"
+                                    traffic_factor = 1.8
+                                else:
+                                    traffic_level = "severe"
+                                    traffic_factor = 2.5
+                        except Exception:
+                            pass  # Keep default traffic values
+
+                duration_in_traffic_s = duration_s * traffic_factor
+                hours_traffic = int(duration_in_traffic_s // 3600)
+                minutes_traffic = int((duration_in_traffic_s % 3600) // 60)
+                duration_in_traffic_text = f"{hours_traffic}h {minutes_traffic}min" if hours_traffic > 0 else f"{minutes_traffic} min"
+
+                # Determine route label
+                if idx == 0:
+                    route_label = "Fastest"
+                elif distance_m < data["routes"][0]["distance"] * 0.95:
+                    route_label = "Shortest"
+                else:
+                    route_label = f"Alternative {idx}"
+
+                routes.append({
+                    "id": idx,
+                    "label": route_label,
+                    "distance_m": distance_m,
+                    "distance_text": distance_text,
+                    "duration_s": duration_s,
+                    "duration_text": duration_text,
+                    "duration_in_traffic_s": duration_in_traffic_s,
+                    "duration_in_traffic_text": duration_in_traffic_text,
+                    "traffic": {
+                        "level": traffic_level,
+                        "factor": traffic_factor
+                    },
+                    "geometry": route["geometry"],
+                    "steps": steps,
+                    "summary": route.get("legs", [{}])[0].get("summary", "")
+                })
+
+            return {
+                "routes": routes,
+                "origin": origin_coords,
+                "destination": dest_coords,
+                "mode": mode.value,
+                "waypoints": data.get("waypoints", [])
+            }
+
+    except httpx.RequestError:
+        raise HTTPException(
+            status_code=503,
+            detail="Routing service connection failed"
+        )
+
+
 @app.get("/api/navigation/status", tags=["Navigation"])
 async def navigation_status():
     """
@@ -3257,6 +3498,71 @@ async def get_shared_location(share_id: str, db: Session = Depends(get_db)):
         "speed_kmh": round(row["speed_mps"] * 3.6, 1) if row["speed_mps"] else None,
         "expires_at": row["expires_at"].isoformat()
     }
+
+
+# --- Trip ETA Sharing ---
+
+class TripUpdate(BaseModel):
+    """Trip location update for ETA sharing"""
+    tripId: str
+    destination: str
+    eta: str
+    remaining: str
+    destLat: Optional[float] = None
+    destLng: Optional[float] = None
+    currentLat: Optional[float] = None
+    currentLng: Optional[float] = None
+    durationSec: Optional[float] = None
+    distanceM: Optional[float] = None
+    timestamp: int
+
+
+@app.post("/api/share/trip", tags=["Fun Features"])
+@limiter.limit("30/minute")
+async def update_trip_share(
+    request: Request,
+    trip_data: TripUpdate
+):
+    """
+    Update live trip location for ETA sharing.
+    Stores trip data in Redis with 5-minute expiry (auto-refreshed on each update).
+    """
+    try:
+        if redis_client:
+            trip_key = f"trip:{trip_data.tripId}"
+            trip_json = trip_data.model_dump_json()
+            # Store with 5 minute expiry (will be refreshed on each update)
+            redis_client.setex(trip_key, 300, trip_json)
+            return {"status": "ok", "tripId": trip_data.tripId}
+        else:
+            # No Redis - still return success (client-side link will still work)
+            return {"status": "ok", "tripId": trip_data.tripId, "cached": False}
+    except Exception as e:
+        logger.warning(f"Failed to store trip update: {e}")
+        return {"status": "ok", "tripId": trip_data.tripId, "cached": False}
+
+
+@app.get("/api/share/trip/{trip_id}", tags=["Fun Features"])
+async def get_trip_status(trip_id: str):
+    """
+    Get the current status of a shared trip.
+    Returns the latest ETA and location if available.
+    """
+    # Validate trip_id format
+    if not trip_id.startswith("trip_") or len(trip_id) > 50:
+        raise HTTPException(400, "Invalid trip ID format")
+
+    try:
+        if redis_client:
+            trip_key = f"trip:{trip_id}"
+            trip_data = redis_client.get(trip_key)
+            if trip_data:
+                import json
+                return json.loads(trip_data)
+    except Exception as e:
+        logger.warning(f"Failed to retrieve trip data: {e}")
+
+    raise HTTPException(404, "Trip not found or has expired")
 
 
 # --- Themed Map Styles ---
