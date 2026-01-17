@@ -5639,6 +5639,906 @@
 
         body.dark-mode .traffic-prediction { background: #1e1e1e; }
         body.dark-mode .traffic-prediction-level { color: #e0e0e0; }
+
+        /* ============================================
+           Phase 4: Gamification Styles (M45-M48)
+           ============================================ */
+
+        /* User Level Badge - always visible corner display */
+        .user-level-badge {
+            position: fixed;
+            top: 16px;
+            right: 80px;
+            z-index: 99;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 8px 16px;
+            border-radius: 20px;
+            box-shadow: 0 2px 12px rgba(102, 126, 234, 0.4);
+            cursor: pointer;
+        }
+
+        .user-level-badge:active {
+            transform: scale(0.95);
+        }
+
+        .level-rank {
+            background: rgba(255, 255, 255, 0.2);
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .level-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .level-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .level-points {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .level-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 0 0 20px 20px;
+            overflow: hidden;
+        }
+
+        .level-progress-bar {
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            transition: width 0.3s ease;
+        }
+
+        /* Achievements Panel */
+        .achievements-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #f5f5f5;
+            z-index: 1000;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .achievements-panel.active {
+            transform: translateY(0);
+        }
+
+        .achievements-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            padding-top: max(20px, env(safe-area-inset-top));
+            color: white;
+        }
+
+        .achievements-header-top {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .achievements-back {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .achievements-title {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .achievements-stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 16px 0;
+        }
+
+        .achievement-stat {
+            text-align: center;
+        }
+
+        .achievement-stat-value {
+            font-size: 32px;
+            font-weight: 700;
+        }
+
+        .achievement-stat-label {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+
+        .achievements-tabs {
+            display: flex;
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            padding: 4px;
+            margin-top: 8px;
+        }
+
+        .achievements-tab {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border-radius: 6px;
+        }
+
+        .achievements-tab.active {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .achievements-content {
+            padding: 16px;
+            overflow-y: auto;
+            height: calc(100% - 220px);
+        }
+
+        .achievement-category {
+            margin-bottom: 24px;
+        }
+
+        .achievement-category-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .achievement-card {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .achievement-card.locked {
+            opacity: 0.6;
+        }
+
+        .achievement-card.unlocked {
+            border: 2px solid #4CAF50;
+        }
+
+        .achievement-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            flex-shrink: 0;
+        }
+
+        .achievement-icon.bronze { background: linear-gradient(135deg, #cd7f32, #8b4513); }
+        .achievement-icon.silver { background: linear-gradient(135deg, #c0c0c0, #808080); }
+        .achievement-icon.gold { background: linear-gradient(135deg, #ffd700, #daa520); }
+        .achievement-icon.platinum { background: linear-gradient(135deg, #e5e4e2, #a0a0a0); }
+        .achievement-icon.diamond { background: linear-gradient(135deg, #b9f2ff, #87ceeb); }
+        .achievement-icon.locked { background: #e0e0e0; }
+
+        .achievement-info {
+            flex: 1;
+        }
+
+        .achievement-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .achievement-desc {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .achievement-progress {
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .achievement-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .achievement-progress-text {
+            font-size: 11px;
+            color: #888;
+            margin-top: 4px;
+        }
+
+        .achievement-points {
+            text-align: center;
+            padding: 8px 12px;
+            background: #f5f5f5;
+            border-radius: 12px;
+        }
+
+        .achievement-points-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .achievement-points-label {
+            font-size: 10px;
+            color: #888;
+        }
+
+        /* Leaderboard Panel */
+        .leaderboard-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #f5f5f5;
+            z-index: 1000;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .leaderboard-panel.active {
+            transform: translateY(0);
+        }
+
+        .leaderboard-header {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            padding: 20px;
+            padding-top: max(20px, env(safe-area-inset-top));
+            color: white;
+        }
+
+        .leaderboard-header-top {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .leaderboard-back {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .leaderboard-title {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .leaderboard-filter {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .leaderboard-filter-btn {
+            padding: 8px 16px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .leaderboard-filter-btn.active {
+            background: white;
+            color: #f5576c;
+        }
+
+        .leaderboard-podium {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding: 20px;
+            gap: 12px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .podium-item {
+            text-align: center;
+            color: white;
+        }
+
+        .podium-item.second { order: 1; }
+        .podium-item.first { order: 2; }
+        .podium-item.third { order: 3; }
+
+        .podium-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin: 0 auto 8px;
+            border: 3px solid transparent;
+        }
+
+        .podium-item.first .podium-avatar {
+            width: 70px;
+            height: 70px;
+            font-size: 32px;
+            border-color: #ffd700;
+        }
+
+        .podium-name {
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .podium-points {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+
+        .podium-rank {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            margin: 8px auto 0;
+        }
+
+        .podium-item.first .podium-rank { background: #ffd700; color: #333; }
+        .podium-item.second .podium-rank { background: #c0c0c0; color: #333; }
+        .podium-item.third .podium-rank { background: #cd7f32; color: white; }
+
+        .leaderboard-content {
+            padding: 16px;
+            overflow-y: auto;
+            height: calc(100% - 280px);
+        }
+
+        .leaderboard-entry {
+            background: white;
+            border-radius: 12px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .leaderboard-entry.current-user {
+            background: linear-gradient(90deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border: 2px solid #667eea;
+        }
+
+        .leaderboard-rank {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #666;
+        }
+
+        .leaderboard-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .leaderboard-user-info {
+            flex: 1;
+        }
+
+        .leaderboard-username {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .leaderboard-user-level {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .leaderboard-user-points {
+            text-align: right;
+        }
+
+        .leaderboard-points-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .leaderboard-points-label {
+            font-size: 10px;
+            color: #888;
+        }
+
+        /* Road Warrior Levels Display */
+        .level-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #f5f5f5;
+            z-index: 1000;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .level-panel.active {
+            transform: translateY(0);
+        }
+
+        .level-header {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            padding: 20px;
+            padding-top: max(20px, env(safe-area-inset-top));
+            color: white;
+            text-align: center;
+        }
+
+        .level-header-top {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .level-back {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .level-header-title {
+            font-size: 24px;
+            font-weight: 700;
+            flex: 1;
+            text-align: left;
+        }
+
+        .current-level-display {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 24px;
+            margin-top: 16px;
+        }
+
+        .current-level-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .current-level-name {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .current-level-progress {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .current-level-bar {
+            flex: 1;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .current-level-fill {
+            height: 100%;
+            background: white;
+            border-radius: 4px;
+        }
+
+        .current-level-text {
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .level-content {
+            padding: 16px;
+            overflow-y: auto;
+            height: calc(100% - 280px);
+        }
+
+        .level-tier {
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .level-tier.current {
+            border: 2px solid #38ef7d;
+        }
+
+        .level-tier.locked {
+            opacity: 0.5;
+        }
+
+        .level-tier-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .level-tier-icon.beginner { background: linear-gradient(135deg, #e0e0e0, #bdbdbd); }
+        .level-tier-icon.explorer { background: linear-gradient(135deg, #81d4fa, #4fc3f7); }
+        .level-tier-icon.navigator { background: linear-gradient(135deg, #a5d6a7, #66bb6a); }
+        .level-tier-icon.roadmaster { background: linear-gradient(135deg, #ce93d8, #ab47bc); }
+        .level-tier-icon.warrior { background: linear-gradient(135deg, #ffcc80, #ffa726); }
+        .level-tier-icon.legend { background: linear-gradient(135deg, #ffd700, #ff8c00); }
+
+        .level-tier-info {
+            flex: 1;
+        }
+
+        .level-tier-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .level-tier-range {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .level-tier-perks {
+            font-size: 11px;
+            color: #888;
+        }
+
+        .level-tier-status {
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .level-tier-status.current {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .level-tier-status.unlocked {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .level-tier-status.locked {
+            background: #f5f5f5;
+            color: #999;
+        }
+
+        /* Points History Panel */
+        .points-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #f5f5f5;
+            z-index: 1000;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .points-panel.active {
+            transform: translateY(0);
+        }
+
+        .points-header {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            padding: 20px;
+            padding-top: max(20px, env(safe-area-inset-top));
+            color: white;
+        }
+
+        .points-header-top {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .points-back {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .points-header-title {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .points-balance {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            margin-top: 12px;
+        }
+
+        .points-balance-value {
+            font-size: 48px;
+            font-weight: 700;
+        }
+
+        .points-balance-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .points-earning-summary {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 16px;
+        }
+
+        .points-earning-item {
+            text-align: center;
+        }
+
+        .points-earning-value {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .points-earning-label {
+            font-size: 11px;
+            opacity: 0.8;
+        }
+
+        .points-content {
+            padding: 16px;
+            overflow-y: auto;
+            height: calc(100% - 280px);
+        }
+
+        .points-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .points-ways-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .points-way-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .points-way-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .points-way-name {
+            font-size: 13px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .points-way-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .points-history-item {
+            background: white;
+            border-radius: 12px;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .points-history-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #e3f2fd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .points-history-info {
+            flex: 1;
+        }
+
+        .points-history-action {
+            font-size: 14px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .points-history-time {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .points-history-amount {
+            font-size: 16px;
+            font-weight: 700;
+            color: #4CAF50;
+        }
+
+        .points-history-amount.negative {
+            color: #f44336;
+        }
+
+        /* Points popup animation */
+        .points-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 24px 40px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 2000;
+            opacity: 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+        }
+
+        .points-popup.show {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+
+        .points-popup-value {
+            font-size: 48px;
+            font-weight: 700;
+        }
+
+        .points-popup-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* Dark mode for Phase 4 */
+        body.dark-mode .user-level-badge {
+            background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+        }
+
+        body.dark-mode .achievements-panel { background: #121212; }
+        body.dark-mode .achievement-card { background: #1e1e1e; }
+        body.dark-mode .achievement-name { color: #e0e0e0; }
+        body.dark-mode .achievement-desc { color: #888; }
+        body.dark-mode .achievement-category-title { color: #888; }
+
+        body.dark-mode .leaderboard-panel { background: #121212; }
+        body.dark-mode .leaderboard-entry { background: #1e1e1e; }
+        body.dark-mode .leaderboard-username { color: #e0e0e0; }
+        body.dark-mode .leaderboard-rank { background: #333; color: #aaa; }
+
+        body.dark-mode .level-panel { background: #121212; }
+        body.dark-mode .level-tier { background: #1e1e1e; }
+        body.dark-mode .level-tier-name { color: #e0e0e0; }
+
+        body.dark-mode .points-panel { background: #121212; }
+        body.dark-mode .points-way-card { background: #1e1e1e; }
+        body.dark-mode .points-way-name { color: #e0e0e0; }
+        body.dark-mode .points-history-item { background: #1e1e1e; }
+        body.dark-mode .points-history-action { color: #e0e0e0; }
     </style>
     <link rel="preload" href="css/maps.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="css/maps.css"></noscript>
@@ -6005,6 +6905,19 @@
             <button class="menu-item" onclick="openDeliveryPanel()">
                 <span class="menu-item-icon">🍕</span>
                 Food Delivery
+            </button>
+            <div class="menu-divider"></div>
+            <button class="menu-item" onclick="openAchievementsPanel()">
+                <span class="menu-item-icon">🏆</span>
+                Achievements
+            </button>
+            <button class="menu-item" onclick="openLeaderboardPanel()">
+                <span class="menu-item-icon">🥇</span>
+                Leaderboard
+            </button>
+            <button class="menu-item" onclick="openPointsPanel()">
+                <span class="menu-item-icon">⭐</span>
+                My Points
             </button>
             <div class="menu-divider"></div>
             <button class="menu-item" onclick="openTimeline()">
@@ -6984,6 +7897,177 @@
         <div class="traffic-suggestion" id="traffic-suggestion"></div>
     </div>
 
+    <!-- Phase 4: User Level Badge (M47) -->
+    <div class="user-level-badge" id="user-level-badge" onclick="openLevelPanel()">
+        <div class="level-rank" id="user-rank">1</div>
+        <div class="level-info">
+            <div class="level-title" id="user-level-title">Beginner</div>
+            <div class="level-points" id="user-level-points">0 pts</div>
+        </div>
+        <div class="level-progress">
+            <div class="level-progress-bar" id="level-progress-bar" style="width: 0%"></div>
+        </div>
+    </div>
+
+    <!-- Phase 4: Achievements Panel (M45) -->
+    <div class="achievements-panel" id="achievements-panel">
+        <div class="achievements-header">
+            <div class="achievements-header-top">
+                <button class="achievements-back" onclick="closeAchievementsPanel()">←</button>
+                <div class="achievements-title">Achievements</div>
+            </div>
+            <div class="achievements-stats">
+                <div class="achievement-stat">
+                    <div class="achievement-stat-value" id="achievements-unlocked">0</div>
+                    <div class="achievement-stat-label">Unlocked</div>
+                </div>
+                <div class="achievement-stat">
+                    <div class="achievement-stat-value" id="achievements-total">24</div>
+                    <div class="achievement-stat-label">Total</div>
+                </div>
+                <div class="achievement-stat">
+                    <div class="achievement-stat-value" id="achievements-points">0</div>
+                    <div class="achievement-stat-label">Points Earned</div>
+                </div>
+            </div>
+            <div class="achievements-tabs">
+                <button class="achievements-tab active" onclick="filterAchievements('all')">All</button>
+                <button class="achievements-tab" onclick="filterAchievements('unlocked')">Unlocked</button>
+                <button class="achievements-tab" onclick="filterAchievements('locked')">In Progress</button>
+            </div>
+        </div>
+        <div class="achievements-content" id="achievements-content">
+            <!-- Achievement cards rendered dynamically -->
+        </div>
+    </div>
+
+    <!-- Phase 4: Leaderboard Panel (M46) -->
+    <div class="leaderboard-panel" id="leaderboard-panel">
+        <div class="leaderboard-header">
+            <div class="leaderboard-header-top">
+                <button class="leaderboard-back" onclick="closeLeaderboardPanel()">←</button>
+                <div class="leaderboard-title">Leaderboard</div>
+            </div>
+            <div class="leaderboard-filter">
+                <button class="leaderboard-filter-btn active" onclick="filterLeaderboard('weekly')">This Week</button>
+                <button class="leaderboard-filter-btn" onclick="filterLeaderboard('monthly')">This Month</button>
+                <button class="leaderboard-filter-btn" onclick="filterLeaderboard('alltime')">All Time</button>
+            </div>
+        </div>
+        <div class="leaderboard-podium" id="leaderboard-podium">
+            <!-- Top 3 rendered dynamically -->
+        </div>
+        <div class="leaderboard-content" id="leaderboard-content">
+            <!-- Leaderboard entries rendered dynamically -->
+        </div>
+    </div>
+
+    <!-- Phase 4: Road Warrior Levels Panel (M47) -->
+    <div class="level-panel" id="level-panel">
+        <div class="level-header">
+            <div class="level-header-top">
+                <button class="level-back" onclick="closeLevelPanel()">←</button>
+                <div class="level-header-title">Road Warrior Levels</div>
+            </div>
+            <div class="current-level-display">
+                <div class="current-level-icon" id="current-level-icon">🚶</div>
+                <div class="current-level-name" id="current-level-name">Beginner</div>
+                <div class="current-level-progress">
+                    <div class="current-level-bar">
+                        <div class="current-level-fill" id="current-level-fill" style="width: 0%"></div>
+                    </div>
+                    <div class="current-level-text" id="current-level-text">0 / 100 pts</div>
+                </div>
+            </div>
+        </div>
+        <div class="level-content" id="level-content">
+            <!-- Level tiers rendered dynamically -->
+        </div>
+    </div>
+
+    <!-- Phase 4: Points Panel (M48) -->
+    <div class="points-panel" id="points-panel">
+        <div class="points-header">
+            <div class="points-header-top">
+                <button class="points-back" onclick="closePointsPanel()">←</button>
+                <div class="points-header-title">Points</div>
+            </div>
+            <div class="points-balance">
+                <div class="points-balance-value" id="points-balance">0</div>
+                <div class="points-balance-label">Total Points</div>
+            </div>
+            <div class="points-earning-summary">
+                <div class="points-earning-item">
+                    <div class="points-earning-value" id="points-today">0</div>
+                    <div class="points-earning-label">Today</div>
+                </div>
+                <div class="points-earning-item">
+                    <div class="points-earning-value" id="points-week">0</div>
+                    <div class="points-earning-label">This Week</div>
+                </div>
+                <div class="points-earning-item">
+                    <div class="points-earning-value" id="points-month">0</div>
+                    <div class="points-earning-label">This Month</div>
+                </div>
+            </div>
+        </div>
+        <div class="points-content" id="points-content">
+            <div class="points-section-title">Ways to Earn</div>
+            <div class="points-ways-grid">
+                <div class="points-way-card">
+                    <div class="points-way-icon">🚗</div>
+                    <div class="points-way-name">Complete Navigation</div>
+                    <div class="points-way-value">+10 pts</div>
+                </div>
+                <div class="points-way-card">
+                    <div class="points-way-icon">⚠️</div>
+                    <div class="points-way-name">Report Incident</div>
+                    <div class="points-way-value">+15 pts</div>
+                </div>
+                <div class="points-way-card">
+                    <div class="points-way-icon">⛽</div>
+                    <div class="points-way-name">Report Fuel Price</div>
+                    <div class="points-way-value">+20 pts</div>
+                </div>
+                <div class="points-way-card">
+                    <div class="points-way-icon">📸</div>
+                    <div class="points-way-name">Add POI Photo</div>
+                    <div class="points-way-value">+25 pts</div>
+                </div>
+                <div class="points-way-card">
+                    <div class="points-way-icon">⭐</div>
+                    <div class="points-way-name">Write Review</div>
+                    <div class="points-way-value">+30 pts</div>
+                </div>
+                <div class="points-way-card">
+                    <div class="points-way-icon">🗺️</div>
+                    <div class="points-way-name">Map Edit</div>
+                    <div class="points-way-value">+50 pts</div>
+                </div>
+                <div class="points-way-card">
+                    <div class="points-way-icon">🔥</div>
+                    <div class="points-way-name">Daily Streak</div>
+                    <div class="points-way-value">+5 pts/day</div>
+                </div>
+                <div class="points-way-card">
+                    <div class="points-way-icon">🏆</div>
+                    <div class="points-way-name">Unlock Badge</div>
+                    <div class="points-way-value">+100 pts</div>
+                </div>
+            </div>
+            <div class="points-section-title">Recent Activity</div>
+            <div id="points-history">
+                <!-- Points history rendered dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Points Popup Animation -->
+    <div class="points-popup" id="points-popup">
+        <div class="points-popup-value" id="points-popup-value">+10</div>
+        <div class="points-popup-label">Points Earned!</div>
+    </div>
+
     <!-- Toast notification -->
     <div class="toast" id="toast"></div>
 
@@ -6996,7 +8080,7 @@
             maplibreScript.async = true;
             maplibreScript.onload = function() {
                 var appScript = document.createElement('script');
-                appScript.src = 'js/maps.min.js?v=32';
+                appScript.src = 'js/maps.min.js?v=33';
                 appScript.async = true;
                 document.body.appendChild(appScript);
             };

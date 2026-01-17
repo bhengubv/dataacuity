@@ -7181,6 +7181,635 @@ if (typeof userLocation !== 'undefined' && userLocation) {
 }
 
 // ============================================
+// Phase 4: Gamification System (M45-M48)
+// ============================================
+
+// Gamification State
+const gamification = {
+    userId: localStorage.getItem('gamification_user_id') || generateUserId(),
+    points: parseInt(localStorage.getItem('gamification_points') || '0'),
+    level: parseInt(localStorage.getItem('gamification_level') || '1'),
+    achievements: JSON.parse(localStorage.getItem('gamification_achievements') || '[]'),
+    pointsHistory: JSON.parse(localStorage.getItem('gamification_history') || '[]'),
+    dailyStreak: parseInt(localStorage.getItem('gamification_streak') || '0'),
+    lastActive: localStorage.getItem('gamification_last_active') || null,
+    avatar: localStorage.getItem('gamification_avatar') || '🚗'
+};
+
+function generateUserId() {
+    const id = 'user_' + Math.random().toString(36).substr(2, 9);
+    localStorage.setItem('gamification_user_id', id);
+    return id;
+}
+
+// Level Tiers (Waze-style Road Warrior system)
+const LEVEL_TIERS = [
+    { level: 1, name: 'Beginner', icon: '🚶', minPoints: 0, perks: 'Basic features' },
+    { level: 2, name: 'Explorer', icon: '🚲', minPoints: 100, perks: 'Custom avatar' },
+    { level: 3, name: 'Navigator', icon: '🛵', minPoints: 500, perks: 'Priority reports' },
+    { level: 4, name: 'Road Master', icon: '🚗', minPoints: 1500, perks: 'Beta features' },
+    { level: 5, name: 'Road Warrior', icon: '🏎️', minPoints: 5000, perks: 'Map editor access' },
+    { level: 6, name: 'Legend', icon: '👑', minPoints: 15000, perks: 'Community leader' }
+];
+
+// Achievement Definitions
+const ACHIEVEMENTS = [
+    // Navigation achievements
+    { id: 'first_trip', name: 'First Journey', desc: 'Complete your first navigation', icon: '🚗', category: 'Navigation', points: 50, requirement: 1, type: 'trips' },
+    { id: 'road_tripper', name: 'Road Tripper', desc: 'Complete 10 navigations', icon: '🛣️', category: 'Navigation', points: 100, requirement: 10, type: 'trips' },
+    { id: 'marathon_driver', name: 'Marathon Driver', desc: 'Complete 50 navigations', icon: '🏁', category: 'Navigation', points: 250, requirement: 50, type: 'trips' },
+    { id: 'long_hauler', name: 'Long Hauler', desc: 'Drive 100km in a single trip', icon: '🚚', category: 'Navigation', points: 150, requirement: 100, type: 'single_distance' },
+
+    // Reporting achievements
+    { id: 'first_report', name: 'First Alert', desc: 'Report your first incident', icon: '⚠️', category: 'Community', points: 50, requirement: 1, type: 'reports' },
+    { id: 'watchful_eye', name: 'Watchful Eye', desc: 'Report 10 incidents', icon: '👁️', category: 'Community', points: 100, requirement: 10, type: 'reports' },
+    { id: 'traffic_hero', name: 'Traffic Hero', desc: 'Report 50 incidents', icon: '🦸', category: 'Community', points: 300, requirement: 50, type: 'reports' },
+    { id: 'fuel_spotter', name: 'Fuel Spotter', desc: 'Report 5 fuel prices', icon: '⛽', category: 'Community', points: 100, requirement: 5, type: 'fuel_reports' },
+
+    // Exploration achievements
+    { id: 'explorer', name: 'Explorer', desc: 'Search 25 different places', icon: '🔍', category: 'Exploration', points: 75, requirement: 25, type: 'searches' },
+    { id: 'city_mapper', name: 'City Mapper', desc: 'Visit 10 different cities', icon: '🏙️', category: 'Exploration', points: 200, requirement: 10, type: 'cities' },
+    { id: 'saved_places', name: 'Bookmarker', desc: 'Save 10 places to collections', icon: '⭐', category: 'Exploration', points: 75, requirement: 10, type: 'saved' },
+
+    // Streak achievements
+    { id: 'streak_3', name: 'Getting Started', desc: '3 day active streak', icon: '🔥', category: 'Streaks', points: 50, requirement: 3, type: 'streak' },
+    { id: 'streak_7', name: 'Week Warrior', desc: '7 day active streak', icon: '📅', category: 'Streaks', points: 100, requirement: 7, type: 'streak' },
+    { id: 'streak_30', name: 'Monthly Master', desc: '30 day active streak', icon: '🏆', category: 'Streaks', points: 500, requirement: 30, type: 'streak' },
+
+    // Special achievements
+    { id: 'night_owl', name: 'Night Owl', desc: 'Navigate after midnight', icon: '🦉', category: 'Special', points: 75, requirement: 1, type: 'night_nav' },
+    { id: 'early_bird', name: 'Early Bird', desc: 'Navigate before 6 AM', icon: '🐦', category: 'Special', points: 75, requirement: 1, type: 'early_nav' },
+    { id: 'transit_user', name: 'Eco Commuter', desc: 'Use transit directions 5 times', icon: '🚌', category: 'Special', points: 100, requirement: 5, type: 'transit' },
+    { id: 'offline_ready', name: 'Prepared Traveler', desc: 'Download a region for offline use', icon: '💾', category: 'Special', points: 100, requirement: 1, type: 'offline' },
+
+    // Social achievements
+    { id: 'reviewer', name: 'Reviewer', desc: 'Write 5 place reviews', icon: '📝', category: 'Social', points: 100, requirement: 5, type: 'reviews' },
+    { id: 'photographer', name: 'Photographer', desc: 'Add 10 place photos', icon: '📸', category: 'Social', points: 150, requirement: 10, type: 'photos' },
+    { id: 'sharer', name: 'Sharer', desc: 'Share your location 5 times', icon: '📤', category: 'Social', points: 75, requirement: 5, type: 'shares' },
+
+    // Elite achievements
+    { id: 'centurion', name: 'Centurion', desc: 'Earn 1000 total points', icon: '💯', category: 'Elite', points: 200, requirement: 1000, type: 'total_points' },
+    { id: 'legendary', name: 'Legendary', desc: 'Reach Level 6 (Legend)', icon: '👑', category: 'Elite', points: 500, requirement: 6, type: 'level' }
+];
+
+// Points values for actions
+const POINTS_VALUES = {
+    navigation_complete: 10,
+    incident_report: 15,
+    fuel_price_report: 20,
+    photo_upload: 25,
+    review_write: 30,
+    map_edit: 50,
+    daily_streak: 5,
+    achievement_unlock: 100,
+    share_location: 5,
+    search: 1,
+    save_place: 2
+};
+
+// Initialize gamification on load
+function initGamification() {
+    checkDailyStreak();
+    updateLevelBadge();
+    saveGamificationState();
+}
+
+// Check and update daily streak
+function checkDailyStreak() {
+    const today = new Date().toDateString();
+    const lastActive = gamification.lastActive;
+
+    if (!lastActive) {
+        gamification.dailyStreak = 1;
+    } else {
+        const lastDate = new Date(lastActive);
+        const diff = Math.floor((new Date(today) - lastDate) / (1000 * 60 * 60 * 24));
+
+        if (diff === 1) {
+            gamification.dailyStreak++;
+            awardPoints(POINTS_VALUES.daily_streak * gamification.dailyStreak, 'Daily streak bonus');
+        } else if (diff > 1) {
+            gamification.dailyStreak = 1;
+        }
+    }
+
+    gamification.lastActive = today;
+    checkAchievements('streak', gamification.dailyStreak);
+}
+
+// Award points with animation
+function awardPoints(amount, reason) {
+    gamification.points += amount;
+
+    // Add to history
+    gamification.pointsHistory.unshift({
+        amount: amount,
+        reason: reason,
+        timestamp: new Date().toISOString()
+    });
+
+    // Keep only last 50 entries
+    if (gamification.pointsHistory.length > 50) {
+        gamification.pointsHistory = gamification.pointsHistory.slice(0, 50);
+    }
+
+    // Check for level up
+    checkLevelUp();
+
+    // Show popup animation
+    showPointsPopup(amount);
+
+    // Update UI
+    updateLevelBadge();
+
+    // Save state
+    saveGamificationState();
+
+    // Check total points achievement
+    checkAchievements('total_points', gamification.points);
+}
+
+// Show points earned popup
+function showPointsPopup(amount) {
+    const popup = document.getElementById('points-popup');
+    if (!popup) return;
+
+    document.getElementById('points-popup-value').textContent = '+' + amount;
+    popup.classList.add('show');
+
+    setTimeout(() => {
+        popup.classList.remove('show');
+    }, 2000);
+}
+
+// Check for level up
+function checkLevelUp() {
+    const currentTier = LEVEL_TIERS.find(t => t.level === gamification.level);
+    const nextTier = LEVEL_TIERS.find(t => t.level === gamification.level + 1);
+
+    if (nextTier && gamification.points >= nextTier.minPoints) {
+        gamification.level = nextTier.level;
+        showToast(`Level Up! You're now a ${nextTier.name}!`);
+        checkAchievements('level', gamification.level);
+    }
+}
+
+// Update the level badge display
+function updateLevelBadge() {
+    const tier = LEVEL_TIERS.find(t => t.level === gamification.level) || LEVEL_TIERS[0];
+    const nextTier = LEVEL_TIERS.find(t => t.level === gamification.level + 1);
+
+    const rankEl = document.getElementById('user-rank');
+    const titleEl = document.getElementById('user-level-title');
+    const pointsEl = document.getElementById('user-level-points');
+    const progressEl = document.getElementById('level-progress-bar');
+
+    if (rankEl) rankEl.textContent = tier.icon;
+    if (titleEl) titleEl.textContent = tier.name;
+    if (pointsEl) pointsEl.textContent = gamification.points + ' pts';
+
+    if (progressEl && nextTier) {
+        const progress = ((gamification.points - tier.minPoints) / (nextTier.minPoints - tier.minPoints)) * 100;
+        progressEl.style.width = Math.min(progress, 100) + '%';
+    } else if (progressEl) {
+        progressEl.style.width = '100%';
+    }
+}
+
+// Check achievements
+function checkAchievements(type, value) {
+    ACHIEVEMENTS.forEach(achievement => {
+        if (achievement.type === type && !gamification.achievements.includes(achievement.id)) {
+            if (value >= achievement.requirement) {
+                unlockAchievement(achievement);
+            }
+        }
+    });
+}
+
+// Unlock an achievement
+function unlockAchievement(achievement) {
+    gamification.achievements.push(achievement.id);
+    awardPoints(achievement.points, `Achievement: ${achievement.name}`);
+    showToast(`Achievement Unlocked: ${achievement.name}!`);
+    saveGamificationState();
+}
+
+// Save gamification state to localStorage
+function saveGamificationState() {
+    localStorage.setItem('gamification_points', gamification.points.toString());
+    localStorage.setItem('gamification_level', gamification.level.toString());
+    localStorage.setItem('gamification_achievements', JSON.stringify(gamification.achievements));
+    localStorage.setItem('gamification_history', JSON.stringify(gamification.pointsHistory));
+    localStorage.setItem('gamification_streak', gamification.dailyStreak.toString());
+    localStorage.setItem('gamification_last_active', gamification.lastActive);
+}
+
+// Track user stats for achievements
+const userStats = {
+    trips: parseInt(localStorage.getItem('stat_trips') || '0'),
+    reports: parseInt(localStorage.getItem('stat_reports') || '0'),
+    fuelReports: parseInt(localStorage.getItem('stat_fuel_reports') || '0'),
+    searches: parseInt(localStorage.getItem('stat_searches') || '0'),
+    saved: parseInt(localStorage.getItem('stat_saved') || '0'),
+    reviews: parseInt(localStorage.getItem('stat_reviews') || '0'),
+    photos: parseInt(localStorage.getItem('stat_photos') || '0'),
+    shares: parseInt(localStorage.getItem('stat_shares') || '0'),
+    transit: parseInt(localStorage.getItem('stat_transit') || '0')
+};
+
+function incrementStat(stat, amount = 1) {
+    if (userStats[stat] !== undefined) {
+        userStats[stat] += amount;
+        localStorage.setItem('stat_' + stat, userStats[stat].toString());
+        checkAchievements(stat === 'fuelReports' ? 'fuel_reports' : stat, userStats[stat]);
+    }
+}
+
+// ============================================
+// Achievements Panel (M45)
+// ============================================
+
+function openAchievementsPanel() {
+    toggleMenu();
+    document.getElementById('achievements-panel').classList.add('active');
+    renderAchievements('all');
+    updateAchievementStats();
+}
+window.openAchievementsPanel = openAchievementsPanel;
+
+function closeAchievementsPanel() {
+    document.getElementById('achievements-panel').classList.remove('active');
+}
+window.closeAchievementsPanel = closeAchievementsPanel;
+
+function filterAchievements(filter) {
+    // Update tab active state
+    document.querySelectorAll('.achievements-tab').forEach(tab => {
+        tab.classList.remove('active');
+        if (tab.textContent.toLowerCase().includes(filter) ||
+            (filter === 'all' && tab.textContent === 'All') ||
+            (filter === 'locked' && tab.textContent === 'In Progress')) {
+            tab.classList.add('active');
+        }
+    });
+    renderAchievements(filter);
+}
+window.filterAchievements = filterAchievements;
+
+function renderAchievements(filter) {
+    const container = document.getElementById('achievements-content');
+    if (!container) return;
+
+    // Group by category
+    const categories = {};
+    ACHIEVEMENTS.forEach(a => {
+        if (!categories[a.category]) categories[a.category] = [];
+        const isUnlocked = gamification.achievements.includes(a.id);
+
+        if (filter === 'all' ||
+            (filter === 'unlocked' && isUnlocked) ||
+            (filter === 'locked' && !isUnlocked)) {
+            categories[a.category].push({ ...a, unlocked: isUnlocked });
+        }
+    });
+
+    let html = '';
+    Object.keys(categories).forEach(category => {
+        if (categories[category].length === 0) return;
+
+        html += `<div class="achievement-category">
+            <div class="achievement-category-title">${category}</div>`;
+
+        categories[category].forEach(a => {
+            const progress = getAchievementProgress(a);
+            const tierClass = a.unlocked ? getTierClass(a.points) : 'locked';
+
+            html += `
+                <div class="achievement-card ${a.unlocked ? 'unlocked' : 'locked'}">
+                    <div class="achievement-icon ${tierClass}">${a.icon}</div>
+                    <div class="achievement-info">
+                        <div class="achievement-name">${a.name}</div>
+                        <div class="achievement-desc">${a.desc}</div>
+                        ${!a.unlocked ? `
+                            <div class="achievement-progress">
+                                <div class="achievement-progress-bar" style="width: ${progress.percent}%"></div>
+                            </div>
+                            <div class="achievement-progress-text">${progress.current} / ${a.requirement}</div>
+                        ` : ''}
+                    </div>
+                    <div class="achievement-points">
+                        <div class="achievement-points-value">${a.points}</div>
+                        <div class="achievement-points-label">pts</div>
+                    </div>
+                </div>`;
+        });
+
+        html += '</div>';
+    });
+
+    container.innerHTML = html || '<div style="text-align:center;padding:40px;color:#888;">No achievements to show</div>';
+}
+
+function getAchievementProgress(achievement) {
+    let current = 0;
+    switch (achievement.type) {
+        case 'trips': current = userStats.trips; break;
+        case 'reports': current = userStats.reports; break;
+        case 'fuel_reports': current = userStats.fuelReports; break;
+        case 'searches': current = userStats.searches; break;
+        case 'saved': current = userStats.saved; break;
+        case 'reviews': current = userStats.reviews; break;
+        case 'photos': current = userStats.photos; break;
+        case 'shares': current = userStats.shares; break;
+        case 'streak': current = gamification.dailyStreak; break;
+        case 'total_points': current = gamification.points; break;
+        case 'level': current = gamification.level; break;
+        case 'transit': current = userStats.transit; break;
+        default: current = 0;
+    }
+    return {
+        current: Math.min(current, achievement.requirement),
+        percent: Math.min((current / achievement.requirement) * 100, 100)
+    };
+}
+
+function getTierClass(points) {
+    if (points >= 300) return 'diamond';
+    if (points >= 200) return 'platinum';
+    if (points >= 150) return 'gold';
+    if (points >= 100) return 'silver';
+    return 'bronze';
+}
+
+function updateAchievementStats() {
+    const unlockedEl = document.getElementById('achievements-unlocked');
+    const totalEl = document.getElementById('achievements-total');
+    const pointsEl = document.getElementById('achievements-points');
+
+    if (unlockedEl) unlockedEl.textContent = gamification.achievements.length;
+    if (totalEl) totalEl.textContent = ACHIEVEMENTS.length;
+    if (pointsEl) {
+        const earnedPoints = gamification.achievements.reduce((sum, id) => {
+            const a = ACHIEVEMENTS.find(x => x.id === id);
+            return sum + (a ? a.points : 0);
+        }, 0);
+        pointsEl.textContent = earnedPoints;
+    }
+}
+
+// ============================================
+// Leaderboard Panel (M46)
+// ============================================
+
+function openLeaderboardPanel() {
+    toggleMenu();
+    document.getElementById('leaderboard-panel').classList.add('active');
+    loadLeaderboard('weekly');
+}
+window.openLeaderboardPanel = openLeaderboardPanel;
+
+function closeLeaderboardPanel() {
+    document.getElementById('leaderboard-panel').classList.remove('active');
+}
+window.closeLeaderboardPanel = closeLeaderboardPanel;
+
+function filterLeaderboard(period) {
+    document.querySelectorAll('.leaderboard-filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.textContent.toLowerCase().includes(period.replace('alltime', 'all time'))) {
+            btn.classList.add('active');
+        }
+    });
+    loadLeaderboard(period);
+}
+window.filterLeaderboard = filterLeaderboard;
+
+async function loadLeaderboard(period) {
+    const podiumEl = document.getElementById('leaderboard-podium');
+    const contentEl = document.getElementById('leaderboard-content');
+
+    // Generate mock leaderboard (in production, this would fetch from API)
+    const leaderboard = generateMockLeaderboard(period);
+
+    // Find user's position
+    const userIndex = leaderboard.findIndex(e => e.userId === gamification.userId);
+    if (userIndex === -1) {
+        // Add current user if not in list
+        leaderboard.push({
+            userId: gamification.userId,
+            username: 'You',
+            avatar: gamification.avatar,
+            points: gamification.points,
+            level: gamification.level,
+            isCurrentUser: true
+        });
+        leaderboard.sort((a, b) => b.points - a.points);
+    } else {
+        leaderboard[userIndex].isCurrentUser = true;
+        leaderboard[userIndex].username = 'You';
+    }
+
+    // Render podium (top 3)
+    const top3 = leaderboard.slice(0, 3);
+    podiumEl.innerHTML = top3.map((entry, i) => {
+        const posClass = i === 0 ? 'first' : i === 1 ? 'second' : 'third';
+        return `
+            <div class="podium-item ${posClass}">
+                <div class="podium-avatar">${entry.avatar}</div>
+                <div class="podium-name">${entry.username}</div>
+                <div class="podium-points">${entry.points} pts</div>
+                <div class="podium-rank">${i + 1}</div>
+            </div>`;
+    }).join('');
+
+    // Render rest of leaderboard (4+)
+    contentEl.innerHTML = leaderboard.slice(3).map((entry, i) => `
+        <div class="leaderboard-entry ${entry.isCurrentUser ? 'current-user' : ''}">
+            <div class="leaderboard-rank">${i + 4}</div>
+            <div class="leaderboard-avatar">${entry.avatar}</div>
+            <div class="leaderboard-user-info">
+                <div class="leaderboard-username">${entry.username}</div>
+                <div class="leaderboard-user-level">${LEVEL_TIERS[entry.level - 1]?.name || 'Beginner'}</div>
+            </div>
+            <div class="leaderboard-user-points">
+                <div class="leaderboard-points-value">${entry.points}</div>
+                <div class="leaderboard-points-label">pts</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function generateMockLeaderboard(period) {
+    const multiplier = period === 'alltime' ? 10 : period === 'monthly' ? 3 : 1;
+    const names = ['RoadRunner', 'SpeedyGonzales', 'MapMaster', 'NavigatorPro', 'TrafficWatcher',
+                   'FuelFinder', 'CityExplorer', 'RouteKing', 'PathFinder', 'StreetSmart',
+                   'DriveWise', 'WaySeeker', 'JourneyMan', 'RoadScholar', 'TravelGuru'];
+    const avatars = ['🚗', '🚙', '🏎️', '🚕', '🛻', '🚐', '🏍️', '🛵', '🚲', '🚶'];
+
+    return names.map((name, i) => ({
+        userId: 'user_mock_' + i,
+        username: name,
+        avatar: avatars[i % avatars.length],
+        points: Math.floor((500 - i * 30) * multiplier + Math.random() * 50),
+        level: Math.min(6, Math.max(1, 6 - Math.floor(i / 3)))
+    })).sort((a, b) => b.points - a.points);
+}
+
+// ============================================
+// Level Panel (M47)
+// ============================================
+
+function openLevelPanel() {
+    document.getElementById('level-panel').classList.add('active');
+    renderLevelPanel();
+}
+window.openLevelPanel = openLevelPanel;
+
+function closeLevelPanel() {
+    document.getElementById('level-panel').classList.remove('active');
+}
+window.closeLevelPanel = closeLevelPanel;
+
+function renderLevelPanel() {
+    const tier = LEVEL_TIERS.find(t => t.level === gamification.level) || LEVEL_TIERS[0];
+    const nextTier = LEVEL_TIERS.find(t => t.level === gamification.level + 1);
+
+    // Update header
+    document.getElementById('current-level-icon').textContent = tier.icon;
+    document.getElementById('current-level-name').textContent = tier.name;
+
+    if (nextTier) {
+        const progress = ((gamification.points - tier.minPoints) / (nextTier.minPoints - tier.minPoints)) * 100;
+        document.getElementById('current-level-fill').style.width = progress + '%';
+        document.getElementById('current-level-text').textContent =
+            `${gamification.points} / ${nextTier.minPoints} pts`;
+    } else {
+        document.getElementById('current-level-fill').style.width = '100%';
+        document.getElementById('current-level-text').textContent = 'Max Level!';
+    }
+
+    // Render all tiers
+    const container = document.getElementById('level-content');
+    container.innerHTML = LEVEL_TIERS.map(t => {
+        const isCurrent = t.level === gamification.level;
+        const isUnlocked = gamification.points >= t.minPoints;
+        const statusClass = isCurrent ? 'current' : isUnlocked ? 'unlocked' : 'locked';
+        const tierClass = t.name.toLowerCase().replace(' ', '');
+
+        return `
+            <div class="level-tier ${isCurrent ? 'current' : ''} ${!isUnlocked ? 'locked' : ''}">
+                <div class="level-tier-icon ${tierClass}">${t.icon}</div>
+                <div class="level-tier-info">
+                    <div class="level-tier-name">${t.name}</div>
+                    <div class="level-tier-range">${t.minPoints}+ points</div>
+                    <div class="level-tier-perks">${t.perks}</div>
+                </div>
+                <div class="level-tier-status ${statusClass}">
+                    ${isCurrent ? 'Current' : isUnlocked ? 'Unlocked' : 'Locked'}
+                </div>
+            </div>`;
+    }).join('');
+}
+
+// ============================================
+// Points Panel (M48)
+// ============================================
+
+function openPointsPanel() {
+    toggleMenu();
+    document.getElementById('points-panel').classList.add('active');
+    renderPointsPanel();
+}
+window.openPointsPanel = openPointsPanel;
+
+function closePointsPanel() {
+    document.getElementById('points-panel').classList.remove('active');
+}
+window.closePointsPanel = closePointsPanel;
+
+function renderPointsPanel() {
+    // Update balance
+    document.getElementById('points-balance').textContent = gamification.points;
+
+    // Calculate period earnings
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const weekStart = new Date(todayStart);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    let todayPts = 0, weekPts = 0, monthPts = 0;
+    gamification.pointsHistory.forEach(entry => {
+        const entryDate = new Date(entry.timestamp);
+        if (entryDate >= todayStart) todayPts += entry.amount;
+        if (entryDate >= weekStart) weekPts += entry.amount;
+        if (entryDate >= monthStart) monthPts += entry.amount;
+    });
+
+    document.getElementById('points-today').textContent = todayPts;
+    document.getElementById('points-week').textContent = weekPts;
+    document.getElementById('points-month').textContent = monthPts;
+
+    // Render history
+    const historyEl = document.getElementById('points-history');
+    if (gamification.pointsHistory.length === 0) {
+        historyEl.innerHTML = '<div style="text-align:center;padding:20px;color:#888;">No activity yet. Start navigating!</div>';
+    } else {
+        historyEl.innerHTML = gamification.pointsHistory.slice(0, 20).map(entry => {
+            const icon = getActionIcon(entry.reason);
+            const timeAgo = formatTimeAgo(new Date(entry.timestamp));
+            return `
+                <div class="points-history-item">
+                    <div class="points-history-icon">${icon}</div>
+                    <div class="points-history-info">
+                        <div class="points-history-action">${entry.reason}</div>
+                        <div class="points-history-time">${timeAgo}</div>
+                    </div>
+                    <div class="points-history-amount ${entry.amount < 0 ? 'negative' : ''}">
+                        ${entry.amount > 0 ? '+' : ''}${entry.amount}
+                    </div>
+                </div>`;
+        }).join('');
+    }
+}
+
+function getActionIcon(reason) {
+    if (reason.includes('Navigation') || reason.includes('trip')) return '🚗';
+    if (reason.includes('Incident') || reason.includes('report')) return '⚠️';
+    if (reason.includes('Fuel')) return '⛽';
+    if (reason.includes('Photo')) return '📸';
+    if (reason.includes('Review')) return '⭐';
+    if (reason.includes('Achievement')) return '🏆';
+    if (reason.includes('streak')) return '🔥';
+    if (reason.includes('Share')) return '📤';
+    return '✨';
+}
+
+function formatTimeAgo(date) {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    if (seconds < 60) return 'Just now';
+    if (seconds < 3600) return Math.floor(seconds / 60) + ' min ago';
+    if (seconds < 86400) return Math.floor(seconds / 3600) + ' hours ago';
+    if (seconds < 604800) return Math.floor(seconds / 86400) + ' days ago';
+    return date.toLocaleDateString();
+}
+
+// Hook into existing actions to award points
+const originalReportIncident = window.reportIncident;
+if (typeof originalReportIncident === 'function') {
+    window.reportIncident = function(...args) {
+        const result = originalReportIncident.apply(this, args);
+        awardPoints(POINTS_VALUES.incident_report, 'Incident reported');
+        incrementStat('reports');
+        return result;
+    };
+}
+
+// Initialize gamification when app loads
+setTimeout(initGamification, 1000);
+
+// ============================================
 // Start App
 // ============================================
 if (document.readyState === 'loading') {

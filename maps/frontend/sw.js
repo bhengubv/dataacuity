@@ -1,7 +1,7 @@
 // Data Acuity Maps Service Worker
 // Version: 2.0.0 - Mobile-first Waze-like UX
 
-const CACHE_NAME = 'dataacuity-maps-v21';
+const CACHE_NAME = 'dataacuity-maps-v22';
 const TILE_CACHE_NAME = 'dataacuity-tiles-v1';
 const API_CACHE_NAME = 'dataacuity-api-v1';
 
