@@ -2213,26 +2213,1567 @@ function toggleMenu(show) {
 window.toggleMenu = toggleMenu;
 
 // Menu item handlers (secondary features)
+// ============================================
+// Historical Timeline Functions
+// ============================================
+
+let historicalMapsData = null;
+let currentHistoricalOverlay = null;
+let selectedHistoricalMap = null;
+
+async function loadHistoricalMapsManifest() {
+    if (historicalMapsData) return historicalMapsData;
+
+    try {
+        const response = await fetch('/historical-maps/manifest.json');
+        if (!response.ok) throw new Error('Failed to load manifest');
+        historicalMapsData = await response.json();
+        return historicalMapsData;
+    } catch (error) {
+        console.error('Error loading historical maps:', error);
+        return null;
+    }
+}
+
 function openTimeline() {
     toggleMenu(false);
-    showToast('Historical timeline coming soon');
-    // TODO: Implement timeline overlay
+    const backdrop = document.getElementById('timeline-backdrop');
+    const panel = document.getElementById('timeline-panel');
+    if (backdrop && panel) {
+        backdrop.classList.add('active');
+        panel.classList.add('active');
+        // Load and display maps
+        initTimelinePanel();
+    }
 }
 window.openTimeline = openTimeline;
 
+function closeTimelinePanel() {
+    const backdrop = document.getElementById('timeline-backdrop');
+    const panel = document.getElementById('timeline-panel');
+    if (backdrop && panel) {
+        backdrop.classList.remove('active');
+        panel.classList.remove('active');
+    }
+}
+window.closeTimelinePanel = closeTimelinePanel;
+
+async function initTimelinePanel() {
+    const data = await loadHistoricalMapsManifest();
+    if (!data) {
+        showToast('Unable to load historical maps');
+        return;
+    }
+
+    // Set initial year and update display
+    const slider = document.getElementById('timeline-slider');
+    if (slider) {
+        updateTimelineYear(slider.value);
+    }
+}
+
+function updateTimelineYear(year) {
+    year = parseInt(year);
+
+    // Update year display
+    const yearValue = document.getElementById('timeline-year-value');
+    const yearSuffix = document.getElementById('timeline-year-suffix');
+    const periodName = document.getElementById('timeline-period-name');
+
+    if (yearValue) {
+        yearValue.textContent = Math.abs(year);
+    }
+    if (yearSuffix) {
+        yearSuffix.textContent = year < 0 ? 'BCE' : 'CE';
+    }
+
+    // Determine period
+    if (periodName && historicalMapsData) {
+        const period = historicalMapsData.periods.find(p => year >= p.start && year <= p.end);
+        periodName.textContent = period ? period.name : '';
+    }
+
+    // Filter and display maps for this period
+    displayMapsForYear(year);
+}
+window.updateTimelineYear = updateTimelineYear;
+
+function displayMapsForYear(year) {
+    const grid = document.getElementById('timeline-maps-grid');
+    if (!grid || !historicalMapsData) return;
+
+    // Find maps that cover this year
+    const relevantMaps = historicalMapsData.maps.filter(map => {
+        return year >= map.period.start && year <= map.period.end;
+    });
+
+    if (relevantMaps.length === 0) {
+        grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: #666; padding: 20px;">No maps available for this period</div>';
+        return;
+    }
+
+    grid.innerHTML = relevantMaps.map(map => {
+        const isSelected = selectedHistoricalMap === map.id;
+        const thumbPath = `/historical-maps/thumbs/${map.file.replace('.jpg', '-thumb.jpg')}`;
+        const fallbackPath = `/historical-maps/${map.file}`;
+
+        return `
+            <div class="timeline-map-card ${isSelected ? 'selected' : ''}"
+                 onclick="selectHistoricalMap('${map.id}')"
+                 data-map-id="${map.id}">
+                <img class="timeline-map-thumb"
+                     src="${thumbPath}"
+                     alt="${map.title}"
+                     onerror="this.src='${fallbackPath}'">
+                <div class="timeline-map-info">
+                    <div class="timeline-map-title">${map.title}</div>
+                    <div class="timeline-map-period">${formatMapPeriod(map.period)}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function formatMapPeriod(period) {
+    const formatYear = (y) => y < 0 ? `${Math.abs(y)} BCE` : `${y} CE`;
+    return `${formatYear(period.start)} - ${formatYear(period.end)}`;
+}
+
+async function selectHistoricalMap(mapId) {
+    const data = await loadHistoricalMapsManifest();
+    if (!data) return;
+
+    const map = data.maps.find(m => m.id === mapId);
+    if (!map) return;
+
+    selectedHistoricalMap = mapId;
+
+    // Update UI selection
+    document.querySelectorAll('.timeline-map-card').forEach(card => {
+        card.classList.toggle('selected', card.dataset.mapId === mapId);
+    });
+
+    // Show overlay controls
+    const controls = document.getElementById('timeline-overlay-controls');
+    if (controls) {
+        controls.style.display = 'block';
+    }
+
+    // Apply the overlay
+    applyHistoricalOverlay(map);
+
+    // Update indicator
+    const indicator = document.getElementById('timeline-indicator');
+    const indicatorTitle = document.getElementById('timeline-indicator-title');
+    if (indicator && indicatorTitle) {
+        indicatorTitle.textContent = map.title;
+        indicator.classList.add('active');
+    }
+
+    showToast(`Overlaying: ${map.title}`);
+}
+window.selectHistoricalMap = selectHistoricalMap;
+
+function applyHistoricalOverlay(mapData) {
+    if (!state.map) return;
+
+    // Remove existing overlay if any
+    removeHistoricalOverlay();
+
+    const imagePath = `/historical-maps/${mapData.file}`;
+
+    // Get bounds from map data or use default world bounds
+    let bounds;
+    if (mapData.bounds) {
+        bounds = mapData.bounds;
+    } else if (mapData.region === 'world') {
+        bounds = [[-60, -180], [75, 180]];
+    } else {
+        // Default to Mediterranean region for ancient maps
+        bounds = [[20, -20], [55, 60]];
+    }
+
+    // Add image source
+    state.map.addSource('historical-overlay', {
+        type: 'image',
+        url: imagePath,
+        coordinates: [
+            [bounds[0][1], bounds[1][0]], // top-left
+            [bounds[1][1], bounds[1][0]], // top-right
+            [bounds[1][1], bounds[0][0]], // bottom-right
+            [bounds[0][1], bounds[0][0]]  // bottom-left
+        ]
+    });
+
+    // Add image layer
+    state.map.addLayer({
+        id: 'historical-overlay-layer',
+        type: 'raster',
+        source: 'historical-overlay',
+        paint: {
+            'raster-opacity': 0.7,
+            'raster-fade-duration': 300
+        }
+    });
+
+    currentHistoricalOverlay = mapData.id;
+
+    // Optionally fly to the map region
+    if (mapData.bounds) {
+        state.map.fitBounds([
+            [bounds[0][1], bounds[0][0]],
+            [bounds[1][1], bounds[1][0]]
+        ], { padding: 50, duration: 1000 });
+    }
+}
+
+function removeHistoricalOverlay() {
+    if (!state.map) return;
+
+    try {
+        if (state.map.getLayer('historical-overlay-layer')) {
+            state.map.removeLayer('historical-overlay-layer');
+        }
+        if (state.map.getSource('historical-overlay')) {
+            state.map.removeSource('historical-overlay');
+        }
+    } catch (e) {
+        console.log('Error removing overlay:', e);
+    }
+
+    currentHistoricalOverlay = null;
+}
+
+function clearTimelineOverlay() {
+    removeHistoricalOverlay();
+    selectedHistoricalMap = null;
+
+    // Update UI
+    document.querySelectorAll('.timeline-map-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+
+    const controls = document.getElementById('timeline-overlay-controls');
+    if (controls) {
+        controls.style.display = 'none';
+    }
+
+    const indicator = document.getElementById('timeline-indicator');
+    if (indicator) {
+        indicator.classList.remove('active');
+    }
+
+    showToast('Historical overlay cleared');
+}
+window.clearTimelineOverlay = clearTimelineOverlay;
+
+function updateTimelineOpacity(value) {
+    const opacityValue = document.getElementById('timeline-opacity-value');
+    if (opacityValue) {
+        opacityValue.textContent = `${value}%`;
+    }
+
+    // Update map layer opacity
+    if (state.map && state.map.getLayer('historical-overlay-layer')) {
+        state.map.setPaintProperty('historical-overlay-layer', 'raster-opacity', value / 100);
+    }
+}
+window.updateTimelineOpacity = updateTimelineOpacity;
+
+// ============================================
+// Transit Overlay Functions
+// ============================================
+
+let transitCurrentTab = 'nearby';
+let transitStopsCache = null;
+let transitDepartureTime = null; // null = now
+
 function openTransit() {
     toggleMenu(false);
-    showToast('Public transit coming soon');
-    // TODO: Implement transit overlay
+    const backdrop = document.getElementById('transit-backdrop');
+    const panel = document.getElementById('transit-panel');
+    if (backdrop && panel) {
+        backdrop.classList.add('active');
+        panel.classList.add('active');
+        // Load nearby stops
+        loadNearbyTransitStops();
+    }
 }
 window.openTransit = openTransit;
 
+function closeTransitPanel() {
+    const backdrop = document.getElementById('transit-backdrop');
+    const panel = document.getElementById('transit-panel');
+    if (backdrop && panel) {
+        backdrop.classList.remove('active');
+        panel.classList.remove('active');
+    }
+}
+window.closeTransitPanel = closeTransitPanel;
+
+function switchTransitTab(tab) {
+    transitCurrentTab = tab;
+
+    // Update tab UI
+    document.querySelectorAll('.transit-tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.tab === tab);
+    });
+
+    // Load content based on tab
+    if (tab === 'nearby') {
+        loadNearbyTransitStops();
+    } else if (tab === 'routes') {
+        showTransitRoutePlanner();
+    } else {
+        loadTransitByType(tab);
+    }
+}
+window.switchTransitTab = switchTransitTab;
+
+function setTransitDeparture(mode) {
+    const nowBtn = document.getElementById('transit-depart-now');
+    const laterBtn = document.getElementById('transit-depart-later');
+    const timeInput = document.getElementById('transit-depart-time');
+
+    if (mode === 'now') {
+        nowBtn.classList.add('active');
+        laterBtn.classList.remove('active');
+        timeInput.style.display = 'none';
+        transitDepartureTime = null;
+    } else {
+        nowBtn.classList.remove('active');
+        laterBtn.classList.add('active');
+        timeInput.style.display = 'block';
+        // Set default to current time
+        const now = new Date();
+        timeInput.value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        transitDepartureTime = timeInput.value;
+    }
+}
+window.setTransitDeparture = setTransitDeparture;
+
+function updateTransitDeparture() {
+    transitDepartureTime = document.getElementById('transit-depart-time').value;
+}
+window.updateTransitDeparture = updateTransitDeparture;
+
+function showTransitRoutePlanner() {
+    const content = document.getElementById('transit-content');
+    if (!content) return;
+
+    content.innerHTML = `
+        <div style="padding: 10px 0;">
+            <div style="background: #f5f5f5; border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background: #4CAF50;"></div>
+                    <input type="text" id="transit-from" placeholder="From (current location)"
+                           style="flex: 1; border: none; background: transparent; font-size: 15px; outline: none;"
+                           value="${state.userLocation ? 'Current Location' : ''}" readonly>
+                </div>
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 12px; height: 12px; border-radius: 50%; background: #E53935;"></div>
+                    <input type="text" id="transit-to" placeholder="Enter destination"
+                           style="flex: 1; border: none; background: transparent; font-size: 15px; outline: none;"
+                           onkeyup="if(event.key==='Enter') planTransitTrip()">
+                </div>
+            </div>
+            <button onclick="planTransitTrip()" style="width: 100%; padding: 14px; background: #4CAF50; color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer;">
+                Find Transit Routes
+            </button>
+        </div>
+        <div id="transit-route-results"></div>
+    `;
+}
+
+async function planTransitTrip() {
+    const destInput = document.getElementById('transit-to');
+    const resultsDiv = document.getElementById('transit-route-results');
+
+    if (!destInput || !resultsDiv) return;
+
+    const destination = destInput.value.trim();
+    if (!destination) {
+        showToast('Please enter a destination');
+        return;
+    }
+
+    if (!state.userLocation) {
+        showToast('Enable location for transit routing');
+        return;
+    }
+
+    resultsDiv.innerHTML = '<div class="transit-loading">Finding transit routes...</div>';
+
+    try {
+        // Geocode destination
+        const geoResponse = await fetch(`${API_BASE}/geocode?q=${encodeURIComponent(destination)}`);
+        if (!geoResponse.ok) throw new Error('Geocode failed');
+
+        const geoData = await geoResponse.json();
+        if (!geoData.results || geoData.results.length === 0) {
+            resultsDiv.innerHTML = `<div class="transit-empty"><div class="transit-empty-icon">🔍</div><p>Destination not found</p></div>`;
+            return;
+        }
+
+        const dest = geoData.results[0];
+
+        // Get transit route
+        const routeResponse = await fetch(
+            `${API_BASE}/transit/routes?origin=${state.userLocation.lng},${state.userLocation.lat}&destination=${dest.lng},${dest.lat}`
+        );
+
+        if (!routeResponse.ok) throw new Error('Route failed');
+
+        const routeData = await routeResponse.json();
+
+        // Calculate walking distances
+        const originWalkDist = routeData.origin_stops?.[0]?.distance_km || 0;
+        const destWalkDist = routeData.destination_stops?.[0]?.distance_km || 0;
+
+        const departTime = transitDepartureTime || new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
+
+        resultsDiv.innerHTML = `
+            <div class="transit-route-card" style="margin-top: 16px;">
+                <div class="transit-route-header">
+                    <div>
+                        <div class="transit-route-time">${departTime}</div>
+                        <div class="transit-route-duration">Depart</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 14px; color: #666;">To ${escapeHtml(dest.name)}</div>
+                    </div>
+                </div>
+                <div class="transit-route-steps">
+                    <div class="transit-route-step">
+                        <div class="transit-step-icon transit-step-walk">🚶</div>
+                        <div class="transit-step-details">
+                            <div class="transit-step-line">Walk ${(originWalkDist * 1000).toFixed(0)}m</div>
+                            <div class="transit-step-info">to ${escapeHtml(routeData.origin_stops?.[0]?.name || 'nearest stop')}</div>
+                        </div>
+                    </div>
+                    <div class="transit-route-step">
+                        <div class="transit-step-icon transit-step-bus">🚌</div>
+                        <div class="transit-step-details">
+                            <div class="transit-step-line">Public Transport</div>
+                            <div class="transit-step-info">${escapeHtml(routeData.origin_stops?.[0]?.stop_type || 'Bus/Taxi')}</div>
+                        </div>
+                    </div>
+                    <div class="transit-route-step">
+                        <div class="transit-step-icon transit-step-walk">🚶</div>
+                        <div class="transit-step-details">
+                            <div class="transit-step-line">Walk ${(destWalkDist * 1000).toFixed(0)}m</div>
+                            <div class="transit-step-info">to destination</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 16px; padding-top: 12px; border-top: 1px solid #eee;">
+                    <button onclick="showTransitRouteOnMap(${dest.lat}, ${dest.lng}, '${escapeHtml(dest.name)}')"
+                            style="width: 100%; padding: 12px; background: #4CAF50; color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer;">
+                        Show on Map
+                    </button>
+                </div>
+            </div>
+            <p style="text-align: center; color: #888; font-size: 12px; margin-top: 16px;">
+                Schedule data requires GTFS integration. Check local schedules for exact times.
+            </p>
+        `;
+
+    } catch (error) {
+        console.error('Transit planning error:', error);
+        resultsDiv.innerHTML = `<div class="transit-empty"><div class="transit-empty-icon">⚠️</div><p>Unable to plan route</p></div>`;
+    }
+}
+window.planTransitTrip = planTransitTrip;
+
+function showTransitRouteOnMap(destLat, destLng, destName) {
+    closeTransitPanel();
+
+    if (state.map && state.userLocation) {
+        // Fit bounds to show both origin and destination
+        const bounds = [
+            [Math.min(state.userLocation.lng, destLng), Math.min(state.userLocation.lat, destLat)],
+            [Math.max(state.userLocation.lng, destLng), Math.max(state.userLocation.lat, destLat)]
+        ];
+
+        state.map.fitBounds(bounds, { padding: 80, duration: 1000 });
+
+        // Add destination marker
+        const popup = new maplibregl.Popup({ offset: 25 })
+            .setHTML(`<strong>${escapeHtml(destName)}</strong><br><small>Destination</small>`);
+
+        new maplibregl.Marker({ color: '#E53935' })
+            .setLngLat([destLng, destLat])
+            .setPopup(popup)
+            .addTo(state.map);
+    }
+
+    showToast('Transit route to ' + destName);
+}
+window.showTransitRouteOnMap = showTransitRouteOnMap;
+
+async function loadNearbyTransitStops() {
+    const content = document.getElementById('transit-content');
+    if (!content) return;
+
+    if (!state.userLocation) {
+        content.innerHTML = `
+            <div class="transit-empty">
+                <div class="transit-empty-icon">📍</div>
+                <p>Enable location to see nearby transit stops</p>
+            </div>
+        `;
+        return;
+    }
+
+    content.innerHTML = '<div class="transit-loading">Loading nearby stops...</div>';
+
+    try {
+        // Calculate bounding box around user (approx 2km radius)
+        const lat = state.userLocation.lat;
+        const lng = state.userLocation.lng;
+        const delta = 0.02; // ~2km
+
+        const bbox = `${lng - delta},${lat - delta},${lng + delta},${lat + delta}`;
+        const response = await fetch(`${API_BASE}/transit/stops?bbox=${bbox}`);
+
+        if (!response.ok) throw new Error('Failed to load stops');
+
+        const data = await response.json();
+        const features = data.features || [];
+
+        if (features.length === 0) {
+            content.innerHTML = `
+                <div class="transit-empty">
+                    <div class="transit-empty-icon">🚌</div>
+                    <p>No transit stops found nearby</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Sort by distance from user
+        features.sort((a, b) => {
+            const distA = getDistance(lat, lng, a.geometry.coordinates[1], a.geometry.coordinates[0]);
+            const distB = getDistance(lat, lng, b.geometry.coordinates[1], b.geometry.coordinates[0]);
+            return distA - distB;
+        });
+
+        transitStopsCache = features;
+        renderTransitStops(features.slice(0, 20));
+
+    } catch (error) {
+        console.error('Transit load error:', error);
+        content.innerHTML = `
+            <div class="transit-empty">
+                <div class="transit-empty-icon">⚠️</div>
+                <p>Unable to load transit stops</p>
+            </div>
+        `;
+    }
+}
+
+async function loadTransitByType(type) {
+    const content = document.getElementById('transit-content');
+    if (!content) return;
+
+    if (!state.userLocation) {
+        content.innerHTML = `
+            <div class="transit-empty">
+                <div class="transit-empty-icon">📍</div>
+                <p>Enable location to see ${type}</p>
+            </div>
+        `;
+        return;
+    }
+
+    content.innerHTML = '<div class="transit-loading">Loading...</div>';
+
+    // Filter cached stops by type
+    if (transitStopsCache) {
+        const typeMap = {
+            'buses': 'Bus Station',
+            'trains': 'Train Station',
+            'taxis': 'Transport'
+        };
+
+        const filtered = transitStopsCache.filter(f =>
+            f.properties.stop_type === typeMap[type] ||
+            (type === 'taxis' && f.properties.stop_type === 'Transport')
+        );
+
+        if (filtered.length === 0) {
+            content.innerHTML = `
+                <div class="transit-empty">
+                    <div class="transit-empty-icon">${type === 'buses' ? '🚌' : type === 'trains' ? '🚂' : '🚕'}</div>
+                    <p>No ${type} stops found nearby</p>
+                </div>
+            `;
+            return;
+        }
+
+        renderTransitStops(filtered.slice(0, 20));
+    } else {
+        loadNearbyTransitStops();
+    }
+}
+
+function renderTransitStops(stops) {
+    const content = document.getElementById('transit-content');
+    if (!content) return;
+
+    const html = `
+        <div class="transit-stop-list">
+            ${stops.map(stop => {
+                const props = stop.properties;
+                const coords = stop.geometry.coordinates;
+                const type = getStopType(props.stop_type);
+                const distance = state.userLocation
+                    ? formatDistance(getDistance(
+                        state.userLocation.lat, state.userLocation.lng,
+                        coords[1], coords[0]
+                    ) * 1000)
+                    : '';
+
+                return `
+                    <div class="transit-stop-card" onclick="goToTransitStop(${coords[1]}, ${coords[0]}, '${escapeHtml(props.name || 'Transit Stop')}')">
+                        <div class="transit-stop-icon ${type.class}">${type.icon}</div>
+                        <div class="transit-stop-info">
+                            <div class="transit-stop-name">${escapeHtml(props.name || 'Transit Stop')}</div>
+                            <div class="transit-stop-meta">${escapeHtml(props.stop_type || 'Transport')}</div>
+                        </div>
+                        <div class="transit-stop-distance">${distance}</div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+
+    content.innerHTML = html;
+}
+
+function getStopType(type) {
+    const types = {
+        'Bus Station': { icon: '🚌', class: 'bus' },
+        'Train Station': { icon: '🚂', class: 'train' },
+        'Transport': { icon: '🚕', class: 'taxi' },
+        'Airport': { icon: '✈️', class: 'airport' }
+    };
+    return types[type] || { icon: '🚏', class: 'bus' };
+}
+
+function goToTransitStop(lat, lng, name) {
+    closeTransitPanel();
+
+    if (state.map) {
+        state.map.flyTo({
+            center: [lng, lat],
+            zoom: 17,
+            duration: 1000
+        });
+
+        // Add a marker
+        const popup = new maplibregl.Popup({ offset: 25 })
+            .setHTML(`<strong>${escapeHtml(name)}</strong><br><small>Transit Stop</small>`);
+
+        new maplibregl.Marker({ color: '#4CAF50' })
+            .setLngLat([lng, lat])
+            .setPopup(popup)
+            .addTo(state.map)
+            .togglePopup();
+    }
+
+    showToast(`Showing: ${name}`);
+}
+window.goToTransitStop = goToTransitStop;
+
+function handleTransitSearch(event) {
+    if (event.key === 'Enter') {
+        const query = event.target.value.trim();
+        if (query) {
+            searchTransitDestination(query);
+        }
+    }
+}
+window.handleTransitSearch = handleTransitSearch;
+
+async function searchTransitDestination(query) {
+    const content = document.getElementById('transit-content');
+    if (!content) return;
+
+    content.innerHTML = '<div class="transit-loading">Searching...</div>';
+
+    try {
+        // Use geocode to find destination
+        const response = await fetch(`${API_BASE}/geocode?q=${encodeURIComponent(query)}`);
+        if (!response.ok) throw new Error('Search failed');
+
+        const data = await response.json();
+        if (!data.results || data.results.length === 0) {
+            content.innerHTML = `
+                <div class="transit-empty">
+                    <div class="transit-empty-icon">🔍</div>
+                    <p>No results found for "${escapeHtml(query)}"</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Get transit route to first result
+        const dest = data.results[0];
+        if (state.userLocation) {
+            getTransitRoute(
+                state.userLocation.lng, state.userLocation.lat,
+                dest.lng, dest.lat, dest.name
+            );
+        } else {
+            content.innerHTML = `
+                <div class="transit-empty">
+                    <div class="transit-empty-icon">📍</div>
+                    <p>Enable location for transit directions</p>
+                </div>
+            `;
+        }
+
+    } catch (error) {
+        console.error('Transit search error:', error);
+        content.innerHTML = `
+            <div class="transit-empty">
+                <div class="transit-empty-icon">⚠️</div>
+                <p>Search failed. Try again.</p>
+            </div>
+        `;
+    }
+}
+
+async function getTransitRoute(originLng, originLat, destLng, destLat, destName) {
+    const content = document.getElementById('transit-content');
+    if (!content) return;
+
+    content.innerHTML = '<div class="transit-loading">Finding transit route...</div>';
+
+    try {
+        const response = await fetch(
+            `${API_BASE}/transit/routes?origin=${originLng},${originLat}&destination=${destLng},${destLat}`
+        );
+
+        if (!response.ok) throw new Error('Route failed');
+
+        const data = await response.json();
+
+        // Display route options
+        content.innerHTML = `
+            <div class="transit-route-card">
+                <div class="transit-route-header">
+                    <div class="transit-route-time">To ${escapeHtml(destName)}</div>
+                </div>
+                <div class="transit-route-steps">
+                    <div class="transit-route-step">
+                        <div class="transit-step-icon transit-step-walk">🚶</div>
+                        <div class="transit-step-details">
+                            <div class="transit-step-line">Walk to nearest stop</div>
+                            <div class="transit-step-info">${data.origin_stops ? escapeHtml(data.origin_stops[0]?.name || 'Nearby stop') : 'Nearby stop'}</div>
+                        </div>
+                    </div>
+                    <div class="transit-route-step">
+                        <div class="transit-step-icon transit-step-bus">🚌</div>
+                        <div class="transit-step-details">
+                            <div class="transit-step-line">Take public transport</div>
+                            <div class="transit-step-info">Check local schedules for times</div>
+                        </div>
+                    </div>
+                    <div class="transit-route-step">
+                        <div class="transit-step-icon transit-step-walk">🚶</div>
+                        <div class="transit-step-details">
+                            <div class="transit-step-line">Walk to destination</div>
+                            <div class="transit-step-info">${data.destination_stops ? escapeHtml(data.destination_stops[0]?.name || 'Nearby stop') : 'Nearby stop'}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p style="text-align: center; color: #666; font-size: 13px; margin-top: 16px;">
+                Real-time schedules coming soon with GTFS integration
+            </p>
+        `;
+
+    } catch (error) {
+        console.error('Transit route error:', error);
+        content.innerHTML = `
+            <div class="transit-empty">
+                <div class="transit-empty-icon">⚠️</div>
+                <p>Unable to find transit route</p>
+            </div>
+        `;
+    }
+}
+
+// ============================================
+// Rideshare / Carpool Functions
+// ============================================
+
+let selectedRideshareService = 'uber';
+let rideshareDestination = null;
+
+function openRideshare(destName, destLat, destLng) {
+    rideshareDestination = { name: destName, lat: destLat, lng: destLng };
+
+    const destDisplay = document.getElementById('rideshare-dest-name');
+    if (destDisplay) {
+        destDisplay.textContent = destName || 'Select a destination';
+    }
+
+    const backdrop = document.getElementById('rideshare-backdrop');
+    const panel = document.getElementById('rideshare-panel');
+    if (backdrop && panel) {
+        backdrop.classList.add('active');
+        panel.classList.add('active');
+    }
+
+    // Estimate prices based on distance
+    if (state.userLocation && destLat && destLng) {
+        const distKm = getDistance(state.userLocation.lat, state.userLocation.lng, destLat, destLng);
+        updateRideshareEstimates(distKm);
+    }
+}
+window.openRideshare = openRideshare;
+
+function closeRidesharePanel() {
+    const backdrop = document.getElementById('rideshare-backdrop');
+    const panel = document.getElementById('rideshare-panel');
+    if (backdrop && panel) {
+        backdrop.classList.remove('active');
+        panel.classList.remove('active');
+    }
+}
+window.closeRidesharePanel = closeRidesharePanel;
+
+function updateRideshareEstimates(distKm) {
+    // South African rideshare estimates (very approximate)
+    const baseRates = {
+        uber: { base: 10, perKm: 8, min: 25 },
+        bolt: { base: 8, perKm: 7.5, min: 20 },
+        indrive: { base: 5, perKm: 6, min: 15 },
+        taxi: { base: 15, perKm: 12, min: 50 }
+    };
+
+    document.querySelectorAll('.rideshare-option').forEach(option => {
+        const service = option.querySelector('.rideshare-name').textContent.toLowerCase().split(' ')[0];
+        const rate = baseRates[service] || baseRates.uber;
+
+        const lowEstimate = Math.max(rate.min, Math.round(rate.base + distKm * rate.perKm * 0.8));
+        const highEstimate = Math.round(rate.base + distKm * rate.perKm * 1.3);
+
+        const priceEl = option.querySelector('.rideshare-price-value');
+        if (priceEl) {
+            priceEl.textContent = `R${lowEstimate}-${highEstimate}`;
+        }
+    });
+}
+
+function selectRideshare(service, element) {
+    selectedRideshareService = service;
+
+    document.querySelectorAll('.rideshare-option').forEach(opt => {
+        opt.classList.remove('selected');
+    });
+    element.classList.add('selected');
+
+    const serviceNames = {
+        uber: 'Uber',
+        bolt: 'Bolt',
+        indrive: 'inDrive',
+        taxi: 'Taxi'
+    };
+
+    const btn = document.getElementById('rideshare-book-btn');
+    if (btn) {
+        btn.textContent = `Open ${serviceNames[service] || service} to Book`;
+    }
+}
+window.selectRideshare = selectRideshare;
+
+function bookRideshare() {
+    if (!rideshareDestination) {
+        showToast('Please select a destination first');
+        return;
+    }
+
+    const { lat, lng, name } = rideshareDestination;
+    let deepLink = '';
+
+    // Construct deep links for each service
+    switch (selectedRideshareService) {
+        case 'uber':
+            // Uber deep link format
+            deepLink = `uber://?action=setPickup&pickup=my_location&dropoff[latitude]=${lat}&dropoff[longitude]=${lng}&dropoff[nickname]=${encodeURIComponent(name)}`;
+            break;
+        case 'bolt':
+            // Bolt deep link
+            deepLink = `bolt://r?destination_lat=${lat}&destination_lng=${lng}&destination_name=${encodeURIComponent(name)}`;
+            break;
+        case 'indrive':
+            // inDrive doesn't have public deep links, open store
+            deepLink = 'https://indrive.com/';
+            break;
+        case 'taxi':
+            // No specific app, show phone number
+            showToast('Call your local taxi service');
+            return;
+    }
+
+    // Try to open the app
+    const fallbackUrls = {
+        uber: 'https://m.uber.com/',
+        bolt: 'https://bolt.eu/',
+        indrive: 'https://indrive.com/'
+    };
+
+    window.location.href = deepLink;
+
+    // Fallback to web after delay if app didn't open
+    setTimeout(() => {
+        if (document.hasFocus()) {
+            window.open(fallbackUrls[selectedRideshareService] || fallbackUrls.uber, '_blank');
+        }
+    }, 1500);
+
+    closeRidesharePanel();
+    showToast(`Opening ${selectedRideshareService}...`);
+}
+window.bookRideshare = bookRideshare;
+
+// ============================================
+// POI Photo Functions
+// ============================================
+
+let poiPhotosCache = {}; // Stored in localStorage
+let currentPhotoPoiId = null;
+
+// Load photos from localStorage on init
+try {
+    const savedPhotos = localStorage.getItem('poiPhotos');
+    if (savedPhotos) poiPhotosCache = JSON.parse(savedPhotos);
+} catch (e) {}
+
+function getPoiPhotos(poiId) {
+    return poiPhotosCache[poiId] || [];
+}
+
+function addPoiPhotoUI(poiId, containerSelector) {
+    const container = document.querySelector(containerSelector);
+    if (!container) return;
+
+    const photos = getPoiPhotos(poiId);
+
+    const html = `
+        <div class="poi-photo-section">
+            <div style="font-size: 14px; font-weight: 600; color: #333; margin-bottom: 10px;">Photos</div>
+            <div class="poi-photos-grid">
+                ${photos.slice(0, 5).map((photo, idx) => `
+                    <img class="poi-photo-thumb" src="${photo}" alt="Photo ${idx + 1}"
+                         onclick="event.stopPropagation(); viewPoiPhoto('${photo}')">
+                `).join('')}
+                <div class="poi-photo-add" onclick="event.stopPropagation(); triggerPoiPhotoUpload('${poiId}')">
+                    <div class="poi-photo-add-icon">📷</div>
+                    <span>Add Photo</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    container.insertAdjacentHTML('beforeend', html);
+}
+window.addPoiPhotoUI = addPoiPhotoUI;
+
+function triggerPoiPhotoUpload(poiId) {
+    currentPhotoPoiId = poiId;
+    document.getElementById('poi-photo-input').click();
+}
+window.triggerPoiPhotoUpload = triggerPoiPhotoUpload;
+
+function handlePoiPhotoUpload(event) {
+    const file = event.target.files[0];
+    if (!file || !currentPhotoPoiId) return;
+
+    // Convert to base64 for local storage
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const base64 = e.target.result;
+
+        // Store photo
+        if (!poiPhotosCache[currentPhotoPoiId]) {
+            poiPhotosCache[currentPhotoPoiId] = [];
+        }
+        poiPhotosCache[currentPhotoPoiId].unshift(base64);
+
+        // Limit to 10 photos per POI
+        if (poiPhotosCache[currentPhotoPoiId].length > 10) {
+            poiPhotosCache[currentPhotoPoiId] = poiPhotosCache[currentPhotoPoiId].slice(0, 10);
+        }
+
+        // Save to localStorage
+        try {
+            localStorage.setItem('poiPhotos', JSON.stringify(poiPhotosCache));
+        } catch (e) {
+            // localStorage might be full, remove oldest photos
+            console.warn('Storage full, clearing old photos');
+        }
+
+        showToast('Photo added!');
+        currentPhotoPoiId = null;
+
+        // Reset input
+        event.target.value = '';
+    };
+    reader.readAsDataURL(file);
+}
+window.handlePoiPhotoUpload = handlePoiPhotoUpload;
+
+function viewPoiPhoto(photoSrc) {
+    const modal = document.getElementById('photo-viewer-modal');
+    const img = document.getElementById('photo-viewer-img');
+    if (modal && img) {
+        img.src = photoSrc;
+        modal.classList.add('active');
+    }
+}
+window.viewPoiPhoto = viewPoiPhoto;
+
+function closePhotoViewer() {
+    const modal = document.getElementById('photo-viewer-modal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+window.closePhotoViewer = closePhotoViewer;
+
+// ============================================
+// Fuel Prices Functions
+// ============================================
+
+let fuelStationsCache = [];
+let currentFuelType = '95';
+let fuelPricesCache = {}; // Crowdsourced prices stored locally
+
+function openFuelPrices() {
+    toggleMenu(false);
+    const backdrop = document.getElementById('fuel-backdrop');
+    const panel = document.getElementById('fuel-panel');
+    if (backdrop && panel) {
+        backdrop.classList.add('active');
+        panel.classList.add('active');
+        loadFuelStations();
+    }
+}
+window.openFuelPrices = openFuelPrices;
+
+function closeFuelPanel() {
+    const backdrop = document.getElementById('fuel-backdrop');
+    const panel = document.getElementById('fuel-panel');
+    if (backdrop && panel) {
+        backdrop.classList.remove('active');
+        panel.classList.remove('active');
+    }
+}
+window.closeFuelPanel = closeFuelPanel;
+
+function switchFuelType(type) {
+    currentFuelType = type;
+    document.querySelectorAll('.fuel-type-tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.fuel === type);
+    });
+    renderFuelStations();
+}
+window.switchFuelType = switchFuelType;
+
+async function loadFuelStations() {
+    const list = document.getElementById('fuel-station-list');
+    if (!list) return;
+
+    if (!state.userLocation) {
+        list.innerHTML = `
+            <div class="fuel-empty">
+                <div class="fuel-empty-icon">📍</div>
+                <p>Enable location to find fuel stations</p>
+            </div>
+        `;
+        return;
+    }
+
+    list.innerHTML = '<div class="fuel-empty">Loading fuel stations...</div>';
+
+    // Load crowdsourced prices from localStorage
+    try {
+        const saved = localStorage.getItem('fuelPrices');
+        if (saved) fuelPricesCache = JSON.parse(saved);
+    } catch (e) {}
+
+    try {
+        const response = await fetch(
+            `${API_BASE}/pois/nearby?lat=${state.userLocation.lat}&lng=${state.userLocation.lng}&radius=10000&category=fuel,gas,petrol`
+        );
+
+        if (!response.ok) throw new Error('Failed to load stations');
+
+        const data = await response.json();
+        fuelStationsCache = data.pois || [];
+
+        if (fuelStationsCache.length === 0) {
+            list.innerHTML = `
+                <div class="fuel-empty">
+                    <div class="fuel-empty-icon">⛽</div>
+                    <p>No fuel stations found nearby</p>
+                </div>
+            `;
+            return;
+        }
+
+        renderFuelStations();
+
+    } catch (error) {
+        console.error('Fuel stations error:', error);
+        list.innerHTML = `
+            <div class="fuel-empty">
+                <div class="fuel-empty-icon">⚠️</div>
+                <p>Unable to load fuel stations</p>
+            </div>
+        `;
+    }
+}
+
+function renderFuelStations() {
+    const list = document.getElementById('fuel-station-list');
+    if (!list || fuelStationsCache.length === 0) return;
+
+    const stations = fuelStationsCache.map(station => {
+        const prices = fuelPricesCache[station.id] || {};
+        const distance = state.userLocation
+            ? getDistance(state.userLocation.lat, state.userLocation.lng, station.lat, station.lng) * 1000
+            : 0;
+        return { ...station, prices, distance };
+    });
+
+    // Sort by distance (could also sort by price if data available)
+    stations.sort((a, b) => a.distance - b.distance);
+
+    list.innerHTML = stations.slice(0, 20).map(station => {
+        const prices = station.prices;
+        const lastUpdated = prices.updatedAt ? formatTimeAgo(prices.updatedAt) : null;
+
+        return `
+            <div class="fuel-station-card" onclick="goToFuelStation(${station.lat}, ${station.lng}, '${escapeHtml(station.name)}')">
+                <div class="fuel-station-header">
+                    <div class="fuel-station-info">
+                        <div class="fuel-station-name">${escapeHtml(station.name)}</div>
+                        <div class="fuel-station-brand">${escapeHtml(detectFuelBrand(station.name))}</div>
+                    </div>
+                    <div class="fuel-station-distance">${formatDistance(station.distance)}</div>
+                </div>
+                <div class="fuel-prices-row">
+                    <div class="fuel-price-badge">
+                        <span class="fuel-price-type">95</span>
+                        <span class="fuel-price-value ${prices['95'] ? '' : 'no-data'}">
+                            ${prices['95'] ? 'R' + prices['95'].toFixed(2) : '-'}
+                        </span>
+                    </div>
+                    <div class="fuel-price-badge">
+                        <span class="fuel-price-type">93</span>
+                        <span class="fuel-price-value ${prices['93'] ? '' : 'no-data'}">
+                            ${prices['93'] ? 'R' + prices['93'].toFixed(2) : '-'}
+                        </span>
+                    </div>
+                    <div class="fuel-price-badge">
+                        <span class="fuel-price-type">Diesel</span>
+                        <span class="fuel-price-value ${prices.diesel ? '' : 'no-data'}">
+                            ${prices.diesel ? 'R' + prices.diesel.toFixed(2) : '-'}
+                        </span>
+                    </div>
+                </div>
+                <div class="fuel-station-footer">
+                    <span class="fuel-updated">${lastUpdated ? 'Updated ' + lastUpdated : 'No price data'}</span>
+                    <button class="fuel-report-btn" onclick="event.stopPropagation(); openFuelReport(${station.id}, '${escapeHtml(station.name)}')">
+                        Report Price
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function detectFuelBrand(name) {
+    const brands = {
+        'Shell': ['shell'],
+        'Engen': ['engen'],
+        'Caltex': ['caltex'],
+        'BP': ['bp', 'british petroleum'],
+        'Total': ['total', 'totalenergies'],
+        'Sasol': ['sasol'],
+        'Puma': ['puma']
+    };
+
+    const lowerName = name.toLowerCase();
+    for (const [brand, keywords] of Object.entries(brands)) {
+        if (keywords.some(kw => lowerName.includes(kw))) {
+            return brand;
+        }
+    }
+    return 'Fuel Station';
+}
+
+function goToFuelStation(lat, lng, name) {
+    closeFuelPanel();
+
+    if (state.map) {
+        state.map.flyTo({
+            center: [lng, lat],
+            zoom: 17,
+            duration: 1000
+        });
+
+        const popup = new maplibregl.Popup({ offset: 25 })
+            .setHTML(`<strong>${escapeHtml(name)}</strong><br><small>Fuel Station</small>`);
+
+        new maplibregl.Marker({ color: '#FF9800' })
+            .setLngLat([lng, lat])
+            .setPopup(popup)
+            .addTo(state.map)
+            .togglePopup();
+    }
+
+    showToast(`Showing: ${name}`);
+}
+window.goToFuelStation = goToFuelStation;
+
+function openFuelReport(stationId, stationName) {
+    document.getElementById('fuel-report-station-id').value = stationId;
+    document.getElementById('fuel-report-station-name').textContent = stationName;
+
+    // Pre-fill with existing prices if available
+    const prices = fuelPricesCache[stationId] || {};
+    document.getElementById('fuel-report-price-95').value = prices['95'] || '';
+    document.getElementById('fuel-report-price-93').value = prices['93'] || '';
+    document.getElementById('fuel-report-price-diesel').value = prices.diesel || '';
+
+    document.getElementById('fuel-report-modal').classList.add('active');
+}
+window.openFuelReport = openFuelReport;
+
+function closeFuelReport() {
+    document.getElementById('fuel-report-modal').classList.remove('active');
+}
+window.closeFuelReport = closeFuelReport;
+
+function submitFuelReport() {
+    const stationId = document.getElementById('fuel-report-station-id').value;
+    const price95 = parseFloat(document.getElementById('fuel-report-price-95').value);
+    const price93 = parseFloat(document.getElementById('fuel-report-price-93').value);
+    const priceDiesel = parseFloat(document.getElementById('fuel-report-price-diesel').value);
+
+    if (!stationId) {
+        showToast('Error: No station selected');
+        return;
+    }
+
+    // Update local cache
+    fuelPricesCache[stationId] = {
+        '95': price95 || null,
+        '93': price93 || null,
+        diesel: priceDiesel || null,
+        updatedAt: Date.now()
+    };
+
+    // Save to localStorage
+    localStorage.setItem('fuelPrices', JSON.stringify(fuelPricesCache));
+
+    closeFuelReport();
+    renderFuelStations();
+    showToast('Thank you! Price reported');
+
+    // In production, this would also send to the server
+    // sendFuelPriceToServer(stationId, fuelPricesCache[stationId]);
+}
+window.submitFuelReport = submitFuelReport;
+
 function openLayers() {
     toggleMenu(false);
-    showToast('Map styles coming soon');
-    // TODO: Implement map style picker
+    const backdrop = document.getElementById('layers-backdrop');
+    const panel = document.getElementById('layers-panel');
+    if (backdrop && panel) {
+        backdrop.classList.add('active');
+        panel.classList.add('active');
+        // Load current layer settings
+        loadLayerSettings();
+    }
 }
 window.openLayers = openLayers;
+
+function closeLayersPanel() {
+    const backdrop = document.getElementById('layers-backdrop');
+    const panel = document.getElementById('layers-panel');
+    if (backdrop && panel) {
+        backdrop.classList.remove('active');
+        panel.classList.remove('active');
+    }
+}
+window.closeLayersPanel = closeLayersPanel;
+
+// Map style URLs
+const MAP_STYLE_URLS = {
+    streets: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
+    satellite: 'https://api.maptiler.com/maps/hybrid/style.json?key=get_your_own_key',
+    dark: 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
+    local: '/tiles/styles/south-africa.json',
+    terrain: 'https://api.maptiler.com/maps/outdoor/style.json?key=get_your_own_key',
+    hybrid: 'https://api.maptiler.com/maps/hybrid/style.json?key=get_your_own_key'
+};
+
+// Current map style
+let currentMapStyle = localStorage.getItem('mapStyle') || 'streets';
+
+function selectMapStyle(element) {
+    const style = element.dataset.style;
+    if (!style || style === currentMapStyle) return;
+
+    // Update UI
+    document.querySelectorAll('.layer-option').forEach(opt => {
+        opt.classList.remove('selected');
+    });
+    element.classList.add('selected');
+
+    // Get style URL
+    let styleUrl = MAP_STYLE_URLS[style];
+
+    // For satellite/terrain/hybrid, use free alternatives if no key
+    if (style === 'satellite' || style === 'terrain' || style === 'hybrid') {
+        // Use Carto as fallback (no satellite, but styled)
+        styleUrl = style === 'satellite'
+            ? 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json'
+            : style === 'terrain'
+            ? 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json'
+            : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+
+        // Try free satellite from Esri
+        if (style === 'satellite' || style === 'hybrid') {
+            styleUrl = {
+                version: 8,
+                sources: {
+                    'esri-satellite': {
+                        type: 'raster',
+                        tiles: [
+                            'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+                        ],
+                        tileSize: 256,
+                        attribution: 'Esri, Maxar, Earthstar Geographics'
+                    }
+                },
+                layers: [{
+                    id: 'satellite-layer',
+                    type: 'raster',
+                    source: 'esri-satellite',
+                    minzoom: 0,
+                    maxzoom: 19
+                }]
+            };
+        }
+    }
+
+    // Switch map style
+    if (state.map) {
+        const center = state.map.getCenter();
+        const zoom = state.map.getZoom();
+        const bearing = state.map.getBearing();
+        const pitch = state.map.getPitch();
+
+        state.map.setStyle(styleUrl);
+
+        // Restore position after style loads
+        state.map.once('style.load', () => {
+            state.map.setCenter(center);
+            state.map.setZoom(zoom);
+            state.map.setBearing(bearing);
+            state.map.setPitch(pitch);
+
+            // Re-add user marker if exists
+            if (state.userLocation) {
+                updateUserMarker();
+            }
+
+            // Re-add route if exists
+            if (currentRouteGeometry) {
+                displayRoute(currentRouteGeometry);
+            }
+
+            // Re-add incident markers
+            loadIncidentsOnMap();
+
+            showToast(`Map style: ${element.querySelector('.layer-name').textContent}`);
+        });
+    }
+
+    // Save preference
+    currentMapStyle = style;
+    localStorage.setItem('mapStyle', style);
+}
+window.selectMapStyle = selectMapStyle;
+
+function toggleLayerOption(layer, enabled) {
+    localStorage.setItem(`layer_${layer}`, enabled);
+
+    switch (layer) {
+        case 'traffic':
+            state.settings.showTraffic = enabled;
+            if (enabled) {
+                loadTrafficLayer();
+            } else {
+                removeTrafficLayer();
+            }
+            break;
+        case 'transit':
+            if (enabled) {
+                loadTransitStops();
+            } else {
+                removeTransitStops();
+            }
+            break;
+        case 'cycling':
+            // Toggle cycling layer (if available in style)
+            toggleMapLayer('cycling', enabled);
+            break;
+        case '3d':
+            state.settings.show3DBuildings = enabled;
+            toggle3DBuildings(enabled);
+            break;
+    }
+}
+window.toggleLayerOption = toggleLayerOption;
+
+function loadLayerSettings() {
+    // Set current style selection
+    document.querySelectorAll('.layer-option').forEach(opt => {
+        opt.classList.toggle('selected', opt.dataset.style === currentMapStyle);
+    });
+
+    // Set toggle states
+    const trafficCheckbox = document.getElementById('layer-traffic');
+    const transitCheckbox = document.getElementById('layer-transit');
+    const cyclingCheckbox = document.getElementById('layer-cycling');
+    const buildings3dCheckbox = document.getElementById('layer-3d');
+
+    if (trafficCheckbox) trafficCheckbox.checked = state.settings.showTraffic;
+    if (transitCheckbox) transitCheckbox.checked = localStorage.getItem('layer_transit') === 'true';
+    if (cyclingCheckbox) cyclingCheckbox.checked = localStorage.getItem('layer_cycling') === 'true';
+    if (buildings3dCheckbox) buildings3dCheckbox.checked = state.settings.show3DBuildings;
+}
+
+function loadTrafficLayer() {
+    // Traffic layer implementation - uses existing traffic data
+    if (!state.map) return;
+    showToast('Loading traffic...');
+    // Trigger existing traffic functionality
+    if (typeof initTrafficUI === 'function') {
+        initTrafficUI();
+    }
+}
+
+function removeTrafficLayer() {
+    if (!state.map) return;
+    // Remove traffic layer if exists
+    if (state.map.getLayer('traffic-layer')) {
+        state.map.removeLayer('traffic-layer');
+    }
+    if (state.map.getSource('traffic-source')) {
+        state.map.removeSource('traffic-source');
+    }
+}
+
+let transitMarkers = [];
+
+async function loadTransitStops() {
+    if (!state.map || !state.userLocation) {
+        showToast('Enable location to see transit stops');
+        return;
+    }
+
+    showToast('Loading transit stops...');
+
+    try {
+        const response = await fetch(
+            `${API_BASE}/transit/stops?lat=${state.userLocation.lat}&lng=${state.userLocation.lng}&radius=5000`
+        );
+
+        if (!response.ok) throw new Error('Failed to load stops');
+
+        const data = await response.json();
+        const stops = data.stops || [];
+
+        // Add markers for each stop
+        stops.slice(0, 50).forEach(stop => {
+            const el = document.createElement('div');
+            el.className = 'transit-stop-marker';
+            el.innerHTML = '🚏';
+            el.style.cssText = 'font-size: 24px; cursor: pointer;';
+            el.title = stop.stop_name;
+
+            const marker = new maplibregl.Marker({ element: el })
+                .setLngLat([stop.stop_lon, stop.stop_lat])
+                .setPopup(new maplibregl.Popup().setHTML(
+                    `<strong>${stop.stop_name}</strong><br>
+                     <small>${stop.route_type || 'Transit Stop'}</small>`
+                ))
+                .addTo(state.map);
+
+            transitMarkers.push(marker);
+        });
+
+        showToast(`Showing ${Math.min(stops.length, 50)} transit stops`);
+    } catch (error) {
+        console.error('Transit load error:', error);
+        showToast('Unable to load transit stops');
+    }
+}
+
+function removeTransitStops() {
+    transitMarkers.forEach(marker => marker.remove());
+    transitMarkers = [];
+}
+
+function toggleMapLayer(layerId, visible) {
+    if (!state.map) return;
+    // Toggle visibility of layer if it exists in current style
+    try {
+        if (state.map.getLayer(layerId)) {
+            state.map.setLayoutProperty(layerId, 'visibility', visible ? 'visible' : 'none');
+        }
+    } catch (e) {
+        console.log(`Layer ${layerId} not found in current style`);
+    }
+}
+
+function toggle3DBuildings(enabled) {
+    if (!state.map) return;
+
+    if (enabled) {
+        // Add 3D building layer
+        if (!state.map.getLayer('3d-buildings')) {
+            state.map.addLayer({
+                'id': '3d-buildings',
+                'source': 'carto',
+                'source-layer': 'building',
+                'type': 'fill-extrusion',
+                'minzoom': 14,
+                'paint': {
+                    'fill-extrusion-color': '#aaa',
+                    'fill-extrusion-height': ['get', 'render_height'],
+                    'fill-extrusion-base': ['get', 'render_min_height'],
+                    'fill-extrusion-opacity': 0.6
+                }
+            });
+        }
+    } else {
+        if (state.map.getLayer('3d-buildings')) {
+            state.map.removeLayer('3d-buildings');
+        }
+    }
+}
 
 // ============================================
 // Settings Functions
@@ -3720,6 +5261,361 @@ function setupOfflineTileSource() {
 
 // Initialize offline storage on app start
 initOfflineDB().catch(e => console.warn('[Offline] DB init failed:', e));
+
+// ============================================
+// Region Offline Download
+// ============================================
+
+let selectedRegionBounds = null;
+let selectedRegionType = null;
+let regionDrawing = false;
+let regionDrawStart = null;
+let regionRectLayer = null;
+
+function openRegionDownload() {
+    toggleMenu(false);
+    const backdrop = document.getElementById('region-backdrop');
+    const panel = document.getElementById('region-panel');
+    if (backdrop && panel) {
+        backdrop.classList.add('active');
+        panel.classList.add('active');
+        // Update current view size estimate
+        updateCurrentViewSize();
+    }
+}
+window.openRegionDownload = openRegionDownload;
+
+function closeRegionPanel() {
+    const backdrop = document.getElementById('region-backdrop');
+    const panel = document.getElementById('region-panel');
+    if (backdrop && panel) {
+        backdrop.classList.remove('active');
+        panel.classList.remove('active');
+    }
+    cancelRegionDraw();
+}
+window.closeRegionPanel = closeRegionPanel;
+
+function updateCurrentViewSize() {
+    if (!state.map) return;
+
+    const bounds = state.map.getBounds();
+    const tiles = getTilesForBounds(bounds);
+    const sizeElement = document.getElementById('current-region-size');
+    if (sizeElement) {
+        const estimatedMB = Math.round(tiles.length * 15 / 1024); // ~15KB per tile
+        sizeElement.textContent = `~${estimatedMB} MB`;
+    }
+}
+
+function selectRegionPreset(type, element) {
+    // Update UI
+    document.querySelectorAll('.region-preset').forEach(p => p.classList.remove('selected'));
+    element.classList.add('selected');
+
+    selectedRegionType = type;
+
+    const drawBtn = document.getElementById('region-draw-btn');
+    const infoPanel = document.getElementById('region-download-info');
+    const downloadBtn = document.getElementById('region-download-btn');
+
+    if (type === 'custom') {
+        drawBtn.style.display = 'flex';
+        infoPanel.classList.remove('active');
+        downloadBtn.classList.remove('active');
+    } else {
+        drawBtn.style.display = 'none';
+        calculateRegionStats(type);
+    }
+}
+window.selectRegionPreset = selectRegionPreset;
+
+function calculateRegionStats(type) {
+    if (!state.map) return;
+
+    let bounds;
+    const center = state.map.getCenter();
+
+    switch (type) {
+        case 'current':
+            bounds = state.map.getBounds();
+            break;
+        case 'city':
+            // ~20km radius around center
+            bounds = {
+                _sw: { lat: center.lat - 0.18, lng: center.lng - 0.22 },
+                _ne: { lat: center.lat + 0.18, lng: center.lng + 0.22 }
+            };
+            break;
+        case 'province':
+            // ~100km radius
+            bounds = {
+                _sw: { lat: center.lat - 0.9, lng: center.lng - 1.1 },
+                _ne: { lat: center.lat + 0.9, lng: center.lng + 1.1 }
+            };
+            break;
+        default:
+            return;
+    }
+
+    selectedRegionBounds = bounds;
+    showRegionStats(bounds);
+}
+
+function showRegionStats(bounds) {
+    const tiles = getTilesForBounds(bounds);
+
+    // Calculate area (approximate)
+    const latDiff = Math.abs(bounds._ne.lat - bounds._sw.lat);
+    const lngDiff = Math.abs(bounds._ne.lng - bounds._sw.lng);
+    const areaKm2 = Math.round(latDiff * 111 * lngDiff * 85); // Approximate for SA latitude
+
+    // Estimated size (~15KB per tile average)
+    const estimatedBytes = tiles.length * 15 * 1024;
+
+    // Update UI
+    document.getElementById('region-area').textContent = `${areaKm2.toLocaleString()} km²`;
+    document.getElementById('region-tiles').textContent = tiles.length.toLocaleString();
+    document.getElementById('region-size').textContent = formatBytes(estimatedBytes);
+
+    document.getElementById('region-download-info').classList.add('active');
+    document.getElementById('region-download-btn').classList.add('active');
+}
+
+function getTilesForBounds(bounds) {
+    const tiles = new Set();
+    const sw = bounds._sw || bounds.getSouthWest?.() || { lat: bounds[0][0], lng: bounds[0][1] };
+    const ne = bounds._ne || bounds.getNorthEast?.() || { lat: bounds[1][0], lng: bounds[1][1] };
+
+    // For region downloads, use fewer zoom levels to keep size manageable
+    const zoomLevels = [10, 11, 12, 13, 14];
+
+    for (const zoom of zoomLevels) {
+        const minTile = latLngToTile(ne.lat, sw.lng, zoom);
+        const maxTile = latLngToTile(sw.lat, ne.lng, zoom);
+
+        for (let x = minTile.x; x <= maxTile.x; x++) {
+            for (let y = minTile.y; y <= maxTile.y; y++) {
+                tiles.add(`${zoom}/${x}/${y}`);
+            }
+        }
+    }
+
+    return Array.from(tiles);
+}
+
+function startRegionDraw() {
+    closeRegionPanel();
+    regionDrawing = true;
+
+    // Show drawing mode indicator
+    document.getElementById('region-draw-mode').classList.add('active');
+
+    // Change cursor
+    if (state.map) {
+        state.map.getCanvas().style.cursor = 'crosshair';
+
+        // Add event listeners for drawing
+        state.map.on('mousedown', onRegionDrawStart);
+        state.map.on('touchstart', onRegionDrawStart);
+    }
+
+    showToast('Tap and drag to select area');
+}
+window.startRegionDraw = startRegionDraw;
+
+function onRegionDrawStart(e) {
+    if (!regionDrawing) return;
+
+    regionDrawStart = e.lngLat;
+
+    if (state.map) {
+        state.map.on('mousemove', onRegionDrawMove);
+        state.map.on('touchmove', onRegionDrawMove);
+        state.map.on('mouseup', onRegionDrawEnd);
+        state.map.on('touchend', onRegionDrawEnd);
+    }
+}
+
+function onRegionDrawMove(e) {
+    if (!regionDrawing || !regionDrawStart) return;
+
+    const current = e.lngLat;
+
+    // Update or create rectangle layer
+    const coords = [
+        [regionDrawStart.lng, regionDrawStart.lat],
+        [current.lng, regionDrawStart.lat],
+        [current.lng, current.lat],
+        [regionDrawStart.lng, current.lat],
+        [regionDrawStart.lng, regionDrawStart.lat]
+    ];
+
+    if (state.map.getSource('region-draw')) {
+        state.map.getSource('region-draw').setData({
+            type: 'Feature',
+            geometry: { type: 'Polygon', coordinates: [coords] }
+        });
+    } else {
+        state.map.addSource('region-draw', {
+            type: 'geojson',
+            data: { type: 'Feature', geometry: { type: 'Polygon', coordinates: [coords] } }
+        });
+        state.map.addLayer({
+            id: 'region-draw-fill',
+            type: 'fill',
+            source: 'region-draw',
+            paint: { 'fill-color': '#673AB7', 'fill-opacity': 0.3 }
+        });
+        state.map.addLayer({
+            id: 'region-draw-line',
+            type: 'line',
+            source: 'region-draw',
+            paint: { 'line-color': '#673AB7', 'line-width': 2 }
+        });
+    }
+}
+
+function onRegionDrawEnd(e) {
+    if (!regionDrawing || !regionDrawStart) return;
+
+    const end = e.lngLat;
+
+    // Calculate bounds
+    selectedRegionBounds = {
+        _sw: {
+            lat: Math.min(regionDrawStart.lat, end.lat),
+            lng: Math.min(regionDrawStart.lng, end.lng)
+        },
+        _ne: {
+            lat: Math.max(regionDrawStart.lat, end.lat),
+            lng: Math.max(regionDrawStart.lng, end.lng)
+        }
+    };
+
+    // Clean up drawing mode
+    finishRegionDraw();
+
+    // Show stats and reopen panel
+    setTimeout(() => {
+        openRegionDownload();
+        showRegionStats(selectedRegionBounds);
+        document.querySelectorAll('.region-preset').forEach(p => {
+            p.classList.toggle('selected', p.dataset.region === 'custom');
+        });
+    }, 300);
+}
+
+function finishRegionDraw() {
+    regionDrawing = false;
+    regionDrawStart = null;
+
+    document.getElementById('region-draw-mode').classList.remove('active');
+
+    if (state.map) {
+        state.map.getCanvas().style.cursor = '';
+        state.map.off('mousedown', onRegionDrawStart);
+        state.map.off('touchstart', onRegionDrawStart);
+        state.map.off('mousemove', onRegionDrawMove);
+        state.map.off('touchmove', onRegionDrawMove);
+        state.map.off('mouseup', onRegionDrawEnd);
+        state.map.off('touchend', onRegionDrawEnd);
+
+        // Remove drawing layers
+        if (state.map.getLayer('region-draw-fill')) {
+            state.map.removeLayer('region-draw-fill');
+        }
+        if (state.map.getLayer('region-draw-line')) {
+            state.map.removeLayer('region-draw-line');
+        }
+        if (state.map.getSource('region-draw')) {
+            state.map.removeSource('region-draw');
+        }
+    }
+}
+
+function cancelRegionDraw() {
+    if (regionDrawing) {
+        finishRegionDraw();
+        showToast('Drawing cancelled');
+    }
+}
+window.cancelRegionDraw = cancelRegionDraw;
+
+async function downloadRegion() {
+    if (!selectedRegionBounds) {
+        showToast('Please select a region first');
+        return;
+    }
+
+    if (!offlineDB) {
+        await initOfflineDB();
+    }
+
+    const tiles = getTilesForBounds(selectedRegionBounds);
+    const regionId = `region_${Date.now()}`;
+
+    // Show download modal
+    showDownloadModal(tiles.length);
+
+    downloadAbortController = new AbortController();
+
+    try {
+        const tileBaseUrl = getTileBaseUrl();
+        let downloaded = 0;
+        let totalSize = 0;
+
+        for (const tileKey of tiles) {
+            if (downloadAbortController.signal.aborted) {
+                throw new Error('Download cancelled');
+            }
+
+            const tileUrl = `${tileBaseUrl}/${tileKey}.png`;
+
+            try {
+                const response = await fetch(tileUrl, {
+                    signal: downloadAbortController.signal
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    totalSize += blob.size;
+                    await storeTile(regionId, tileKey, blob);
+                }
+            } catch (e) {
+                if (e.name === 'AbortError') throw e;
+            }
+
+            downloaded++;
+            updateDownloadProgress(downloaded, tiles.length, totalSize);
+        }
+
+        // Store region metadata
+        const regionData = {
+            id: regionId,
+            name: `${selectedRegionType || 'Custom'} Region`,
+            type: 'region',
+            bounds: selectedRegionBounds,
+            tileCount: tiles.length,
+            totalSize: totalSize,
+            savedAt: Date.now()
+        };
+
+        await storeRoute(regionData);
+
+        closeDownloadModal();
+        closeRegionPanel();
+        showToast(`Downloaded ${formatBytes(totalSize)} for offline use`);
+
+    } catch (error) {
+        closeDownloadModal();
+        if (error.message !== 'Download cancelled') {
+            showToast('Download failed');
+            console.error('Region download error:', error);
+        }
+    }
+}
+window.downloadRegion = downloadRegion;
 
 // ============================================
 // Share ETA Feature

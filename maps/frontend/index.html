@@ -1157,8 +1157,1465 @@
         .report-type-label {
             font-size: 13px;
             font-weight: 500;
+        }
+
+        /* Map Layers Panel */
+        .layers-panel {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            background: #f5f5f5;
+            z-index: 300;
+            border-radius: 24px 24px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .layers-panel.active {
+            transform: translateY(0);
+        }
+
+        .layers-header {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            background: white;
+            border-radius: 24px 24px 0 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .layers-back {
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+        }
+
+        .layers-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .layers-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            padding-bottom: max(16px, env(safe-area-inset-bottom));
+        }
+
+        .layers-section {
+            margin-bottom: 24px;
+        }
+
+        .layers-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            padding-left: 4px;
+        }
+
+        .layers-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .layer-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: white;
+            border-radius: 16px;
+            padding: 12px 8px;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .layer-option:active {
+            transform: scale(0.95);
+        }
+
+        .layer-option.selected {
+            border-color: #007AFF;
+            background: #E8F4FF;
+        }
+
+        .layer-preview {
+            width: 80px;
+            height: 60px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            background-size: cover;
+            background-position: center;
+            border: 1px solid #e0e0e0;
+        }
+
+        .layer-preview.streets { background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 50%, #f0f0f0 100%); }
+        .layer-preview.satellite { background: linear-gradient(135deg, #2d5016 0%, #1a3a0f 50%, #0d2a1a 100%); }
+        .layer-preview.dark { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); }
+        .layer-preview.local { background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 50%, #ffcc80 100%); }
+        .layer-preview.terrain { background: linear-gradient(135deg, #c8e6c9 0%, #a5d6a7 50%, #81c784 100%); }
+        .layer-preview.hybrid { background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #388e3c 100%); }
+
+        .layer-name {
+            font-size: 12px;
+            font-weight: 500;
             color: #333;
             text-align: center;
+        }
+
+        .layer-badge {
+            font-size: 9px;
+            background: #4CAF50;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-top: 4px;
+        }
+
+        .layers-toggles {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .layer-toggle {
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: 12px;
+            padding: 14px 16px;
+            cursor: pointer;
+        }
+
+        .layer-toggle-icon {
+            font-size: 24px;
+            margin-right: 14px;
+        }
+
+        .layer-toggle-content {
+            flex: 1;
+        }
+
+        .layer-toggle-label {
+            font-size: 15px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .layer-toggle-desc {
+            font-size: 12px;
+            color: #888;
+            margin-top: 2px;
+            color: #333;
+            text-align: center;
+        }
+
+        /* Historical Timeline Panel */
+        .timeline-panel {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            background: #1a1a2e;
+            z-index: 300;
+            border-radius: 24px 24px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            color: white;
+        }
+
+        .timeline-panel.active {
+            transform: translateY(0);
+        }
+
+        .timeline-header {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            background: #16213e;
+            border-radius: 24px 24px 0 0;
+            border-bottom: 1px solid #0f3460;
+        }
+
+        .timeline-back {
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            font-size: 20px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+        }
+
+        .timeline-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .timeline-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            padding-bottom: max(16px, env(safe-area-inset-bottom));
+        }
+
+        .timeline-slider-container {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .timeline-year-display {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        .timeline-year {
+            font-size: 48px;
+            font-weight: 700;
+            color: #e94560;
+        }
+
+        .timeline-year-suffix {
+            font-size: 20px;
+            color: #888;
+            margin-left: 8px;
+        }
+
+        .timeline-period {
+            font-size: 14px;
+            color: #aaa;
+            margin-top: 4px;
+        }
+
+        .timeline-slider {
+            width: 100%;
+            height: 8px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: linear-gradient(to right, #0f3460, #e94560);
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .timeline-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .timeline-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+            font-size: 10px;
+            color: #666;
+        }
+
+        .timeline-maps-section {
+            margin-top: 16px;
+        }
+
+        .timeline-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .timeline-maps-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .timeline-map-card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .timeline-map-card:active {
+            transform: scale(0.97);
+        }
+
+        .timeline-map-card.selected {
+            border-color: #e94560;
+        }
+
+        .timeline-map-thumb {
+            width: 100%;
+            height: 80px;
+            object-fit: cover;
+            background: #333;
+        }
+
+        .timeline-map-info {
+            padding: 10px;
+        }
+
+        .timeline-map-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .timeline-map-period {
+            font-size: 10px;
+            color: #888;
+            margin-top: 2px;
+        }
+
+        .timeline-overlay-controls {
+            background: rgba(255,255,255,0.05);
+            border-radius: 16px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+
+        .timeline-control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .timeline-control-label {
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        .timeline-opacity-slider {
+            flex: 1;
+            margin: 0 16px;
+            height: 6px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+            outline: none;
+        }
+
+        .timeline-opacity-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #e94560;
+            cursor: pointer;
+        }
+
+        .timeline-opacity-value {
+            font-size: 14px;
+            color: white;
+            min-width: 40px;
+            text-align: right;
+        }
+
+        .timeline-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .timeline-action-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .timeline-clear-btn {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .timeline-apply-btn {
+            background: #e94560;
+            color: white;
+        }
+
+        .timeline-action-btn:active {
+            transform: scale(0.97);
+        }
+
+        /* Timeline floating indicator when overlay is active */
+        .timeline-indicator {
+            position: fixed;
+            bottom: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(26, 26, 46, 0.95);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            z-index: 150;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .timeline-indicator.active {
+            display: flex;
+        }
+
+        .timeline-indicator-year {
+            font-weight: 700;
+            color: #e94560;
+        }
+
+        .timeline-indicator-close {
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Transit Overlay Panel */
+        .transit-panel {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            background: white;
+            z-index: 300;
+            border-radius: 24px 24px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .transit-panel.active {
+            transform: translateY(0);
+        }
+
+        .transit-header {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            background: #4CAF50;
+            border-radius: 24px 24px 0 0;
+            color: white;
+        }
+
+        .transit-back {
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            font-size: 20px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+        }
+
+        .transit-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .transit-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            padding-bottom: max(16px, env(safe-area-inset-bottom));
+        }
+
+        .transit-search-box {
+            background: #f5f5f5;
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+        }
+
+        .transit-search-input {
+            width: 100%;
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .transit-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .transit-tab {
+            padding: 10px 16px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .transit-tab.active {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .transit-stop-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .transit-stop-card {
+            display: flex;
+            align-items: center;
+            background: #f9f9f9;
+            border-radius: 12px;
+            padding: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .transit-stop-card:active {
+            transform: scale(0.98);
+            background: #f0f0f0;
+        }
+
+        .transit-stop-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-right: 14px;
+        }
+
+        .transit-stop-icon.bus { background: #2196F3; color: white; }
+        .transit-stop-icon.train { background: #9C27B0; color: white; }
+        .transit-stop-icon.taxi { background: #FF9800; color: white; }
+        .transit-stop-icon.airport { background: #607D8B; color: white; }
+
+        .transit-stop-info {
+            flex: 1;
+        }
+
+        .transit-stop-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .transit-stop-meta {
+            font-size: 13px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .transit-stop-distance {
+            font-size: 13px;
+            color: #4CAF50;
+            font-weight: 500;
+        }
+
+        .transit-route-card {
+            background: white;
+            border: 1px solid #eee;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .transit-route-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .transit-route-time {
+            font-size: 24px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .transit-route-duration {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .transit-route-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .transit-route-step {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .transit-step-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .transit-step-walk { background: #e8e8e8; }
+        .transit-step-bus { background: #2196F3; color: white; }
+        .transit-step-train { background: #9C27B0; color: white; }
+        .transit-step-taxi { background: #FF9800; color: white; }
+
+        .transit-step-details {
+            flex: 1;
+        }
+
+        .transit-step-line {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .transit-step-info {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .transit-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .transit-empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .transit-loading {
+            text-align: center;
+            padding: 30px;
+            color: #666;
+        }
+
+        /* Region Download Panel */
+        .region-panel {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            background: white;
+            z-index: 300;
+            border-radius: 24px 24px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .region-panel.active {
+            transform: translateY(0);
+        }
+
+        .region-header {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            background: #673AB7;
+            border-radius: 24px 24px 0 0;
+            color: white;
+        }
+
+        .region-back {
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            font-size: 20px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+        }
+
+        .region-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .region-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: max(20px, env(safe-area-inset-bottom));
+        }
+
+        .region-info-box {
+            background: #f5f5f5;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .region-info-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .region-info-text {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .region-presets {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .region-preset {
+            background: #f5f5f5;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .region-preset:active {
+            transform: scale(0.97);
+        }
+
+        .region-preset.selected {
+            border-color: #673AB7;
+            background: #EDE7F6;
+        }
+
+        .region-preset-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .region-preset-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .region-preset-size {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .region-draw-btn {
+            width: 100%;
+            padding: 16px;
+            background: #673AB7;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .region-draw-btn:active {
+            background: #5E35B1;
+        }
+
+        .region-download-info {
+            background: #EDE7F6;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .region-download-info.active {
+            display: block;
+        }
+
+        .region-stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .region-stat-label {
+            color: #666;
+        }
+
+        .region-stat-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .region-download-btn {
+            width: 100%;
+            padding: 16px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: none;
+        }
+
+        .region-download-btn.active {
+            display: block;
+        }
+
+        .region-download-btn:disabled {
+            background: #ccc;
+        }
+
+        /* Drawing mode indicator */
+        .region-draw-mode {
+            position: fixed;
+            top: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(103, 58, 183, 0.95);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 400;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        .region-draw-mode.active {
+            display: flex;
+        }
+
+        .region-draw-cancel {
+            background: rgba(255,255,255,0.3);
+            border: none;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        /* Fuel Prices Panel */
+        .fuel-panel {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            background: white;
+            z-index: 300;
+            border-radius: 24px 24px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .fuel-panel.active {
+            transform: translateY(0);
+        }
+
+        .fuel-header {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            background: #FF9800;
+            border-radius: 24px 24px 0 0;
+            color: white;
+        }
+
+        .fuel-back {
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            font-size: 20px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+        }
+
+        .fuel-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .fuel-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            padding-bottom: max(16px, env(safe-area-inset-bottom));
+        }
+
+        .fuel-type-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .fuel-type-tab {
+            padding: 10px 16px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .fuel-type-tab.active {
+            background: #FF9800;
+            color: white;
+        }
+
+        .fuel-station-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .fuel-station-card {
+            background: #f9f9f9;
+            border-radius: 16px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .fuel-station-card:active {
+            transform: scale(0.98);
+        }
+
+        .fuel-station-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .fuel-station-info {
+            flex: 1;
+        }
+
+        .fuel-station-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .fuel-station-brand {
+            font-size: 13px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .fuel-station-distance {
+            font-size: 14px;
+            font-weight: 600;
+            color: #FF9800;
+        }
+
+        .fuel-prices-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .fuel-price-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        .fuel-price-type {
+            color: #666;
+        }
+
+        .fuel-price-value {
+            font-weight: 700;
+            color: #333;
+        }
+
+        .fuel-price-value.no-data {
+            color: #999;
+            font-weight: 400;
+        }
+
+        .fuel-station-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #eee;
+        }
+
+        .fuel-updated {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .fuel-report-btn {
+            background: #FF9800;
+            color: white;
+            border: none;
+            padding: 8px 14px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .fuel-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .fuel-empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        /* Fuel Price Report Modal */
+        .fuel-report-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 400;
+            padding: 20px;
+        }
+
+        .fuel-report-modal.active {
+            display: flex;
+        }
+
+        .fuel-report-content {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            width: 100%;
+            max-width: 340px;
+        }
+
+        .fuel-report-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .fuel-report-input-group {
+            margin-bottom: 16px;
+        }
+
+        .fuel-report-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .fuel-report-input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #eee;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .fuel-report-input:focus {
+            outline: none;
+            border-color: #FF9800;
+        }
+
+        .fuel-report-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .fuel-report-cancel {
+            flex: 1;
+            padding: 14px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .fuel-report-submit {
+            flex: 1;
+            padding: 14px;
+            background: #FF9800;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* POI Photo Upload */
+        .poi-photo-section {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #eee;
+        }
+
+        .poi-photos-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .poi-photo-thumb {
+            width: 100%;
+            aspect-ratio: 1;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .poi-photo-add {
+            width: 100%;
+            aspect-ratio: 1;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            background: #f9f9f9;
+            color: #888;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .poi-photo-add:hover {
+            border-color: #007AFF;
+            background: #f0f7ff;
+            color: #007AFF;
+        }
+
+        .poi-photo-add-icon {
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+
+        /* Photo Viewer Modal */
+        .photo-viewer-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 500;
+        }
+
+        .photo-viewer-modal.active {
+            display: flex;
+        }
+
+        .photo-viewer-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .photo-viewer-img {
+            max-width: 95%;
+            max-height: 85vh;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
+        /* Carpool/Ride Share Panel */
+        .rideshare-panel {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            background: white;
+            z-index: 300;
+            border-radius: 24px 24px 0 0;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.15);
+            transform: translateY(100%);
+            transition: transform 0.3s ease-out;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .rideshare-panel.active {
+            transform: translateY(0);
+        }
+
+        .rideshare-header {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            background: #000;
+            border-radius: 24px 24px 0 0;
+            color: white;
+        }
+
+        .rideshare-back {
+            width: 44px;
+            height: 44px;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            font-size: 20px;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 16px;
+        }
+
+        .rideshare-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .rideshare-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: max(20px, env(safe-area-inset-bottom));
+        }
+
+        .rideshare-destination {
+            background: #f5f5f5;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .rideshare-dest-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .rideshare-dest-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .rideshare-options {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .rideshare-option {
+            display: flex;
+            align-items: center;
+            background: #f9f9f9;
+            border-radius: 16px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .rideshare-option:active {
+            transform: scale(0.98);
+        }
+
+        .rideshare-option.selected {
+            border-color: #000;
+            background: #f0f0f0;
+        }
+
+        .rideshare-logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-right: 14px;
+        }
+
+        .rideshare-logo.uber { background: #000; color: white; }
+        .rideshare-logo.bolt { background: #34D186; color: white; }
+        .rideshare-logo.indrive { background: #C5FF3B; color: #000; }
+        .rideshare-logo.taxi { background: #FFD700; color: #000; }
+
+        .rideshare-info {
+            flex: 1;
+        }
+
+        .rideshare-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .rideshare-eta {
+            font-size: 13px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .rideshare-price {
+            text-align: right;
+        }
+
+        .rideshare-price-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .rideshare-price-range {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .rideshare-cta {
+            margin-top: 20px;
+        }
+
+        .rideshare-book-btn {
+            width: 100%;
+            padding: 16px;
+            background: #000;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .rideshare-book-btn:active {
+            background: #333;
+        }
+
+        .rideshare-note {
+            text-align: center;
+            font-size: 12px;
+            color: #888;
+            margin-top: 16px;
         }
 
         .report-submit {
@@ -2003,27 +3460,55 @@
 
         body.dark-mode .settings-panel,
         body.dark-mode .report-panel,
-        body.dark-mode .saved-routes-panel {
+        body.dark-mode .saved-routes-panel,
+        body.dark-mode .layers-panel {
             background: #1e1e1e;
         }
 
         body.dark-mode .settings-header,
         body.dark-mode .report-header,
-        body.dark-mode .saved-routes-header {
+        body.dark-mode .saved-routes-header,
+        body.dark-mode .layers-header {
             background: #1e1e1e;
             border-bottom-color: #333;
         }
 
         body.dark-mode .settings-title,
         body.dark-mode .report-title,
-        body.dark-mode .saved-routes-title {
+        body.dark-mode .saved-routes-title,
+        body.dark-mode .layers-title {
             color: #e0e0e0;
         }
 
         body.dark-mode .settings-back,
         body.dark-mode .report-back,
-        body.dark-mode .saved-routes-back {
+        body.dark-mode .saved-routes-back,
+        body.dark-mode .layers-back {
             color: #aaa;
+        }
+
+        body.dark-mode .layers-section-title {
+            color: #888;
+        }
+
+        body.dark-mode .layer-option {
+            background: #2a2a2a;
+        }
+
+        body.dark-mode .layer-option.selected {
+            background: #1a3a5c;
+        }
+
+        body.dark-mode .layer-name {
+            color: #e0e0e0;
+        }
+
+        body.dark-mode .layer-toggle {
+            background: #2a2a2a;
+        }
+
+        body.dark-mode .layer-toggle-label {
+            color: #e0e0e0;
         }
 
         body.dark-mode .settings-section-title {
@@ -2942,6 +4427,14 @@
                 <span class="menu-item-icon">📥</span>
                 Saved Routes
             </button>
+            <button class="menu-item" onclick="openRegionDownload()">
+                <span class="menu-item-icon">💾</span>
+                Offline Maps
+            </button>
+            <button class="menu-item" onclick="openFuelPrices()">
+                <span class="menu-item-icon">⛽</span>
+                Fuel Prices
+            </button>
             <div class="menu-divider"></div>
             <button class="menu-item" onclick="openTimeline()">
                 <span class="menu-item-icon">⏳</span>
@@ -3042,6 +4535,410 @@
             <button class="report-submit" id="report-submit" onclick="submitIncident()" disabled>
                 Report at Current Location
             </button>
+        </div>
+    </div>
+
+    <!-- Layers Backdrop -->
+    <div class="search-backdrop" id="layers-backdrop" onclick="closeLayersPanel()"></div>
+
+    <!-- Map Layers Panel -->
+    <div class="layers-panel" id="layers-panel">
+        <div class="layers-header">
+            <button class="layers-back" onclick="closeLayersPanel()">←</button>
+            <div class="layers-title">Map Type</div>
+        </div>
+        <div class="layers-body">
+            <!-- Map Types Section -->
+            <div class="layers-section">
+                <div class="layers-section-title">Map Style</div>
+                <div class="layers-grid">
+                    <div class="layer-option selected" data-style="streets" onclick="selectMapStyle(this)">
+                        <div class="layer-preview streets"></div>
+                        <div class="layer-name">Streets</div>
+                    </div>
+                    <div class="layer-option" data-style="satellite" onclick="selectMapStyle(this)">
+                        <div class="layer-preview satellite"></div>
+                        <div class="layer-name">Satellite</div>
+                    </div>
+                    <div class="layer-option" data-style="dark" onclick="selectMapStyle(this)">
+                        <div class="layer-preview dark"></div>
+                        <div class="layer-name">Dark</div>
+                    </div>
+                    <div class="layer-option" data-style="local" onclick="selectMapStyle(this)">
+                        <div class="layer-preview local"></div>
+                        <div class="layer-name">SA Local</div>
+                        <div class="layer-badge">Offline</div>
+                    </div>
+                    <div class="layer-option" data-style="terrain" onclick="selectMapStyle(this)">
+                        <div class="layer-preview terrain"></div>
+                        <div class="layer-name">Terrain</div>
+                    </div>
+                    <div class="layer-option" data-style="hybrid" onclick="selectMapStyle(this)">
+                        <div class="layer-preview hybrid"></div>
+                        <div class="layer-name">Hybrid</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map Details Section -->
+            <div class="layers-section">
+                <div class="layers-section-title">Map Details</div>
+                <div class="layers-toggles">
+                    <label class="layer-toggle">
+                        <div class="layer-toggle-icon">🚦</div>
+                        <div class="layer-toggle-content">
+                            <div class="layer-toggle-label">Traffic</div>
+                            <div class="layer-toggle-desc">Show real-time traffic</div>
+                        </div>
+                        <input type="checkbox" id="layer-traffic" onchange="toggleLayerOption('traffic', this.checked)">
+                    </label>
+                    <label class="layer-toggle">
+                        <div class="layer-toggle-icon">🚌</div>
+                        <div class="layer-toggle-content">
+                            <div class="layer-toggle-label">Transit</div>
+                            <div class="layer-toggle-desc">Show bus & taxi stops</div>
+                        </div>
+                        <input type="checkbox" id="layer-transit" onchange="toggleLayerOption('transit', this.checked)">
+                    </label>
+                    <label class="layer-toggle">
+                        <div class="layer-toggle-icon">🚴</div>
+                        <div class="layer-toggle-content">
+                            <div class="layer-toggle-label">Cycling</div>
+                            <div class="layer-toggle-desc">Show bike lanes & paths</div>
+                        </div>
+                        <input type="checkbox" id="layer-cycling" onchange="toggleLayerOption('cycling', this.checked)">
+                    </label>
+                    <label class="layer-toggle">
+                        <div class="layer-toggle-icon">🏛️</div>
+                        <div class="layer-toggle-content">
+                            <div class="layer-toggle-label">3D Buildings</div>
+                            <div class="layer-toggle-desc">Show building extrusions</div>
+                        </div>
+                        <input type="checkbox" id="layer-3d" onchange="toggleLayerOption('3d', this.checked)">
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timeline Backdrop -->
+    <div class="search-backdrop" id="timeline-backdrop" onclick="closeTimelinePanel()"></div>
+
+    <!-- Historical Timeline Panel -->
+    <div class="timeline-panel" id="timeline-panel">
+        <div class="timeline-header">
+            <button class="timeline-back" onclick="closeTimelinePanel()">←</button>
+            <div class="timeline-title">Historical Maps</div>
+        </div>
+        <div class="timeline-body">
+            <!-- Year Slider -->
+            <div class="timeline-slider-container">
+                <div class="timeline-year-display">
+                    <span class="timeline-year" id="timeline-year-value">1500</span>
+                    <span class="timeline-year-suffix" id="timeline-year-suffix">CE</span>
+                    <div class="timeline-period" id="timeline-period-name">Age of Exploration</div>
+                </div>
+                <input type="range" class="timeline-slider" id="timeline-slider"
+                       min="-3000" max="1900" value="1500" step="50"
+                       oninput="updateTimelineYear(this.value)">
+                <div class="timeline-labels">
+                    <span>3000 BCE</span>
+                    <span>0</span>
+                    <span>1900 CE</span>
+                </div>
+            </div>
+
+            <!-- Available Maps for Period -->
+            <div class="timeline-maps-section">
+                <div class="timeline-section-title">Maps from this Period</div>
+                <div class="timeline-maps-grid" id="timeline-maps-grid">
+                    <!-- Maps populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Overlay Controls -->
+            <div class="timeline-overlay-controls" id="timeline-overlay-controls" style="display: none;">
+                <div class="timeline-control-row">
+                    <span class="timeline-control-label">Opacity</span>
+                    <input type="range" class="timeline-opacity-slider" id="timeline-opacity"
+                           min="0" max="100" value="70"
+                           oninput="updateTimelineOpacity(this.value)">
+                    <span class="timeline-opacity-value" id="timeline-opacity-value">70%</span>
+                </div>
+                <div class="timeline-actions">
+                    <button class="timeline-action-btn timeline-clear-btn" onclick="clearTimelineOverlay()">
+                        Clear Overlay
+                    </button>
+                    <button class="timeline-action-btn timeline-apply-btn" onclick="closeTimelinePanel()">
+                        Done
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timeline Indicator (shown when overlay is active) -->
+    <div class="timeline-indicator" id="timeline-indicator">
+        <span>Viewing:</span>
+        <span class="timeline-indicator-year" id="timeline-indicator-title">Roman Empire</span>
+        <button class="timeline-indicator-close" onclick="clearTimelineOverlay()">×</button>
+    </div>
+
+    <!-- Photo Viewer Modal -->
+    <div class="photo-viewer-modal" id="photo-viewer-modal" onclick="closePhotoViewer()">
+        <button class="photo-viewer-close" onclick="closePhotoViewer()">×</button>
+        <img class="photo-viewer-img" id="photo-viewer-img" src="" alt="Photo">
+    </div>
+
+    <!-- Rideshare Backdrop -->
+    <div class="search-backdrop" id="rideshare-backdrop" onclick="closeRidesharePanel()"></div>
+
+    <!-- Rideshare Panel -->
+    <div class="rideshare-panel" id="rideshare-panel">
+        <div class="rideshare-header">
+            <button class="rideshare-back" onclick="closeRidesharePanel()">←</button>
+            <div class="rideshare-title">Get a Ride</div>
+        </div>
+        <div class="rideshare-body">
+            <div class="rideshare-destination">
+                <div class="rideshare-dest-label">Going to</div>
+                <div class="rideshare-dest-name" id="rideshare-dest-name">Select a destination</div>
+            </div>
+
+            <div class="rideshare-options" id="rideshare-options">
+                <div class="rideshare-option" onclick="selectRideshare('uber', this)">
+                    <div class="rideshare-logo uber">U</div>
+                    <div class="rideshare-info">
+                        <div class="rideshare-name">Uber</div>
+                        <div class="rideshare-eta">~5 min away</div>
+                    </div>
+                    <div class="rideshare-price">
+                        <div class="rideshare-price-value">R85-120</div>
+                        <div class="rideshare-price-range">estimate</div>
+                    </div>
+                </div>
+                <div class="rideshare-option" onclick="selectRideshare('bolt', this)">
+                    <div class="rideshare-logo bolt">B</div>
+                    <div class="rideshare-info">
+                        <div class="rideshare-name">Bolt</div>
+                        <div class="rideshare-eta">~4 min away</div>
+                    </div>
+                    <div class="rideshare-price">
+                        <div class="rideshare-price-value">R75-110</div>
+                        <div class="rideshare-price-range">estimate</div>
+                    </div>
+                </div>
+                <div class="rideshare-option" onclick="selectRideshare('indrive', this)">
+                    <div class="rideshare-logo indrive">i</div>
+                    <div class="rideshare-info">
+                        <div class="rideshare-name">inDrive</div>
+                        <div class="rideshare-eta">~7 min away</div>
+                    </div>
+                    <div class="rideshare-price">
+                        <div class="rideshare-price-value">R60-100</div>
+                        <div class="rideshare-price-range">negotiate</div>
+                    </div>
+                </div>
+                <div class="rideshare-option" onclick="selectRideshare('taxi', this)">
+                    <div class="rideshare-logo taxi">🚕</div>
+                    <div class="rideshare-info">
+                        <div class="rideshare-name">Metered Taxi</div>
+                        <div class="rideshare-eta">Call to book</div>
+                    </div>
+                    <div class="rideshare-price">
+                        <div class="rideshare-price-value">R100+</div>
+                        <div class="rideshare-price-range">metered</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rideshare-cta">
+                <button class="rideshare-book-btn" id="rideshare-book-btn" onclick="bookRideshare()">
+                    Open App to Book
+                </button>
+            </div>
+
+            <p class="rideshare-note">
+                Prices are estimates. Open the app for exact pricing.
+            </p>
+        </div>
+    </div>
+
+    <!-- Hidden file input for photo upload -->
+    <input type="file" id="poi-photo-input" accept="image/*" capture="environment" style="display: none;" onchange="handlePoiPhotoUpload(event)">
+
+    <!-- Fuel Prices Backdrop -->
+    <div class="search-backdrop" id="fuel-backdrop" onclick="closeFuelPanel()"></div>
+
+    <!-- Fuel Prices Panel -->
+    <div class="fuel-panel" id="fuel-panel">
+        <div class="fuel-header">
+            <button class="fuel-back" onclick="closeFuelPanel()">←</button>
+            <div class="fuel-title">Fuel Prices</div>
+        </div>
+        <div class="fuel-body">
+            <!-- Fuel Type Tabs -->
+            <div class="fuel-type-tabs">
+                <button class="fuel-type-tab active" data-fuel="95" onclick="switchFuelType('95')">Petrol 95</button>
+                <button class="fuel-type-tab" data-fuel="93" onclick="switchFuelType('93')">Petrol 93</button>
+                <button class="fuel-type-tab" data-fuel="diesel" onclick="switchFuelType('diesel')">Diesel</button>
+                <button class="fuel-type-tab" data-fuel="diesel50" onclick="switchFuelType('diesel50')">Diesel 50ppm</button>
+            </div>
+
+            <!-- Station List -->
+            <div id="fuel-station-list" class="fuel-station-list">
+                <div class="fuel-empty">
+                    <div class="fuel-empty-icon">⛽</div>
+                    <p>Enable location to find fuel stations</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fuel Price Report Modal -->
+    <div class="fuel-report-modal" id="fuel-report-modal">
+        <div class="fuel-report-content">
+            <div class="fuel-report-title">Report Fuel Price</div>
+            <input type="hidden" id="fuel-report-station-id">
+            <div class="fuel-report-input-group">
+                <label class="fuel-report-label">Station</label>
+                <div id="fuel-report-station-name" style="font-weight: 600; color: #333;">-</div>
+            </div>
+            <div class="fuel-report-input-group">
+                <label class="fuel-report-label" for="fuel-report-price-95">Petrol 95 (R/L)</label>
+                <input type="number" step="0.01" class="fuel-report-input" id="fuel-report-price-95" placeholder="24.50">
+            </div>
+            <div class="fuel-report-input-group">
+                <label class="fuel-report-label" for="fuel-report-price-93">Petrol 93 (R/L)</label>
+                <input type="number" step="0.01" class="fuel-report-input" id="fuel-report-price-93" placeholder="24.20">
+            </div>
+            <div class="fuel-report-input-group">
+                <label class="fuel-report-label" for="fuel-report-price-diesel">Diesel (R/L)</label>
+                <input type="number" step="0.01" class="fuel-report-input" id="fuel-report-price-diesel" placeholder="22.80">
+            </div>
+            <div class="fuel-report-actions">
+                <button class="fuel-report-cancel" onclick="closeFuelReport()">Cancel</button>
+                <button class="fuel-report-submit" onclick="submitFuelReport()">Submit</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Region Download Backdrop -->
+    <div class="search-backdrop" id="region-backdrop" onclick="closeRegionPanel()"></div>
+
+    <!-- Region Download Panel -->
+    <div class="region-panel" id="region-panel">
+        <div class="region-header">
+            <button class="region-back" onclick="closeRegionPanel()">←</button>
+            <div class="region-title">Download Region</div>
+        </div>
+        <div class="region-body">
+            <div class="region-info-box">
+                <div class="region-info-title">Offline Maps</div>
+                <div class="region-info-text">
+                    Download map tiles for offline use. Choose a preset region or draw a custom area on the map.
+                </div>
+            </div>
+
+            <!-- Preset Regions -->
+            <div class="region-presets">
+                <div class="region-preset" onclick="selectRegionPreset('current', this)" data-region="current">
+                    <div class="region-preset-icon">📍</div>
+                    <div class="region-preset-name">Current View</div>
+                    <div class="region-preset-size" id="current-region-size">~10 MB</div>
+                </div>
+                <div class="region-preset" onclick="selectRegionPreset('city', this)" data-region="city">
+                    <div class="region-preset-icon">🏙️</div>
+                    <div class="region-preset-name">Nearby City</div>
+                    <div class="region-preset-size">~50 MB</div>
+                </div>
+                <div class="region-preset" onclick="selectRegionPreset('province', this)" data-region="province">
+                    <div class="region-preset-icon">🗺️</div>
+                    <div class="region-preset-name">Province</div>
+                    <div class="region-preset-size">~200 MB</div>
+                </div>
+                <div class="region-preset" onclick="selectRegionPreset('custom', this)" data-region="custom">
+                    <div class="region-preset-icon">✏️</div>
+                    <div class="region-preset-name">Custom Area</div>
+                    <div class="region-preset-size">Draw on map</div>
+                </div>
+            </div>
+
+            <!-- Draw Button (for custom) -->
+            <button class="region-draw-btn" id="region-draw-btn" style="display: none;" onclick="startRegionDraw()">
+                <span>✏️</span>
+                <span>Draw Area on Map</span>
+            </button>
+
+            <!-- Download Info -->
+            <div class="region-download-info" id="region-download-info">
+                <div class="region-stat-row">
+                    <span class="region-stat-label">Area</span>
+                    <span class="region-stat-value" id="region-area">-</span>
+                </div>
+                <div class="region-stat-row">
+                    <span class="region-stat-label">Tiles to download</span>
+                    <span class="region-stat-value" id="region-tiles">-</span>
+                </div>
+                <div class="region-stat-row">
+                    <span class="region-stat-label">Estimated size</span>
+                    <span class="region-stat-value" id="region-size">-</span>
+                </div>
+            </div>
+
+            <!-- Download Button -->
+            <button class="region-download-btn" id="region-download-btn" onclick="downloadRegion()">
+                Download for Offline Use
+            </button>
+        </div>
+    </div>
+
+    <!-- Region Draw Mode Indicator -->
+    <div class="region-draw-mode" id="region-draw-mode">
+        <span>Drag to select area</span>
+        <button class="region-draw-cancel" onclick="cancelRegionDraw()">Cancel</button>
+    </div>
+
+    <!-- Transit Backdrop -->
+    <div class="search-backdrop" id="transit-backdrop" onclick="closeTransitPanel()"></div>
+
+    <!-- Transit Panel -->
+    <div class="transit-panel" id="transit-panel">
+        <div class="transit-header">
+            <button class="transit-back" onclick="closeTransitPanel()">←</button>
+            <div class="transit-title">Public Transport</div>
+        </div>
+        <div class="transit-body">
+            <!-- Search Box -->
+            <div class="transit-search-box">
+                <input type="text" class="transit-search-input" id="transit-search"
+                       placeholder="Where do you want to go?"
+                       onkeyup="handleTransitSearch(event)">
+            </div>
+
+            <!-- Departure Time Selection -->
+            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                <button class="transit-tab active" id="transit-depart-now" onclick="setTransitDeparture('now')">Leave Now</button>
+                <button class="transit-tab" id="transit-depart-later" onclick="setTransitDeparture('later')">Depart At</button>
+                <input type="time" id="transit-depart-time" style="display: none; padding: 8px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px;" onchange="updateTransitDeparture()">
+            </div>
+
+            <!-- Tabs -->
+            <div class="transit-tabs">
+                <button class="transit-tab active" data-tab="nearby" onclick="switchTransitTab('nearby')">Nearby</button>
+                <button class="transit-tab" data-tab="routes" onclick="switchTransitTab('routes')">Plan Trip</button>
+                <button class="transit-tab" data-tab="buses" onclick="switchTransitTab('buses')">Buses</button>
+                <button class="transit-tab" data-tab="trains" onclick="switchTransitTab('trains')">Trains</button>
+                <button class="transit-tab" data-tab="taxis" onclick="switchTransitTab('taxis')">Taxis</button>
+            </div>
+
+            <!-- Content Area -->
+            <div id="transit-content">
+                <!-- Populated dynamically -->
+                <div class="transit-loading">
+                    Enable location to see nearby transit stops...
+                </div>
+            </div>
         </div>
     </div>
 
