@@ -5981,6 +5981,850 @@ function escapeHtml(str) {
 }
 
 // ============================================
+// Distance Measurement Tool (M25)
+// ============================================
+let measureMode = false;
+let measurePoints = [];
+let measureMarkers = [];
+let measureLine = null;
+
+function startMeasure() {
+    measureMode = true;
+    measurePoints = [];
+    measureMarkers = [];
+    document.body.classList.add('measure-mode-active');
+    document.getElementById('measure-toolbar').classList.add('active');
+    updateMeasureDisplay();
+
+    // Add click handler
+    map.on('click', onMeasureClick);
+    showToast('Tap on map to add points');
+    toggleMenu(false);
+}
+window.startMeasure = startMeasure;
+
+function onMeasureClick(e) {
+    if (!measureMode) return;
+
+    const lngLat = [e.lngLat.lng, e.lngLat.lat];
+    measurePoints.push(lngLat);
+
+    // Add marker
+    const markerEl = document.createElement('div');
+    markerEl.className = 'measure-marker';
+    const marker = new maplibregl.Marker({ element: markerEl })
+        .setLngLat(lngLat)
+        .addTo(map);
+    measureMarkers.push(marker);
+
+    // Update line
+    updateMeasureLine();
+    updateMeasureDisplay();
+}
+
+function updateMeasureLine() {
+    if (measurePoints.length < 2) {
+        if (map.getLayer('measure-line')) {
+            map.removeLayer('measure-line');
+            map.removeSource('measure-line');
+        }
+        return;
+    }
+
+    const geojson = {
+        type: 'Feature',
+        geometry: {
+            type: 'LineString',
+            coordinates: measurePoints
+        }
+    };
+
+    if (map.getSource('measure-line')) {
+        map.getSource('measure-line').setData(geojson);
+    } else {
+        map.addSource('measure-line', { type: 'geojson', data: geojson });
+        map.addLayer({
+            id: 'measure-line',
+            type: 'line',
+            source: 'measure-line',
+            paint: {
+                'line-color': '#1a73e8',
+                'line-width': 3,
+                'line-dasharray': [2, 2]
+            }
+        });
+    }
+}
+
+function updateMeasureDisplay() {
+    const distEl = document.getElementById('measure-distance');
+    const pointsEl = document.getElementById('measure-points');
+
+    const distance = calculateTotalDistance();
+    distEl.textContent = formatDistance(distance);
+    pointsEl.textContent = `${measurePoints.length} point${measurePoints.length !== 1 ? 's' : ''}`;
+}
+
+function calculateTotalDistance() {
+    if (measurePoints.length < 2) return 0;
+
+    let total = 0;
+    for (let i = 1; i < measurePoints.length; i++) {
+        total += haversineDistance(
+            measurePoints[i - 1][1], measurePoints[i - 1][0],
+            measurePoints[i][1], measurePoints[i][0]
+        );
+    }
+    return total;
+}
+
+function formatDistance(meters) {
+    if (meters < 1000) {
+        return `${Math.round(meters)} m`;
+    }
+    return `${(meters / 1000).toFixed(2)} km`;
+}
+
+function measureUndo() {
+    if (measurePoints.length === 0) return;
+
+    measurePoints.pop();
+    const marker = measureMarkers.pop();
+    if (marker) marker.remove();
+
+    updateMeasureLine();
+    updateMeasureDisplay();
+}
+window.measureUndo = measureUndo;
+
+function measureClear() {
+    measurePoints = [];
+    measureMarkers.forEach(m => m.remove());
+    measureMarkers = [];
+
+    if (map.getLayer('measure-line')) {
+        map.removeLayer('measure-line');
+        map.removeSource('measure-line');
+    }
+
+    updateMeasureDisplay();
+}
+window.measureClear = measureClear;
+
+function measureDone() {
+    measureMode = false;
+    document.body.classList.remove('measure-mode-active');
+    document.getElementById('measure-toolbar').classList.remove('active');
+    map.off('click', onMeasureClick);
+
+    measureClear();
+    showToast('Measurement complete');
+}
+window.measureDone = measureDone;
+
+// ============================================
+// Saved Places/Collections (M26)
+// ============================================
+let collections = JSON.parse(localStorage.getItem('mapCollections') || '[]');
+let selectedCollectionIcon = '📍';
+let currentViewingCollection = null;
+
+// Default collections
+if (collections.length === 0) {
+    collections = [
+        { id: 'favorites', name: 'Favorites', icon: '⭐', places: [] },
+        { id: 'want-to-go', name: 'Want to Go', icon: '📍', places: [] }
+    ];
+    localStorage.setItem('mapCollections', JSON.stringify(collections));
+}
+
+function openCollections() {
+    const panel = document.getElementById('collections-panel');
+    panel.classList.add('active');
+    renderCollections();
+    toggleMenu(false);
+}
+window.openCollections = openCollections;
+
+function closeCollections() {
+    document.getElementById('collections-panel').classList.remove('active');
+    currentViewingCollection = null;
+}
+window.closeCollections = closeCollections;
+
+function renderCollections() {
+    const list = document.getElementById('collections-list');
+
+    if (currentViewingCollection) {
+        // Show places in collection
+        const collection = collections.find(c => c.id === currentViewingCollection);
+        if (!collection) return;
+
+        list.innerHTML = `
+            <div style="padding: 16px; border-bottom: 1px solid #eee;">
+                <button onclick="currentViewingCollection = null; renderCollections();" style="border: none; background: none; font-size: 16px; cursor: pointer;">← Back</button>
+                <span style="font-size: 18px; font-weight: 600; margin-left: 12px;">${escapeHtml(collection.icon)} ${escapeHtml(collection.name)}</span>
+            </div>
+            <div class="collection-places">
+                ${collection.places.length === 0 ?
+                    '<div style="text-align: center; padding: 40px; color: #666;">No places saved yet</div>' :
+                    collection.places.map((place, idx) => `
+                        <div class="collection-place" onclick="goToCollectionPlace(${idx})">
+                            <div class="collection-place-icon">📍</div>
+                            <div class="collection-place-name">${escapeHtml(place.name)}</div>
+                            <button class="collection-place-remove" onclick="event.stopPropagation(); removeFromCollection('${collection.id}', ${idx})">×</button>
+                        </div>
+                    `).join('')
+                }
+            </div>
+        `;
+        return;
+    }
+
+    list.innerHTML = collections.map(c => `
+        <div class="collection-item" onclick="viewCollection('${c.id}')">
+            <div class="collection-icon custom">${c.icon}</div>
+            <div class="collection-info">
+                <div class="collection-name">${escapeHtml(c.name)}</div>
+                <div class="collection-count">${c.places.length} place${c.places.length !== 1 ? 's' : ''}</div>
+            </div>
+            <div class="collection-arrow">›</div>
+        </div>
+    `).join('');
+}
+
+function viewCollection(id) {
+    currentViewingCollection = id;
+    renderCollections();
+}
+window.viewCollection = viewCollection;
+
+function goToCollectionPlace(idx) {
+    const collection = collections.find(c => c.id === currentViewingCollection);
+    if (!collection || !collection.places[idx]) return;
+
+    const place = collection.places[idx];
+    closeCollections();
+
+    map.flyTo({ center: [place.lng, place.lat], zoom: 15 });
+
+    // Show popup
+    new maplibregl.Popup()
+        .setLngLat([place.lng, place.lat])
+        .setHTML(`<strong>${escapeHtml(place.name)}</strong>`)
+        .addTo(map);
+}
+window.goToCollectionPlace = goToCollectionPlace;
+
+function removeFromCollection(collectionId, placeIdx) {
+    const collection = collections.find(c => c.id === collectionId);
+    if (!collection) return;
+
+    collection.places.splice(placeIdx, 1);
+    localStorage.setItem('mapCollections', JSON.stringify(collections));
+    renderCollections();
+    showToast('Place removed');
+}
+window.removeFromCollection = removeFromCollection;
+
+function showAddCollectionModal() {
+    document.getElementById('add-collection-modal').classList.add('show');
+    document.getElementById('new-collection-name').value = '';
+    selectedCollectionIcon = '📍';
+}
+window.showAddCollectionModal = showAddCollectionModal;
+
+function closeAddCollectionModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('add-collection-modal').classList.remove('show');
+}
+window.closeAddCollectionModal = closeAddCollectionModal;
+
+function selectCollectionIcon(btn) {
+    document.querySelectorAll('.add-collection-icon-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedCollectionIcon = btn.dataset.icon;
+}
+window.selectCollectionIcon = selectCollectionIcon;
+
+function saveNewCollection() {
+    const name = document.getElementById('new-collection-name').value.trim();
+    if (!name) {
+        showToast('Enter a name');
+        return;
+    }
+
+    const id = 'custom-' + Date.now();
+    collections.push({ id, name, icon: selectedCollectionIcon, places: [] });
+    localStorage.setItem('mapCollections', JSON.stringify(collections));
+
+    closeAddCollectionModal();
+    renderCollections();
+    showToast('Collection created');
+}
+window.saveNewCollection = saveNewCollection;
+
+function addToCollection(collectionId, place) {
+    const collection = collections.find(c => c.id === collectionId);
+    if (!collection) return;
+
+    collection.places.push(place);
+    localStorage.setItem('mapCollections', JSON.stringify(collections));
+    showToast(`Added to ${collection.name}`);
+}
+window.addToCollection = addToCollection;
+
+// ============================================
+// Planned Drives/Trips (M28)
+// ============================================
+let plannedDrives = JSON.parse(localStorage.getItem('plannedDrives') || '[]');
+let editingDriveId = null;
+let planDriveFrom = null;
+let planDriveTo = null;
+
+function openPlannedDrives() {
+    document.getElementById('planned-drives-panel').classList.add('active');
+    renderPlannedDrives();
+    toggleMenu(false);
+}
+window.openPlannedDrives = openPlannedDrives;
+
+function closePlannedDrives() {
+    document.getElementById('planned-drives-panel').classList.remove('active');
+}
+window.closePlannedDrives = closePlannedDrives;
+
+function renderPlannedDrives() {
+    const list = document.getElementById('planned-list');
+
+    if (plannedDrives.length === 0) {
+        list.innerHTML = `
+            <div class="planned-empty">
+                <div class="planned-empty-icon">📅</div>
+                <p>No planned drives yet</p>
+                <p style="font-size: 14px; margin-top: 8px;">Schedule your commute or upcoming trips</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Sort by date
+    const sorted = [...plannedDrives].sort((a, b) => new Date(a.date + 'T' + a.time) - new Date(b.date + 'T' + b.time));
+
+    list.innerHTML = sorted.map(drive => {
+        const dateObj = new Date(drive.date + 'T' + drive.time);
+        const dateStr = dateObj.toLocaleDateString('en-ZA', { weekday: 'short', month: 'short', day: 'numeric' });
+        const timeStr = dateObj.toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' });
+
+        return `
+            <div class="planned-item">
+                <div class="planned-item-header">
+                    <div class="planned-item-date">${dateStr}</div>
+                    <div class="planned-item-time">${timeStr}</div>
+                    ${drive.recurring ? `<div class="planned-item-recurring">🔄 Weekly</div>` : ''}
+                </div>
+                <div class="planned-item-route">
+                    <div class="planned-route-dots">
+                        <div class="planned-route-dot"></div>
+                        <div class="planned-route-line"></div>
+                        <div class="planned-route-dot-end"></div>
+                    </div>
+                    <div class="planned-route-places">
+                        <div class="planned-route-from">${escapeHtml(drive.fromName)}</div>
+                        <div class="planned-route-to">${escapeHtml(drive.toName)}</div>
+                    </div>
+                </div>
+                <div class="planned-item-actions">
+                    <button class="planned-action-btn planned-action-start" onclick="startPlannedDrive('${drive.id}')">Navigate</button>
+                    <button class="planned-action-btn planned-action-delete" onclick="deletePlannedDrive('${drive.id}')">Delete</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function openPlanDriveModal() {
+    document.getElementById('plan-drive-modal').classList.add('show');
+    editingDriveId = null;
+    planDriveFrom = null;
+    planDriveTo = null;
+
+    // Set default date to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('plan-drive-date').value = today;
+    document.getElementById('plan-drive-time').value = '08:00';
+    document.getElementById('plan-drive-from').value = '';
+    document.getElementById('plan-drive-to').value = '';
+    document.getElementById('plan-drive-repeat').checked = false;
+    document.getElementById('plan-drive-days').style.display = 'none';
+}
+window.openPlanDriveModal = openPlanDriveModal;
+
+function closePlanDriveModal(event) {
+    if (event && event.target !== event.currentTarget) return;
+    document.getElementById('plan-drive-modal').classList.remove('show');
+}
+window.closePlanDriveModal = closePlanDriveModal;
+
+function toggleRepeatDays() {
+    const checked = document.getElementById('plan-drive-repeat').checked;
+    document.getElementById('plan-drive-days').style.display = checked ? 'flex' : 'none';
+}
+window.toggleRepeatDays = toggleRepeatDays;
+
+function togglePlanDay(btn) {
+    btn.classList.toggle('selected');
+}
+window.togglePlanDay = togglePlanDay;
+
+function openPlanLocationSearch(field) {
+    // Use the existing search overlay
+    openSearch();
+
+    // Store which field we're setting
+    window.planLocationField = field;
+
+    // Override the search result click
+    window.planLocationSearchActive = true;
+}
+window.openPlanLocationSearch = openPlanLocationSearch;
+
+function savePlannedDrive() {
+    const fromInput = document.getElementById('plan-drive-from').value;
+    const toInput = document.getElementById('plan-drive-to').value;
+    const date = document.getElementById('plan-drive-date').value;
+    const time = document.getElementById('plan-drive-time').value;
+    const recurring = document.getElementById('plan-drive-repeat').checked;
+
+    if (!fromInput || !toInput || !date || !time) {
+        showToast('Fill in all fields');
+        return;
+    }
+
+    // Get selected days if recurring
+    let days = [];
+    if (recurring) {
+        document.querySelectorAll('.plan-day-btn.selected').forEach(btn => {
+            days.push(parseInt(btn.dataset.day));
+        });
+    }
+
+    const drive = {
+        id: editingDriveId || 'drive-' + Date.now(),
+        fromName: fromInput,
+        toName: toInput,
+        fromCoords: planDriveFrom,
+        toCoords: planDriveTo,
+        date,
+        time,
+        recurring,
+        days
+    };
+
+    if (editingDriveId) {
+        const idx = plannedDrives.findIndex(d => d.id === editingDriveId);
+        if (idx >= 0) plannedDrives[idx] = drive;
+    } else {
+        plannedDrives.push(drive);
+    }
+
+    localStorage.setItem('plannedDrives', JSON.stringify(plannedDrives));
+    closePlanDriveModal();
+    renderPlannedDrives();
+    showToast('Drive saved');
+}
+window.savePlannedDrive = savePlannedDrive;
+
+function startPlannedDrive(driveId) {
+    const drive = plannedDrives.find(d => d.id === driveId);
+    if (!drive) return;
+
+    closePlannedDrives();
+
+    if (drive.toCoords) {
+        getDirections(drive.toCoords[1], drive.toCoords[0]);
+    } else {
+        // Geocode destination
+        geocodeAndNavigate(drive.toName);
+    }
+}
+window.startPlannedDrive = startPlannedDrive;
+
+async function geocodeAndNavigate(address) {
+    try {
+        const res = await fetch(`${API_BASE}/geocode?q=${encodeURIComponent(address)}`);
+        const data = await res.json();
+        if (data.results && data.results[0]) {
+            getDirections(data.results[0].lat, data.results[0].lon);
+        } else {
+            showToast('Could not find destination');
+        }
+    } catch (e) {
+        showToast('Navigation error');
+    }
+}
+
+function deletePlannedDrive(driveId) {
+    plannedDrives = plannedDrives.filter(d => d.id !== driveId);
+    localStorage.setItem('plannedDrives', JSON.stringify(plannedDrives));
+    renderPlannedDrives();
+    showToast('Drive deleted');
+}
+window.deletePlannedDrive = deletePlannedDrive;
+
+// ============================================
+// Avatar/Mood Customization (M30)
+// ============================================
+let userAvatar = localStorage.getItem('userAvatar') || '🚗';
+let userMood = localStorage.getItem('userMood') || 'happy';
+let selectedAvatar = userAvatar;
+let selectedMood = userMood;
+
+const moodLabels = {
+    happy: 'Happy Driver',
+    chill: 'Chill Mode',
+    tired: 'Tired Driver',
+    rush: 'In a Rush',
+    music: 'Jamming Out',
+    coffee: 'Need Coffee',
+    zen: 'Zen Mode',
+    party: 'Party Mode'
+};
+
+function openAvatarPanel() {
+    document.getElementById('avatar-panel').classList.add('active');
+    selectedAvatar = userAvatar;
+    selectedMood = userMood;
+    updateAvatarPreview();
+
+    // Mark current selections
+    document.querySelectorAll('.avatar-option').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.avatar === userAvatar);
+    });
+    document.querySelectorAll('.mood-option').forEach(btn => {
+        btn.classList.toggle('selected', btn.dataset.mood === userMood);
+    });
+
+    toggleMenu(false);
+}
+window.openAvatarPanel = openAvatarPanel;
+
+function closeAvatarPanel() {
+    document.getElementById('avatar-panel').classList.remove('active');
+}
+window.closeAvatarPanel = closeAvatarPanel;
+
+function selectAvatar(btn) {
+    document.querySelectorAll('.avatar-option').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedAvatar = btn.dataset.avatar;
+    updateAvatarPreview();
+}
+window.selectAvatar = selectAvatar;
+
+function selectMood(btn) {
+    document.querySelectorAll('.mood-option').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedMood = btn.dataset.mood;
+    updateAvatarPreview();
+}
+window.selectMood = selectMood;
+
+function updateAvatarPreview() {
+    document.getElementById('avatar-current').textContent = selectedAvatar;
+    document.getElementById('avatar-mood-text').textContent = moodLabels[selectedMood] || 'Happy Driver';
+}
+
+function saveAvatarSettings() {
+    userAvatar = selectedAvatar;
+    userMood = selectedMood;
+    localStorage.setItem('userAvatar', userAvatar);
+    localStorage.setItem('userMood', userMood);
+
+    closeAvatarPanel();
+    showToast('Avatar updated');
+
+    // Update user marker if exists
+    updateUserMarkerAvatar();
+}
+window.saveAvatarSettings = saveAvatarSettings;
+
+function updateUserMarkerAvatar() {
+    // If user location marker exists, update its icon
+    const userMarkerEl = document.querySelector('.user-location-marker');
+    if (userMarkerEl) {
+        userMarkerEl.textContent = userAvatar;
+    }
+}
+
+// ============================================
+// Audio Player Integration (M31)
+// ============================================
+let audioPlaying = false;
+let audioSource = null;
+let mediaSessionSupported = 'mediaSession' in navigator;
+
+function openAudioPicker() {
+    document.getElementById('audio-source-picker').classList.add('active');
+    toggleMenu(false);
+}
+window.openAudioPicker = openAudioPicker;
+
+function closeAudioPicker() {
+    document.getElementById('audio-source-picker').classList.remove('active');
+}
+window.closeAudioPicker = closeAudioPicker;
+
+function connectAudioSource(source) {
+    closeAudioPicker();
+
+    switch (source) {
+        case 'spotify':
+            window.open('spotify:', '_blank');
+            break;
+        case 'apple':
+            window.open('music:', '_blank');
+            break;
+        case 'youtube':
+            window.open('https://music.youtube.com', '_blank');
+            break;
+        case 'radio':
+            openRadioStations();
+            break;
+    }
+
+    // Show audio bar during navigation
+    if (isNavigating) {
+        showAudioBar();
+    }
+}
+window.connectAudioSource = connectAudioSource;
+
+function showAudioBar() {
+    document.getElementById('audio-player-bar').classList.add('active');
+}
+
+function hideAudioBar() {
+    document.getElementById('audio-player-bar').classList.remove('active');
+}
+
+function audioPlayPause() {
+    audioPlaying = !audioPlaying;
+    const btn = document.getElementById('audio-play-btn');
+    btn.textContent = audioPlaying ? '⏸' : '▶';
+
+    // Try to control media playback via Media Session API
+    if (mediaSessionSupported && navigator.mediaSession.playbackState) {
+        // This would work with actual media integration
+    }
+}
+window.audioPlayPause = audioPlayPause;
+
+function audioPrevious() {
+    showToast('Previous track');
+    // In real integration, this would communicate with the music app
+}
+window.audioPrevious = audioPrevious;
+
+function audioNext() {
+    showToast('Next track');
+    // In real integration, this would communicate with the music app
+}
+window.audioNext = audioNext;
+
+function openRadioStations() {
+    // South African radio stations
+    const stations = [
+        { name: '5FM', url: 'https://5fm.co.za' },
+        { name: 'Metro FM', url: 'https://www.metrofm.co.za' },
+        { name: '947', url: 'https://www.947.co.za' },
+        { name: 'KFM', url: 'https://kfm.co.za' },
+        { name: 'Jacaranda FM', url: 'https://jacarandafm.com' }
+    ];
+
+    // For now, just show a toast
+    showToast('Opening radio stations...');
+    window.open(stations[0].url, '_blank');
+}
+
+// ============================================
+// Calendar Integration (M32)
+// ============================================
+let calendarEvents = JSON.parse(localStorage.getItem('calendarEvents') || '[]');
+let calendarConnected = localStorage.getItem('calendarConnected') === 'true';
+
+function openCalendarPanel() {
+    document.getElementById('calendar-panel').classList.add('active');
+    renderCalendarContent();
+    toggleMenu(false);
+}
+window.openCalendarPanel = openCalendarPanel;
+
+function closeCalendarPanel() {
+    document.getElementById('calendar-panel').classList.remove('active');
+}
+window.closeCalendarPanel = closeCalendarPanel;
+
+function renderCalendarContent() {
+    const content = document.getElementById('calendar-content');
+
+    if (!calendarConnected) {
+        content.innerHTML = `
+            <div class="calendar-connect">
+                <div class="calendar-connect-icon">📅</div>
+                <div class="calendar-connect-title">Connect Your Calendar</div>
+                <div class="calendar-connect-desc">See your upcoming events with locations and get navigation with one tap.</div>
+                <div>
+                    <button class="calendar-connect-btn calendar-connect-google" onclick="connectCalendar('google')">
+                        <span>G</span> Google Calendar
+                    </button>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    // Group events by date
+    const today = new Date().toISOString().split('T')[0];
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+
+    // Demo events if none exist
+    if (calendarEvents.length === 0) {
+        calendarEvents = [
+            {
+                id: 'demo1',
+                title: 'Team Meeting',
+                date: today,
+                time: '09:00',
+                location: 'Office, Sandton',
+                lat: -26.1076,
+                lng: 28.0567
+            },
+            {
+                id: 'demo2',
+                title: 'Lunch with Client',
+                date: today,
+                time: '12:30',
+                location: 'Rosebank Mall',
+                lat: -26.1455,
+                lng: 28.0436
+            },
+            {
+                id: 'demo3',
+                title: 'Gym Session',
+                date: tomorrow,
+                time: '06:00',
+                location: 'Virgin Active, Melrose Arch',
+                lat: -26.1342,
+                lng: 28.0689
+            }
+        ];
+    }
+
+    const todayEvents = calendarEvents.filter(e => e.date === today);
+    const tomorrowEvents = calendarEvents.filter(e => e.date === tomorrow);
+    const futureEvents = calendarEvents.filter(e => e.date > tomorrow);
+
+    let html = '';
+
+    if (todayEvents.length > 0) {
+        html += `
+            <div class="calendar-date-header">Today</div>
+            <div class="calendar-events">
+                ${renderCalendarEvents(todayEvents)}
+            </div>
+        `;
+    }
+
+    if (tomorrowEvents.length > 0) {
+        html += `
+            <div class="calendar-date-header">Tomorrow</div>
+            <div class="calendar-events">
+                ${renderCalendarEvents(tomorrowEvents)}
+            </div>
+        `;
+    }
+
+    if (futureEvents.length > 0) {
+        html += `
+            <div class="calendar-date-header">Upcoming</div>
+            <div class="calendar-events">
+                ${renderCalendarEvents(futureEvents)}
+            </div>
+        `;
+    }
+
+    if (html === '') {
+        html = `
+            <div class="calendar-no-events">
+                <div class="calendar-no-events-icon">📅</div>
+                <p>No upcoming events with locations</p>
+            </div>
+        `;
+    }
+
+    content.innerHTML = html;
+}
+
+function renderCalendarEvents(events) {
+    return events.map(event => {
+        const timeObj = new Date(`2000-01-01T${event.time}`);
+        const hour = timeObj.getHours();
+        const minute = timeObj.getMinutes().toString().padStart(2, '0');
+        const period = hour >= 12 ? 'PM' : 'AM';
+        const hour12 = hour % 12 || 12;
+
+        return `
+            <div class="calendar-event">
+                <div class="calendar-event-time">
+                    <div class="calendar-event-hour">${hour12}:${minute}</div>
+                    <div class="calendar-event-period">${period}</div>
+                </div>
+                <div class="calendar-event-details">
+                    <div class="calendar-event-title">${escapeHtml(event.title)}</div>
+                    <div class="calendar-event-location">📍 ${escapeHtml(event.location)}</div>
+                    <button class="calendar-event-navigate" onclick="navigateToEvent('${event.id}')">Navigate</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function connectCalendar(provider) {
+    // In real implementation, this would use OAuth
+    // For demo, just mark as connected and show demo events
+    calendarConnected = true;
+    localStorage.setItem('calendarConnected', 'true');
+
+    showToast(`Connected to ${provider === 'google' ? 'Google' : 'Apple'} Calendar`);
+    renderCalendarContent();
+}
+window.connectCalendar = connectCalendar;
+
+function syncCalendar() {
+    showToast('Syncing calendar...');
+    setTimeout(() => {
+        showToast('Calendar synced');
+        renderCalendarContent();
+    }, 1000);
+}
+window.syncCalendar = syncCalendar;
+
+function navigateToEvent(eventId) {
+    const event = calendarEvents.find(e => e.id === eventId);
+    if (!event) return;
+
+    closeCalendarPanel();
+
+    if (event.lat && event.lng) {
+        getDirections(event.lat, event.lng);
+    } else if (event.location) {
+        geocodeAndNavigate(event.location);
+    }
+}
+window.navigateToEvent = navigateToEvent;
+
+// ============================================
 // Start App
 // ============================================
 if (document.readyState === 'loading') {

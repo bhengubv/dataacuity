@@ -4104,6 +4104,1174 @@
         body.dark-mode .share-eta-live-text {
             color: #81C784;
         }
+
+        /* ============================================
+           Distance Measurement Tool (M25)
+           ============================================ */
+        .measure-mode-active #map {
+            cursor: crosshair !important;
+        }
+
+        .measure-toolbar {
+            position: fixed;
+            bottom: 160px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            border-radius: 16px;
+            padding: 12px 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            display: none;
+            align-items: center;
+            gap: 16px;
+            z-index: 200;
+        }
+
+        .measure-toolbar.active {
+            display: flex;
+        }
+
+        .measure-info {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .measure-distance {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1a73e8;
+        }
+
+        .measure-points {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .measure-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .measure-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .measure-btn-undo {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .measure-btn-clear {
+            background: #fee;
+            color: #d32f2f;
+        }
+
+        .measure-btn-done {
+            background: #1a73e8;
+            color: white;
+        }
+
+        .measure-marker {
+            width: 16px;
+            height: 16px;
+            background: #1a73e8;
+            border: 3px solid white;
+            border-radius: 50%;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        /* ============================================
+           Saved Places/Collections (M26)
+           ============================================ */
+        .collections-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            z-index: 500;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .collections-panel.active {
+            transform: translateX(0);
+        }
+
+        .collections-header {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .collections-back {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            margin-right: 12px;
+        }
+
+        .collections-title {
+            font-size: 20px;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .collections-add {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: #1a73e8;
+            color: white;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .collections-list {
+            padding: 8px;
+            overflow-y: auto;
+            height: calc(100% - 70px);
+        }
+
+        .collection-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+        }
+
+        .collection-item:active {
+            background: #e8f0fe;
+        }
+
+        .collection-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-right: 12px;
+        }
+
+        .collection-icon.favorites { background: #fff3e0; }
+        .collection-icon.want-to-go { background: #e8f5e9; }
+        .collection-icon.starred { background: #fff8e1; }
+        .collection-icon.custom { background: #e3f2fd; }
+
+        .collection-info {
+            flex: 1;
+        }
+
+        .collection-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .collection-count {
+            font-size: 13px;
+            color: #666;
+            margin-top: 2px;
+        }
+
+        .collection-arrow {
+            color: #999;
+            font-size: 18px;
+        }
+
+        .collection-places {
+            padding: 8px 16px;
+        }
+
+        .collection-place {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .collection-place-icon {
+            font-size: 20px;
+            margin-right: 12px;
+        }
+
+        .collection-place-name {
+            flex: 1;
+            font-size: 15px;
+            color: #333;
+        }
+
+        .collection-place-remove {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: none;
+            color: #999;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        /* Add to Collection Modal */
+        .add-collection-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 600;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .add-collection-modal.show {
+            display: flex;
+        }
+
+        .add-collection-content {
+            background: white;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 400px;
+            padding: 20px;
+        }
+
+        .add-collection-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .add-collection-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+
+        .add-collection-input:focus {
+            outline: none;
+            border-color: #1a73e8;
+        }
+
+        .add-collection-icons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .add-collection-icon-btn {
+            width: 44px;
+            height: 44px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            background: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+
+        .add-collection-icon-btn.selected {
+            border-color: #1a73e8;
+            background: #e8f0fe;
+        }
+
+        .add-collection-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .add-collection-cancel {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .add-collection-save {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            background: #1a73e8;
+            color: white;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        /* ============================================
+           Planned Drives/Trips (M28)
+           ============================================ */
+        .planned-drives-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            z-index: 500;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .planned-drives-panel.active {
+            transform: translateX(0);
+        }
+
+        .planned-header {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .planned-back {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            margin-right: 12px;
+        }
+
+        .planned-title {
+            font-size: 20px;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .planned-add-btn {
+            padding: 8px 16px;
+            border: none;
+            background: #1a73e8;
+            color: white;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .planned-list {
+            padding: 16px;
+            overflow-y: auto;
+            height: calc(100% - 70px);
+        }
+
+        .planned-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .planned-empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .planned-item {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .planned-item-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .planned-item-date {
+            background: #e3f2fd;
+            color: #1a73e8;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .planned-item-time {
+            margin-left: 8px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .planned-item-recurring {
+            margin-left: auto;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .planned-item-route {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .planned-route-dots {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 4px;
+        }
+
+        .planned-route-dot {
+            width: 10px;
+            height: 10px;
+            background: #4CAF50;
+            border-radius: 50%;
+        }
+
+        .planned-route-line {
+            width: 2px;
+            height: 24px;
+            background: #ddd;
+        }
+
+        .planned-route-dot-end {
+            width: 10px;
+            height: 10px;
+            background: #f44336;
+            border-radius: 50%;
+        }
+
+        .planned-route-places {
+            flex: 1;
+        }
+
+        .planned-route-from,
+        .planned-route-to {
+            font-size: 15px;
+            color: #333;
+            padding: 4px 0;
+        }
+
+        .planned-item-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .planned-action-btn {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .planned-action-start {
+            background: #1a73e8;
+            color: white;
+        }
+
+        .planned-action-edit {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .planned-action-delete {
+            background: #fee;
+            color: #d32f2f;
+        }
+
+        /* Plan Drive Modal */
+        .plan-drive-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 600;
+            display: none;
+            align-items: flex-end;
+        }
+
+        .plan-drive-modal.show {
+            display: flex;
+        }
+
+        .plan-drive-content {
+            background: white;
+            border-radius: 20px 20px 0 0;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .plan-drive-handle {
+            width: 40px;
+            height: 4px;
+            background: #ddd;
+            border-radius: 2px;
+            margin: 0 auto 16px;
+        }
+
+        .plan-drive-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .plan-drive-field {
+            margin-bottom: 16px;
+        }
+
+        .plan-drive-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .plan-drive-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+        }
+
+        .plan-drive-input:focus {
+            outline: none;
+            border-color: #1a73e8;
+        }
+
+        .plan-drive-datetime {
+            display: flex;
+            gap: 12px;
+        }
+
+        .plan-drive-datetime input {
+            flex: 1;
+        }
+
+        .plan-drive-recurring {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 12px;
+        }
+
+        .plan-drive-recurring input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+        }
+
+        .plan-drive-days {
+            display: flex;
+            gap: 6px;
+            margin-top: 12px;
+        }
+
+        .plan-day-btn {
+            width: 36px;
+            height: 36px;
+            border: 2px solid #e0e0e0;
+            border-radius: 50%;
+            background: white;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .plan-day-btn.selected {
+            background: #1a73e8;
+            border-color: #1a73e8;
+            color: white;
+        }
+
+        .plan-drive-save {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            background: #1a73e8;
+            color: white;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        /* ============================================
+           Avatar/Mood Customization (M30)
+           ============================================ */
+        .avatar-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            z-index: 500;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .avatar-panel.active {
+            transform: translateX(0);
+        }
+
+        .avatar-header {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .avatar-back {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            margin-right: 12px;
+        }
+
+        .avatar-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .avatar-content {
+            padding: 20px;
+            overflow-y: auto;
+            height: calc(100% - 70px);
+        }
+
+        .avatar-preview {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 20px;
+            margin-bottom: 24px;
+        }
+
+        .avatar-current {
+            font-size: 80px;
+            margin-bottom: 12px;
+        }
+
+        .avatar-mood-text {
+            color: white;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .avatar-section {
+            margin-bottom: 24px;
+        }
+
+        .avatar-section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .avatar-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+        }
+
+        .avatar-option {
+            width: 100%;
+            aspect-ratio: 1;
+            border: 3px solid #e0e0e0;
+            border-radius: 16px;
+            background: white;
+            font-size: 32px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .avatar-option:active {
+            transform: scale(0.95);
+        }
+
+        .avatar-option.selected {
+            border-color: #1a73e8;
+            background: #e8f0fe;
+        }
+
+        .mood-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .mood-option {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            background: white;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .mood-option:active {
+            transform: scale(0.95);
+        }
+
+        .mood-option.selected {
+            border-color: #1a73e8;
+            background: #e8f0fe;
+        }
+
+        .mood-emoji {
+            font-size: 28px;
+            margin-bottom: 4px;
+        }
+
+        .mood-label {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .avatar-save {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            background: #1a73e8;
+            color: white;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* ============================================
+           Audio Player Integration (M31)
+           ============================================ */
+        .audio-player-bar {
+            position: fixed;
+            bottom: 100px;
+            left: 16px;
+            right: 16px;
+            background: rgba(30, 30, 30, 0.95);
+            border-radius: 16px;
+            padding: 12px 16px;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            z-index: 150;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .audio-player-bar.active {
+            display: flex;
+        }
+
+        .audio-artwork {
+            width: 48px;
+            height: 48px;
+            background: #333;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .audio-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .audio-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .audio-artist {
+            font-size: 12px;
+            color: #aaa;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .audio-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .audio-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: transparent;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        .audio-btn:active {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .audio-btn-play {
+            width: 48px;
+            height: 48px;
+            background: #1DB954;
+            font-size: 24px;
+        }
+
+        .audio-source-picker {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 20px 20px 0 0;
+            padding: 20px;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 600;
+        }
+
+        .audio-source-picker.active {
+            transform: translateY(0);
+        }
+
+        .audio-source-handle {
+            width: 40px;
+            height: 4px;
+            background: #ddd;
+            border-radius: 2px;
+            margin: 0 auto 16px;
+        }
+
+        .audio-source-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .audio-source-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .audio-source-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-radius: 12px;
+            background: #f8f9fa;
+            cursor: pointer;
+            gap: 12px;
+        }
+
+        .audio-source-item:active {
+            background: #e8f0fe;
+        }
+
+        .audio-source-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .audio-source-icon.spotify { background: #1DB954; }
+        .audio-source-icon.apple { background: #fc3c44; }
+        .audio-source-icon.youtube { background: #ff0000; }
+        .audio-source-icon.radio { background: #ff9800; }
+
+        .audio-source-name {
+            flex: 1;
+            font-size: 16px;
+            font-weight: 500;
+        }
+
+        .audio-source-status {
+            font-size: 13px;
+            color: #666;
+        }
+
+        /* ============================================
+           Calendar Integration (M32)
+           ============================================ */
+        .calendar-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: white;
+            z-index: 500;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+
+        .calendar-panel.active {
+            transform: translateX(0);
+        }
+
+        .calendar-header {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .calendar-back {
+            width: 40px;
+            height: 40px;
+            border: none;
+            background: #f0f0f0;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            margin-right: 12px;
+        }
+
+        .calendar-title {
+            font-size: 20px;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .calendar-sync-btn {
+            padding: 8px 16px;
+            border: none;
+            background: #1a73e8;
+            color: white;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .calendar-content {
+            padding: 16px;
+            overflow-y: auto;
+            height: calc(100% - 70px);
+        }
+
+        .calendar-date-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+
+        .calendar-events {
+            margin-bottom: 24px;
+        }
+
+        .calendar-event {
+            display: flex;
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 8px;
+            border-left: 4px solid #1a73e8;
+        }
+
+        .calendar-event-time {
+            width: 60px;
+            text-align: center;
+            padding-right: 12px;
+            border-right: 1px solid #ddd;
+        }
+
+        .calendar-event-hour {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .calendar-event-period {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .calendar-event-details {
+            flex: 1;
+            padding-left: 12px;
+        }
+
+        .calendar-event-title {
+            font-size: 16px;
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .calendar-event-location {
+            font-size: 14px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .calendar-event-navigate {
+            padding: 8px 16px;
+            border: none;
+            background: #1a73e8;
+            color: white;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+
+        .calendar-no-events {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .calendar-no-events-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .calendar-connect {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .calendar-connect-icon {
+            font-size: 64px;
+            margin-bottom: 16px;
+        }
+
+        .calendar-connect-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .calendar-connect-desc {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .calendar-connect-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            background: #1a73e8;
+            color: white;
+            border-radius: 24px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .calendar-connect-google {
+            background: #4285f4;
+        }
+
+        .calendar-connect-apple {
+            background: #333;
+            margin-left: 8px;
+        }
+
+        /* Dark mode for new panels */
+        body.dark-mode .measure-toolbar { background: #1e1e1e; }
+        body.dark-mode .measure-distance { color: #8ab4f8; }
+        body.dark-mode .measure-points { color: #888; }
+        body.dark-mode .measure-btn-undo { background: #333; color: #ddd; }
+        body.dark-mode .measure-btn-clear { background: #3d2020; }
+
+        body.dark-mode .collections-panel { background: #121212; }
+        body.dark-mode .collections-header { border-color: #333; }
+        body.dark-mode .collections-title { color: #e0e0e0; }
+        body.dark-mode .collections-back { background: #333; color: #ddd; }
+        body.dark-mode .collection-item { background: #1e1e1e; }
+        body.dark-mode .collection-name { color: #e0e0e0; }
+        body.dark-mode .collection-count { color: #888; }
+        body.dark-mode .add-collection-content { background: #1e1e1e; }
+        body.dark-mode .add-collection-title { color: #e0e0e0; }
+        body.dark-mode .add-collection-input { background: #252525; border-color: #444; color: #e0e0e0; }
+
+        body.dark-mode .planned-drives-panel { background: #121212; }
+        body.dark-mode .planned-header { border-color: #333; }
+        body.dark-mode .planned-title { color: #e0e0e0; }
+        body.dark-mode .planned-back { background: #333; color: #ddd; }
+        body.dark-mode .planned-item { background: #1e1e1e; }
+        body.dark-mode .planned-route-from,
+        body.dark-mode .planned-route-to { color: #e0e0e0; }
+        body.dark-mode .plan-drive-content { background: #1e1e1e; }
+        body.dark-mode .plan-drive-title { color: #e0e0e0; }
+        body.dark-mode .plan-drive-label { color: #888; }
+        body.dark-mode .plan-drive-input { background: #252525; border-color: #444; color: #e0e0e0; }
+
+        body.dark-mode .avatar-panel { background: #121212; }
+        body.dark-mode .avatar-header { border-color: #333; }
+        body.dark-mode .avatar-title { color: #e0e0e0; }
+        body.dark-mode .avatar-back { background: #333; color: #ddd; }
+        body.dark-mode .avatar-section-title { color: #e0e0e0; }
+        body.dark-mode .avatar-option { background: #1e1e1e; border-color: #333; }
+        body.dark-mode .mood-option { background: #1e1e1e; border-color: #333; }
+        body.dark-mode .mood-label { color: #888; }
+
+        body.dark-mode .audio-source-picker { background: #1e1e1e; }
+        body.dark-mode .audio-source-title { color: #e0e0e0; }
+        body.dark-mode .audio-source-item { background: #252525; }
+        body.dark-mode .audio-source-name { color: #e0e0e0; }
+
+        body.dark-mode .calendar-panel { background: #121212; }
+        body.dark-mode .calendar-header { border-color: #333; }
+        body.dark-mode .calendar-title { color: #e0e0e0; }
+        body.dark-mode .calendar-back { background: #333; color: #ddd; }
+        body.dark-mode .calendar-date-header { color: #888; }
+        body.dark-mode .calendar-event { background: #1e1e1e; }
+        body.dark-mode .calendar-event-hour { color: #e0e0e0; }
+        body.dark-mode .calendar-event-title { color: #e0e0e0; }
+        body.dark-mode .calendar-event-time { border-color: #333; }
     </style>
     <link rel="preload" href="css/maps.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="css/maps.css"></noscript>
@@ -4434,6 +5602,30 @@
             <button class="menu-item" onclick="openFuelPrices()">
                 <span class="menu-item-icon">⛽</span>
                 Fuel Prices
+            </button>
+            <button class="menu-item" onclick="startMeasure()">
+                <span class="menu-item-icon">📏</span>
+                Measure Distance
+            </button>
+            <button class="menu-item" onclick="openCollections()">
+                <span class="menu-item-icon">⭐</span>
+                Saved Places
+            </button>
+            <button class="menu-item" onclick="openPlannedDrives()">
+                <span class="menu-item-icon">📅</span>
+                Planned Drives
+            </button>
+            <button class="menu-item" onclick="openAvatarPanel()">
+                <span class="menu-item-icon">🎭</span>
+                Customize Avatar
+            </button>
+            <button class="menu-item" onclick="openAudioPicker()">
+                <span class="menu-item-icon">🎵</span>
+                Music
+            </button>
+            <button class="menu-item" onclick="openCalendarPanel()">
+                <span class="menu-item-icon">📆</span>
+                Calendar
             </button>
             <div class="menu-divider"></div>
             <button class="menu-item" onclick="openTimeline()">
@@ -5144,6 +6336,231 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Measure Distance Toolbar (M25) -->
+    <div class="measure-toolbar" id="measure-toolbar">
+        <div class="measure-info">
+            <div class="measure-distance" id="measure-distance">0 m</div>
+            <div class="measure-points" id="measure-points">0 points</div>
+        </div>
+        <div class="measure-actions">
+            <button class="measure-btn measure-btn-undo" onclick="measureUndo()">Undo</button>
+            <button class="measure-btn measure-btn-clear" onclick="measureClear()">Clear</button>
+            <button class="measure-btn measure-btn-done" onclick="measureDone()">Done</button>
+        </div>
+    </div>
+
+    <!-- Collections Panel (M26) -->
+    <div class="collections-panel" id="collections-panel">
+        <div class="collections-header">
+            <button class="collections-back" onclick="closeCollections()">←</button>
+            <div class="collections-title">Your Places</div>
+            <button class="collections-add" onclick="showAddCollectionModal()">+</button>
+        </div>
+        <div class="collections-list" id="collections-list">
+            <!-- Collections rendered dynamically -->
+        </div>
+    </div>
+
+    <!-- Add Collection Modal (M26) -->
+    <div class="add-collection-modal" id="add-collection-modal" onclick="closeAddCollectionModal(event)">
+        <div class="add-collection-content" onclick="event.stopPropagation()">
+            <div class="add-collection-title">New Collection</div>
+            <input type="text" class="add-collection-input" id="new-collection-name" placeholder="Collection name">
+            <div class="add-collection-icons">
+                <button class="add-collection-icon-btn selected" data-icon="📍" onclick="selectCollectionIcon(this)">📍</button>
+                <button class="add-collection-icon-btn" data-icon="⭐" onclick="selectCollectionIcon(this)">⭐</button>
+                <button class="add-collection-icon-btn" data-icon="❤️" onclick="selectCollectionIcon(this)">❤️</button>
+                <button class="add-collection-icon-btn" data-icon="🏠" onclick="selectCollectionIcon(this)">🏠</button>
+                <button class="add-collection-icon-btn" data-icon="🛒" onclick="selectCollectionIcon(this)">🛒</button>
+                <button class="add-collection-icon-btn" data-icon="🍽️" onclick="selectCollectionIcon(this)">🍽️</button>
+            </div>
+            <div class="add-collection-actions">
+                <button class="add-collection-cancel" onclick="closeAddCollectionModal()">Cancel</button>
+                <button class="add-collection-save" onclick="saveNewCollection()">Create</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Planned Drives Panel (M28) -->
+    <div class="planned-drives-panel" id="planned-drives-panel">
+        <div class="planned-header">
+            <button class="planned-back" onclick="closePlannedDrives()">←</button>
+            <div class="planned-title">Planned Drives</div>
+            <button class="planned-add-btn" onclick="openPlanDriveModal()">+ Add</button>
+        </div>
+        <div class="planned-list" id="planned-list">
+            <!-- Drives rendered dynamically -->
+        </div>
+    </div>
+
+    <!-- Plan Drive Modal (M28) -->
+    <div class="plan-drive-modal" id="plan-drive-modal" onclick="closePlanDriveModal(event)">
+        <div class="plan-drive-content" onclick="event.stopPropagation()">
+            <div class="plan-drive-handle"></div>
+            <div class="plan-drive-title">Plan a Drive</div>
+
+            <div class="plan-drive-field">
+                <div class="plan-drive-label">From</div>
+                <input type="text" class="plan-drive-input" id="plan-drive-from" placeholder="Starting location" onfocus="openPlanLocationSearch('from')">
+            </div>
+
+            <div class="plan-drive-field">
+                <div class="plan-drive-label">To</div>
+                <input type="text" class="plan-drive-input" id="plan-drive-to" placeholder="Destination" onfocus="openPlanLocationSearch('to')">
+            </div>
+
+            <div class="plan-drive-field">
+                <div class="plan-drive-label">When</div>
+                <div class="plan-drive-datetime">
+                    <input type="date" class="plan-drive-input" id="plan-drive-date">
+                    <input type="time" class="plan-drive-input" id="plan-drive-time">
+                </div>
+            </div>
+
+            <div class="plan-drive-field">
+                <div class="plan-drive-recurring">
+                    <input type="checkbox" id="plan-drive-repeat" onchange="toggleRepeatDays()">
+                    <label for="plan-drive-repeat">Repeat weekly</label>
+                </div>
+                <div class="plan-drive-days" id="plan-drive-days" style="display: none;">
+                    <button class="plan-day-btn" data-day="0" onclick="togglePlanDay(this)">S</button>
+                    <button class="plan-day-btn" data-day="1" onclick="togglePlanDay(this)">M</button>
+                    <button class="plan-day-btn" data-day="2" onclick="togglePlanDay(this)">T</button>
+                    <button class="plan-day-btn" data-day="3" onclick="togglePlanDay(this)">W</button>
+                    <button class="plan-day-btn" data-day="4" onclick="togglePlanDay(this)">T</button>
+                    <button class="plan-day-btn" data-day="5" onclick="togglePlanDay(this)">F</button>
+                    <button class="plan-day-btn" data-day="6" onclick="togglePlanDay(this)">S</button>
+                </div>
+            </div>
+
+            <button class="plan-drive-save" onclick="savePlannedDrive()">Save Drive</button>
+        </div>
+    </div>
+
+    <!-- Avatar Panel (M30) -->
+    <div class="avatar-panel" id="avatar-panel">
+        <div class="avatar-header">
+            <button class="avatar-back" onclick="closeAvatarPanel()">←</button>
+            <div class="avatar-title">Customize Avatar</div>
+        </div>
+        <div class="avatar-content">
+            <div class="avatar-preview">
+                <div class="avatar-current" id="avatar-current">🚗</div>
+                <div class="avatar-mood-text" id="avatar-mood-text">Happy Driver</div>
+            </div>
+
+            <div class="avatar-section">
+                <div class="avatar-section-title">Choose Your Vehicle</div>
+                <div class="avatar-grid">
+                    <button class="avatar-option selected" data-avatar="🚗" onclick="selectAvatar(this)">🚗</button>
+                    <button class="avatar-option" data-avatar="🚙" onclick="selectAvatar(this)">🚙</button>
+                    <button class="avatar-option" data-avatar="🏎️" onclick="selectAvatar(this)">🏎️</button>
+                    <button class="avatar-option" data-avatar="🚕" onclick="selectAvatar(this)">🚕</button>
+                    <button class="avatar-option" data-avatar="🛻" onclick="selectAvatar(this)">🛻</button>
+                    <button class="avatar-option" data-avatar="🚐" onclick="selectAvatar(this)">🚐</button>
+                    <button class="avatar-option" data-avatar="🏍️" onclick="selectAvatar(this)">🏍️</button>
+                    <button class="avatar-option" data-avatar="🛵" onclick="selectAvatar(this)">🛵</button>
+                    <button class="avatar-option" data-avatar="🚲" onclick="selectAvatar(this)">🚲</button>
+                    <button class="avatar-option" data-avatar="🚶" onclick="selectAvatar(this)">🚶</button>
+                </div>
+            </div>
+
+            <div class="avatar-section">
+                <div class="avatar-section-title">Your Mood</div>
+                <div class="mood-grid">
+                    <button class="mood-option selected" data-mood="happy" onclick="selectMood(this)">
+                        <div class="mood-emoji">😊</div>
+                        <div class="mood-label">Happy</div>
+                    </button>
+                    <button class="mood-option" data-mood="chill" onclick="selectMood(this)">
+                        <div class="mood-emoji">😎</div>
+                        <div class="mood-label">Chill</div>
+                    </button>
+                    <button class="mood-option" data-mood="tired" onclick="selectMood(this)">
+                        <div class="mood-emoji">😴</div>
+                        <div class="mood-label">Tired</div>
+                    </button>
+                    <button class="mood-option" data-mood="rush" onclick="selectMood(this)">
+                        <div class="mood-emoji">🏃</div>
+                        <div class="mood-label">In a Rush</div>
+                    </button>
+                    <button class="mood-option" data-mood="music" onclick="selectMood(this)">
+                        <div class="mood-emoji">🎵</div>
+                        <div class="mood-label">Jamming</div>
+                    </button>
+                    <button class="mood-option" data-mood="coffee" onclick="selectMood(this)">
+                        <div class="mood-emoji">☕</div>
+                        <div class="mood-label">Need Coffee</div>
+                    </button>
+                    <button class="mood-option" data-mood="zen" onclick="selectMood(this)">
+                        <div class="mood-emoji">🧘</div>
+                        <div class="mood-label">Zen</div>
+                    </button>
+                    <button class="mood-option" data-mood="party" onclick="selectMood(this)">
+                        <div class="mood-emoji">🎉</div>
+                        <div class="mood-label">Party</div>
+                    </button>
+                </div>
+            </div>
+
+            <button class="avatar-save" onclick="saveAvatarSettings()">Save</button>
+        </div>
+    </div>
+
+    <!-- Audio Player Bar (M31) -->
+    <div class="audio-player-bar" id="audio-player-bar">
+        <div class="audio-artwork" id="audio-artwork">🎵</div>
+        <div class="audio-info">
+            <div class="audio-title" id="audio-title">Not Playing</div>
+            <div class="audio-artist" id="audio-artist">Open a music app</div>
+        </div>
+        <div class="audio-controls">
+            <button class="audio-btn" onclick="audioPrevious()">⏮</button>
+            <button class="audio-btn audio-btn-play" id="audio-play-btn" onclick="audioPlayPause()">▶</button>
+            <button class="audio-btn" onclick="audioNext()">⏭</button>
+        </div>
+    </div>
+
+    <!-- Audio Source Picker (M31) -->
+    <div class="audio-source-picker" id="audio-source-picker">
+        <div class="audio-source-handle"></div>
+        <div class="audio-source-title">Music Source</div>
+        <div class="audio-source-list">
+            <div class="audio-source-item" onclick="connectAudioSource('spotify')">
+                <div class="audio-source-icon spotify">🎵</div>
+                <div class="audio-source-name">Spotify</div>
+                <div class="audio-source-status">Connect</div>
+            </div>
+            <div class="audio-source-item" onclick="connectAudioSource('apple')">
+                <div class="audio-source-icon apple">🎵</div>
+                <div class="audio-source-name">Apple Music</div>
+                <div class="audio-source-status">Connect</div>
+            </div>
+            <div class="audio-source-item" onclick="connectAudioSource('youtube')">
+                <div class="audio-source-icon youtube">▶</div>
+                <div class="audio-source-name">YouTube Music</div>
+                <div class="audio-source-status">Connect</div>
+            </div>
+            <div class="audio-source-item" onclick="connectAudioSource('radio')">
+                <div class="audio-source-icon radio">📻</div>
+                <div class="audio-source-name">Radio</div>
+                <div class="audio-source-status">SA Stations</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar Panel (M32) -->
+    <div class="calendar-panel" id="calendar-panel">
+        <div class="calendar-header">
+            <button class="calendar-back" onclick="closeCalendarPanel()">←</button>
+            <div class="calendar-title">Calendar</div>
+            <button class="calendar-sync-btn" onclick="syncCalendar()">Sync</button>
+        </div>
+        <div class="calendar-content" id="calendar-content">
+            <!-- Events rendered dynamically or connect prompt -->
         </div>
     </div>
 
